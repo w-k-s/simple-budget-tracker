@@ -90,9 +90,24 @@ func (suite *UserDaoTestSuite) Test_Given_aUser_WHEN_theUserIsSaved_THEN_userCan
 	
 	// WHEN
 	suite.userDao.Save(aUser)
-	theUser,_ := suite.userDao.GetUserById(1)
+	theUser,err := suite.userDao.GetUserById(1)
 
 	// THEN
+	assert.Nil(suite.T(), err)
 	assert.EqualValues(suite.T(), aUser.Email().Address, theUser.Email().Address)
 	assert.EqualValues(suite.T(), aUser.Id(), theUser.Id())
+}
+
+func (suite *UserDaoTestSuite) Test_Given_twoUsers_WHEN_theUsersHaveTheSameEmail_THEN_onlyOneUserIsSaved() {
+	// GIVEN
+	user1,_ := core.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
+	user2,_ := core.NewUserWithEmailString(2, "jack.torrence@theoverlook.com")
+	
+	// WHEN
+	err1 := suite.userDao.Save(user1)
+	err2 := suite.userDao.Save(user2)
+
+	// THEN
+	assert.Nil(suite.T(), err1)
+	assert.NotNil(suite.T(), err2)
 }
