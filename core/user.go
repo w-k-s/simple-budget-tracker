@@ -1,10 +1,11 @@
 package core
 
 import (
+	"fmt"
 	"net/mail"
 )
 
-type UserId int64
+type UserId uint64
 type User struct {
 	id    UserId
 	email *mail.Address
@@ -15,6 +16,17 @@ func NewUser(id UserId, email *mail.Address) *User {
 		id:    id,
 		email: email,
 	}
+}
+
+func NewUserWithEmailString(id UserId, emailString string) (*User, error) {
+	email, err := mail.ParseAddress(emailString)
+	if err != nil {
+		return nil, fmt.Errorf("invalid email: %w", err)
+	}
+	return &User{
+		id: id,
+		email: email,
+	},nil
 }
 
 func (u User) Id() UserId {

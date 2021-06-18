@@ -70,10 +70,29 @@ func (suite *UserDaoTestSuite) TearDownTest() {
 	if container := suite.postgresC; container != nil{
 		container.Terminate(suite.containerCtx)
 	}
+	suite.userDao.Close()
 }
 
 // -- SUITE
 
-func (suite *UserDaoTestSuite) TestExample() {
-	assert.Equal(suite.T(), 5, 5)
+func (suite *UserDaoTestSuite) Test_WHEN_NewUserIdIsCalled_THEN_userIdIsReturnedFromDatabaseSequence() {
+	// WHEN
+	userId, err := suite.userDao.NewUserId()
+
+	// THEN
+	assert.Nil(suite.T(), err)
+	assert.Positive(suite.T(), userId)
+}
+
+func (suite *UserDaoTestSuite) Test_Given_aUser_WHEN_theUserIsSaved_THEN_userCanBeRetrieved() {
+	// GIVEN
+	aUser,_ := core.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
+	
+	// WHEN
+	suite.userDao.Save(aUser)
+	theUser,_ := suite.userDao.GetUserById(1)
+
+	// THEN
+	assert.EqualValues(suite.T(), aUser.Email().Address, theUser.Email().Address)
+	assert.EqualValues(suite.T(), aUser.Id(), theUser.Id())
 }

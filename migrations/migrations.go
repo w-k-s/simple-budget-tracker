@@ -32,7 +32,7 @@ func RunMigrations(driverName string, dataSourceName string, migrationsDirectory
 	var err error
 	db, err = sql.Open(driverName, dataSourceName)
 	u.CheckError(err, "Migrations: Failed to connect to database")
-	db.SetMaxIdleConns(0)
+	db.SetMaxIdleConns(0) // Required, otherwise pinging will result in EOF
 
 	err = backoff.Retry(ping, backoff.NewExponentialBackOff())
 	driver, err := postgres.WithInstance(db, &postgres.Config{
