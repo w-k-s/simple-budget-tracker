@@ -42,7 +42,7 @@ func (d *DefaultUserDao) NewUserId() (core.UserId, error){
 func (d *DefaultUserDao) Save(u *core.User) {
 	tx := d.db.MustBegin()
 	tx.MustExec("INSERT INTO budget.user (id, email) VALUES ($1, $2)", u.Id(), u.Email().Address)
-	tx.Commit()
+	_ = tx.Commit()
 }
 
 func (d *DefaultUserDao) GetUserById(queryId core.UserId) (*core.User, error){

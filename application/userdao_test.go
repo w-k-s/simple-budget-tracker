@@ -68,7 +68,7 @@ func (suite *UserDaoTestSuite) SetupTest() {
 
 func (suite *UserDaoTestSuite) TearDownTest() {
 	if container := suite.postgresC; container != nil{
-		container.Terminate(suite.containerCtx)
+		_ = container.Terminate(suite.containerCtx)
 	}
 	suite.userDao.Close()
 }
