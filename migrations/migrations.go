@@ -24,11 +24,11 @@ var ping backoff.Operation = func() error {
 	return nil
 }
 
-func RunMigrations(driverName string, dataSourceName string, migrationsDirectory string) error{
+func RunMigrations(driverName string, dataSourceName string, migrationsDirectory string) error {
 	if len(migrationsDirectory) == 0 {
 		return fmt.Errorf("Invalid migrations directory: '%s'. Must be an absolute path", migrationsDirectory)
 	}
-	
+
 	var err error
 	db, err = sql.Open(driverName, dataSourceName)
 	u.CheckError(err, "Migrations: Failed to connect to database")
@@ -37,12 +37,11 @@ func RunMigrations(driverName string, dataSourceName string, migrationsDirectory
 	_ = backoff.Retry(ping, backoff.NewExponentialBackOff())
 	driver, err := postgres.WithInstance(db, &postgres.Config{
 		DatabaseName: "simple_budget_tracker",
-		SchemaName: "budget",
+		SchemaName:   "budget",
 	})
 	u.CheckError(err, "Migrations: Failed to create instance of psql driver")
 
-	
-	migrationsUrl := fmt.Sprintf("file://%s",migrationsDirectory)
+	migrationsUrl := fmt.Sprintf("file://%s", migrationsDirectory)
 	m, err := migrate.NewWithDatabaseInstance(migrationsUrl, "postgres", driver)
 	u.CheckError(err, fmt.Sprintf("Failed to load migrations from %s", migrationsUrl))
 

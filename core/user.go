@@ -24,9 +24,9 @@ func NewUserWithEmailString(id UserId, emailString string) (*User, error) {
 		return nil, fmt.Errorf("invalid email: %w", err)
 	}
 	return &User{
-		id: id,
+		id:    id,
 		email: email,
-	},nil
+	}, nil
 }
 
 func (u User) Id() UserId {
@@ -35,4 +35,8 @@ func (u User) Id() UserId {
 
 func (u User) Email() *mail.Address {
 	return u.email
+}
+
+func (u User) String() string {
+	return fmt.Sprintf("User{id: %d, email: %s}", u.id, u.email.Address)
 }

@@ -16,10 +16,10 @@ import (
 )
 
 const (
-	POSTGRES_USER = "test"
+	POSTGRES_USER     = "test"
 	POSTGRES_PASSWORD = "test"
-	POSTGRES_DB = "simple_budget_tracker"
-	driverName   = "postgres"
+	POSTGRES_DB       = "simple_budget_tracker"
+	driverName        = "postgres"
 )
 
 type UserDaoTestSuite struct {
@@ -41,9 +41,9 @@ func (suite *UserDaoTestSuite) SetupTest() {
 		Image:        "postgres:11.6-alpine",
 		ExposedPorts: []string{"5432/tcp"},
 		Env: map[string]string{
-			"POSTGRES_USER": POSTGRES_USER,
+			"POSTGRES_USER":     POSTGRES_USER,
 			"POSTGRES_PASSWORD": POSTGRES_PASSWORD,
-			"POSTGRES_DB": POSTGRES_DB,
+			"POSTGRES_DB":       POSTGRES_DB,
 		},
 		WaitingFor: wait.ForLog("database system is ready to accept connections"),
 	}
@@ -58,7 +58,7 @@ func (suite *UserDaoTestSuite) SetupTest() {
 	suite.postgresC = postgresC
 	containerHost, _ := postgresC.Host(suite.containerCtx)
 	containerPort, _ := postgresC.MappedPort(suite.containerCtx, "5432")
-	dataSourceName :=  fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",containerHost, containerPort.Int(), POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
+	dataSourceName := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", containerHost, containerPort.Int(), POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
 
 	migrations.MustRunMigrations(driverName, dataSourceName, os.Getenv("TEST_MIGRATIONS_DIRECTORY"))
 	suite.userDao = MustOpenUserDao(driverName, dataSourceName)
@@ -67,7 +67,7 @@ func (suite *UserDaoTestSuite) SetupTest() {
 // -- TEARDOWN
 
 func (suite *UserDaoTestSuite) TearDownTest() {
-	if container := suite.postgresC; container != nil{
+	if container := suite.postgresC; container != nil {
 		_ = container.Terminate(suite.containerCtx)
 	}
 	suite.userDao.Close()
@@ -86,11 +86,11 @@ func (suite *UserDaoTestSuite) Test_WHEN_NewUserIdIsCalled_THEN_userIdIsReturned
 
 func (suite *UserDaoTestSuite) Test_Given_aUser_WHEN_theUserIsSaved_THEN_userCanBeRetrieved() {
 	// GIVEN
-	aUser,_ := core.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
-	
+	aUser, _ := core.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
+
 	// WHEN
-	suite.userDao.Save(aUser)
-	theUser,err := suite.userDao.GetUserById(1)
+	_ = suite.userDao.Save(aUser)
+	theUser, err := suite.userDao.GetUserById(1)
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -98,11 +98,25 @@ func (suite *UserDaoTestSuite) Test_Given_aUser_WHEN_theUserIsSaved_THEN_userCan
 	assert.EqualValues(suite.T(), aUser.Id(), theUser.Id())
 }
 
+func (suite *UserDaoTestSuite) Test_Given_aUserId_WHEN_noUserWithThatIdExists_THEN_appropriateErrorIsReturned() {
+	// GIVEN
+	userId := core.UserId(1)
+
+	// WHEN
+	theUser, err := suite.userDao.GetUserById(userId)
+
+	// THEN
+	assert.Nil(suite.T(), theUser)
+
+	coreError := err.(core.Error)
+	assert.EqualValues(suite.T(), coreError.Code(), core.ErrUserNotFound)
+}
+
 func (suite *UserDaoTestSuite) Test_Given_twoUsers_WHEN_theUsersHaveTheSameEmail_THEN_onlyOneUserIsSaved() {
 	// GIVEN
-	user1,_ := core.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
-	user2,_ := core.NewUserWithEmailString(2, "jack.torrence@theoverlook.com")
-	
+	user1, _ := core.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
+	user2, _ := core.NewUserWithEmailString(2, "jack.torrence@theoverlook.com")
+
 	// WHEN
 	err1 := suite.userDao.Save(user1)
 	err2 := suite.userDao.Save(user2)
@@ -110,4 +124,7 @@ func (suite *UserDaoTestSuite) Test_Given_twoUsers_WHEN_theUsersHaveTheSameEmail
 	// THEN
 	assert.Nil(suite.T(), err1)
 	assert.NotNil(suite.T(), err2)
+
+	coreError := err2.(core.Error)
+	assert.Equal(suite.T(), coreError.Code(), core.ErrDuplicateUserEmail)
 }
