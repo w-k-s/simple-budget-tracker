@@ -18,6 +18,7 @@ const (
 	ErrAccountValidation
 	ErrAccountNotFound
 	ErrAccountNameDuplicated
+	ErrCurrencyInvalidCode
 )
 
 var errorCodeNames = map[ErrorCode]string{
@@ -29,6 +30,7 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrUserEmailDuplicated:   "DUPLICATE_USER_EMAIL",
 	ErrUserNotFound:         "USER_NOT_FOUND",
 	ErrAccountValidation:    "ACCOUNT_VALIDATION_FAILED",
+	ErrCurrencyInvalidCode:  "INVALID_CURRENCY_CODE",
 }
 
 func (c ErrorCode) Name() string {
