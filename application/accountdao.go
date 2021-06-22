@@ -65,7 +65,7 @@ func (d *DefaultAccountDao) GetAccountById(queryId core.AccountId) (*core.Accoun
 }
 
 func (d *DefaultAccountDao) GetAccountsByUserId(queryId core.UserId) ([]*core.Account, error) {
-	
+
 	rows, err := d.db.Query("SELECT a.id, a.name, a.currency FROM budget.account a INNER JOIN budget.user u ON a.user_id = u.id WHERE u.id = $1 ORDER BY a.id", queryId)
 	if err != nil {
 		return nil, core.NewError(core.ErrDatabaseState, fmt.Sprintf("Accounts for user id %d not found", queryId), err)
@@ -77,22 +77,22 @@ func (d *DefaultAccountDao) GetAccountsByUserId(queryId core.UserId) ([]*core.Ac
 		var id core.AccountId
 		var name string
 		var currency string
-		
+
 		if err := rows.Scan(&id, &name, &currency); err != nil {
 			log.Printf("Error processign accounts for user %d. Reason: %s", queryId, err)
 			continue
 		}
 
 		var account *core.Account
-		if account, err = core.NewAccount(id, name, currency); err != nil{
+		if account, err = core.NewAccount(id, name, currency); err != nil {
 			log.Printf("Error loading account with id: %d,  name: %q, currency: %q from database. Reason: %s", id, name, currency, err)
 			continue
 		}
-	     
+
 		entities = append(entities, account)
 	}
 
-	return entities,nil
+	return entities, nil
 }
 
 func (d *DefaultAccountDao) Save(userId core.UserId, a *core.Account) error {

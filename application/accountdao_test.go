@@ -18,8 +18,8 @@ type AccountDaoTestSuite struct {
 	suite.Suite
 	containerCtx context.Context
 	postgresC    tc.Container
-	userDao         core.UserDao
-	accountDao      core.AccountDao
+	userDao      core.UserDao
+	accountDao   core.AccountDao
 }
 
 func TestAccountDaoTestSuite(t *testing.T) {
@@ -28,8 +28,8 @@ func TestAccountDaoTestSuite(t *testing.T) {
 
 // -- SETUP
 
-const(
-	testUserId = core.UserId(1)
+const (
+	testUserId    = core.UserId(1)
 	testUserEmail = "jack.torrence@theoverlook.com"
 )
 
@@ -42,12 +42,12 @@ func (suite *AccountDaoTestSuite) SetupTest() {
 	suite.containerCtx = *containerCtx
 	suite.postgresC = postgresC
 	migrations.MustRunMigrations(TestContainerDriverName, dataSourceName, os.Getenv("TEST_MIGRATIONS_DIRECTORY"))
-	
+
 	suite.userDao = MustOpenUserDao(TestContainerDriverName, dataSourceName)
 	suite.accountDao = MustOpenAccountDao(TestContainerDriverName, dataSourceName)
 
-	aUser,err := core.NewUserWithEmailString(testUserId, testUserEmail); 
-	if err = suite.userDao.Save(aUser); err != nil{
+	aUser, _ := core.NewUserWithEmailString(testUserId, testUserEmail)
+	if err = suite.userDao.Save(aUser); err != nil {
 		log.Fatalf("AccountDaoTestSuite: Test setup failed: %s", err)
 	}
 }

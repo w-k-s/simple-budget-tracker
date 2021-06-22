@@ -19,7 +19,7 @@ func TestMoneyDaoTestSuite(t *testing.T) {
 
 func (suite *AccountTestSuite) Test_GIVEN_blankCurrencyCode_WHEN_AmountIsCreated_THEN_errorIsReturned() {
 	// WHEN
-	money,err := NewMoney("", 1000)
+	money, err := NewMoney("", 1000)
 
 	// THEN
 	assert.Nil(suite.T(), money)

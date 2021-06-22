@@ -16,7 +16,6 @@ const (
 	TestContainerDriverName       = "postgres"
 )
 
-
 func isDuplicateKeyError(err error) (string, bool) {
 	if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
 		return pqErr.Detail, true
@@ -24,7 +23,7 @@ func isDuplicateKeyError(err error) (string, bool) {
 	return "", false
 }
 
-func requestPostgresTestContainer() (*context.Context, tc.Container, string, error){
+func requestPostgresTestContainer() (*context.Context, tc.Container, string, error) {
 	containerCtx := context.Background()
 	req := tc.ContainerRequest{
 		Image:        "postgres:11.6-alpine",

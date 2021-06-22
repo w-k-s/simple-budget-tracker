@@ -18,7 +18,7 @@ func TestUserTestSuite(t *testing.T) {
 // -- SUITE
 
 func (suite *UserTestSuite) Test_GIVEN_invalidUserEmail_WHEN_userIsCreated_THEN_errorIsReturned() {
-	
+
 	// WHEN
 	account, err := NewUserWithEmailString(1, "bob")
 
@@ -30,7 +30,7 @@ func (suite *UserTestSuite) Test_GIVEN_invalidUserEmail_WHEN_userIsCreated_THEN_
 }
 
 func (suite *UserTestSuite) Test_GIVEN_blankUserEmail_WHEN_userIsCreated_THEN_errorIsReturned() {
-	
+
 	// WHEN
 	account, err := NewUserWithEmailString(1, "")
 
