@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/lib/pq"
 	"github.com/w-k-s/simple-budget-tracker/core"
 )
 
@@ -41,7 +40,7 @@ func (d *DefaultUserDao) SaveTx(u *core.User, tx *sql.Tx) error {
 	if err != nil {
 		log.Printf("Failed to save user %v. Reason: %s", u, err)
 		if message, ok := isDuplicateKeyError(err); ok {
-			return core.NewError(core.ErrDuplicateUserEmail, message, err)
+			return core.NewError(core.ErrUserEmailDuplicated, message, err)
 		}
 		return core.NewError(core.ErrDatabaseState, "Failed to save user", err)
 	}
@@ -75,11 +74,4 @@ func (d *DefaultUserDao) Save(u *core.User) error {
 		err = tx.Commit()
 	}
 	return err
-}
-
-func isDuplicateKeyError(err error) (string, bool) {
-	if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
-		return pqErr.Detail, true
-	}
-	return "", false
 }

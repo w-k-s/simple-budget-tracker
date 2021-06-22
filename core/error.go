@@ -11,18 +11,22 @@ const (
 	ErrUnknown ErrorCode = iota + 1000
 	ErrDatabaseConnectivity
 	ErrDatabaseState
-	ErrDuplicateUserId
-	ErrDuplicateUserEmail
+	ErrUserIdDuplicated
+	ErrUserEmailInvalid
+	ErrUserEmailDuplicated
 	ErrUserNotFound
 	ErrAccountValidation
+	ErrAccountNotFound
+	ErrAccountNameDuplicated
 )
 
 var errorCodeNames = map[ErrorCode]string{
 	ErrUnknown:              "UNKOWN",
 	ErrDatabaseConnectivity: "DATABASE_CONNECTIVITY",
 	ErrDatabaseState:        "DATABASE_STATE",
-	ErrDuplicateUserId:      "DUPLICATE_USER_ID",
-	ErrDuplicateUserEmail:   "DUPLICATE_USER_EMAIL",
+	ErrUserIdDuplicated:      "DUPLICATE_USER_ID",
+	ErrUserEmailInvalid:      "USER_EMAIL_INVALID",
+	ErrUserEmailDuplicated:   "DUPLICATE_USER_EMAIL",
 	ErrUserNotFound:         "USER_NOT_FOUND",
 	ErrAccountValidation:    "ACCOUNT_VALIDATION_FAILED",
 }

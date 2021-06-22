@@ -21,7 +21,7 @@ func NewUser(id UserId, email *mail.Address) *User {
 func NewUserWithEmailString(id UserId, emailString string) (*User, error) {
 	email, err := mail.ParseAddress(emailString)
 	if err != nil {
-		return nil, fmt.Errorf("invalid email: %w", err)
+		return nil, NewError(ErrUserEmailInvalid, err.Error(), err)
 	}
 	return &User{
 		id:    id,

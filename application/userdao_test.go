@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 
@@ -10,16 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	tc "github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/w-k-s/simple-budget-tracker/core"
 	"github.com/w-k-s/simple-budget-tracker/migrations"
-)
-
-const (
-	POSTGRES_USER     = "test"
-	POSTGRES_PASSWORD = "test"
-	POSTGRES_DB       = "simple_budget_tracker"
-	driverName        = "postgres"
 )
 
 type UserDaoTestSuite struct {
@@ -36,32 +27,15 @@ func TestUserDaoTestSuite(t *testing.T) {
 // -- SETUP
 
 func (suite *UserDaoTestSuite) SetupTest() {
-	suite.containerCtx = context.Background()
-	req := tc.ContainerRequest{
-		Image:        "postgres:11.6-alpine",
-		ExposedPorts: []string{"5432/tcp"},
-		Env: map[string]string{
-			"POSTGRES_USER":     POSTGRES_USER,
-			"POSTGRES_PASSWORD": POSTGRES_PASSWORD,
-			"POSTGRES_DB":       POSTGRES_DB,
-		},
-		WaitingFor: wait.ForLog("database system is ready to accept connections"),
-	}
-	postgresC, err := tc.GenericContainer(suite.containerCtx, tc.GenericContainerRequest{
-		ContainerRequest: req,
-		Started:          true,
-	})
+	containerCtx, postgresC, dataSourceName, err := requestPostgresTestContainer()
 	if err != nil {
 		panic(err)
 	}
 
+	suite.containerCtx = *containerCtx
 	suite.postgresC = postgresC
-	containerHost, _ := postgresC.Host(suite.containerCtx)
-	containerPort, _ := postgresC.MappedPort(suite.containerCtx, "5432")
-	dataSourceName := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", containerHost, containerPort.Int(), POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB)
-
-	migrations.MustRunMigrations(driverName, dataSourceName, os.Getenv("TEST_MIGRATIONS_DIRECTORY"))
-	suite.userDao = MustOpenUserDao(driverName, dataSourceName)
+	migrations.MustRunMigrations(TestContainerDriverName, dataSourceName, os.Getenv("TEST_MIGRATIONS_DIRECTORY"))
+	suite.userDao = MustOpenUserDao(TestContainerDriverName, dataSourceName)
 }
 
 // -- TEARDOWN
@@ -126,5 +100,5 @@ func (suite *UserDaoTestSuite) Test_Given_twoUsers_WHEN_theUsersHaveTheSameEmail
 	assert.NotNil(suite.T(), err2)
 
 	coreError := err2.(core.Error)
-	assert.Equal(suite.T(), coreError.Code(), core.ErrDuplicateUserEmail)
+	assert.Equal(suite.T(), uint64(1005), uint64(coreError.Code()))
 }

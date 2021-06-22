@@ -11,3 +11,14 @@ type UserDao interface {
 
 	GetUserById(id UserId) (*User, error)
 }
+
+type AccountDao interface {
+	Close() error
+	NewAccountId() (AccountId, error)
+
+	Save(id UserId, a *Account) error
+	SaveTx(id UserId, a *Account, tx *sql.Tx) error
+
+	GetAccountById(id AccountId) (*Account, error)
+	GetAccountsByUserId(id UserId) ([]*Account, error)
+}

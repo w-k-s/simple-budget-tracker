@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS budget.account(
     user_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     currency VARCHAR(3) NOT NULL,
+    CONSTRAINT uq_account_name_per_user UNIQUE (user_id, name),
     CONSTRAINT fk_account_user FOREIGN KEY(user_id) REFERENCES budget.user(id) ON DELETE CASCADE
 );
 
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS budget.category(
     account_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
     type budget.category_type NOT NULL,
+    CONSTRAINT uq_category_name_per_account_and_type UNIQUE (account_id, name, type),
     CONSTRAINT fk_category_account FOREIGN KEY(account_id) REFERENCES budget.account(id) ON DELETE CASCADE
 );
 

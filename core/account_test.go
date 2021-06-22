@@ -11,7 +11,7 @@ type AccountTestSuite struct {
 	suite.Suite
 }
 
-func TestUserDaoTestSuite(t *testing.T) {
+func TestAccountDaoTestSuite(t *testing.T) {
 	suite.Run(t, new(AccountTestSuite))
 }
 
