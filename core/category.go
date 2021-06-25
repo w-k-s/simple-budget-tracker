@@ -10,21 +10,22 @@ import (
 
 type CategoryId uint64
 type CategoryType string
+
 const (
-	Income CategoryType = "INCOME"
+	Income  CategoryType = "INCOME"
 	Expense CategoryType = "EXPENSE"
 )
 
-type Category struct{
-	id CategoryId
-	name string
+type Category struct {
+	id           CategoryId
+	name         string
 	categoryType CategoryType
 }
 
 func NewCategory(id CategoryId, name string, categoryType CategoryType) (*Category, error) {
 	category := &Category{
-		id:       id,
-		name:     name,
+		id:           id,
+		name:         name,
 		categoryType: categoryType,
 	}
 

@@ -79,8 +79,8 @@ func (suite *CategoryTestSuite) Test_GIVEN_validParameters_WHEN_CategoryIsCreate
 	// THEN
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), category)
-	assert.Equal(suite.T(), CategoryId(2), category.Id(), )
-	assert.Equal(suite.T(), "Shopping", category.Name(), )
+	assert.Equal(suite.T(), CategoryId(2), category.Id())
+	assert.Equal(suite.T(), "Shopping", category.Name())
 	assert.Equal(suite.T(), Expense, category.Type())
 }
 
