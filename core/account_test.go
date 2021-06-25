@@ -11,7 +11,7 @@ type AccountTestSuite struct {
 	suite.Suite
 }
 
-func TestAccountDaoTestSuite(t *testing.T) {
+func TestAccountTestSuite(t *testing.T) {
 	suite.Run(t, new(AccountTestSuite))
 }
 
@@ -79,7 +79,16 @@ func (suite *AccountTestSuite) Test_GIVEN_validParameters_WHEN_AccountIsCreated_
 	// THEN
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), account)
-	assert.Equal(suite.T(), account.Id(), AccountId(2))
-	assert.Equal(suite.T(), account.Name(), "Main")
-	assert.Equal(suite.T(), account.Currency(), "AED")
+	assert.Equal(suite.T(), AccountId(2), account.Id())
+	assert.Equal(suite.T(), "Main", account.Name())
+	assert.Equal(suite.T(), "AED", account.Currency())
+}
+
+func (suite *AccountTestSuite) Test_GIVEN_anAccount_WHEN_stringIsCalled_THEN_stringIsReadable() {
+
+	// WHEN
+	account, _ := NewAccount(2, "Main", "AED")
+
+	// THEN
+	assert.Equal(suite.T(), "Account{id: 2, name: Main, currency: AED}", account.String())
 }
