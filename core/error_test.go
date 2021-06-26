@@ -30,4 +30,6 @@ func (suite *ErrorTestSuite) Test_GIVEN_errorCode_WHEN_mappedToNumber_THEN_mappi
 	assert.Equal(suite.T(), uint64(1009), uint64(ErrAccountNameDuplicated))
 	assert.Equal(suite.T(), uint64(1010), uint64(ErrCurrencyInvalidCode))
 	assert.Equal(suite.T(), uint64(1011), uint64(ErrCategoryValidation))
+	assert.Equal(suite.T(), uint64(1012), uint64(ErrCategoryNameDuplicated))
+	assert.Equal(suite.T(), uint64(1013), uint64(ErrCategoriesNotFound))
 }

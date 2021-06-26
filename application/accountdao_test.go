@@ -122,7 +122,7 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccountId_WHEN_noAccountWithThatI
 	assert.Nil(suite.T(), theAccount)
 
 	coreError := err.(core.Error)
-	assert.EqualValues(suite.T(), uint64(1008), uint64(coreError.Code()))
+	assert.EqualValues(suite.T(), core.ErrAccountNotFound, uint64(coreError.Code()))
 	assert.EqualValues(suite.T(), "Account with id 1 not found", coreError.Error())
 }
 
@@ -140,6 +140,6 @@ func (suite *AccountDaoTestSuite) Test_Given_twoAccounts_WHEN_theAccountsHaveThe
 	assert.NotNil(suite.T(), err2)
 
 	coreError := err2.(core.Error)
-	assert.Equal(suite.T(), uint64(1009), uint64(coreError.Code()))
+	assert.Equal(suite.T(), core.ErrAccountNameDuplicated, coreError.Code())
 	assert.Equal(suite.T(), "Account name must be unique", coreError.Error())
 }

@@ -13,7 +13,7 @@ type DefaultAccountDao struct {
 	db *sql.DB
 }
 
-func MustOpenAccountDao(driverName, dataSourceName string) *DefaultAccountDao {
+func MustOpenAccountDao(driverName, dataSourceName string) core.AccountDao {
 	var db *sql.DB
 	var err error
 	if db, err = sql.Open(driverName, dataSourceName); err != nil {

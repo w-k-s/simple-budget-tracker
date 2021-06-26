@@ -12,7 +12,7 @@ type DefaultUserDao struct {
 	db *sql.DB
 }
 
-func MustOpenUserDao(driverName, dataSourceName string) *DefaultUserDao {
+func MustOpenUserDao(driverName, dataSourceName string) core.UserDao {
 	var db *sql.DB
 	var err error
 	if db, err = sql.Open(driverName, dataSourceName); err != nil {

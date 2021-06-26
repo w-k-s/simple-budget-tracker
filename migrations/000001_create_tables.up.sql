@@ -20,14 +20,12 @@ CREATE TABLE IF NOT EXISTS budget.account(
 
 CREATE SEQUENCE IF NOT EXISTS budget.category_id;
 ALTER SEQUENCE budget.category_id RESTART WITH 1;
-CREATE TYPE budget.category_type AS ENUM ('INCOME', 'EXPENSE');
 CREATE TABLE IF NOT EXISTS budget.category(
     id BIGINT PRIMARY KEY,
-    account_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
     name VARCHAR(255) NOT NULL,
-    type budget.category_type NOT NULL,
-    CONSTRAINT uq_category_name_per_account_and_type UNIQUE (account_id, name, type),
-    CONSTRAINT fk_category_account FOREIGN KEY(account_id) REFERENCES budget.account(id) ON DELETE CASCADE
+    CONSTRAINT uq_category_name_per_user UNIQUE (user_id, name),
+    CONSTRAINT fk_category_user FOREIGN KEY(user_id) REFERENCES budget.user(id) ON DELETE CASCADE
 );
 
 CREATE SEQUENCE IF NOT EXISTS budget.entry_id;

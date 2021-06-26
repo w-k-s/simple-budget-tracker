@@ -22,3 +22,13 @@ type AccountDao interface {
 	GetAccountById(id AccountId) (*Account, error)
 	GetAccountsByUserId(id UserId) ([]*Account, error)
 }
+
+type CategoryDao interface {
+	Close() error
+	NewCategoryId() (CategoryId, error)
+
+	Save(id UserId, c Categories) error
+	SaveTx(id UserId, c Categories, tx *sql.Tx) error
+
+	GetCategoriesForUser(id UserId) (Categories, error)
+}

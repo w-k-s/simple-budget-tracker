@@ -20,19 +20,23 @@ const (
 	ErrAccountNameDuplicated
 	ErrCurrencyInvalidCode
 	ErrCategoryValidation
+	ErrCategoryNameDuplicated
+	ErrCategoriesNotFound
 )
 
 var errorCodeNames = map[ErrorCode]string{
-	ErrUnknown:              "UNKOWN",
-	ErrDatabaseConnectivity: "DATABASE_CONNECTIVITY",
-	ErrDatabaseState:        "DATABASE_STATE",
-	ErrUserIdDuplicated:     "DUPLICATE_USER_ID",
-	ErrUserEmailInvalid:     "USER_EMAIL_INVALID",
-	ErrUserEmailDuplicated:  "DUPLICATE_USER_EMAIL",
-	ErrUserNotFound:         "USER_NOT_FOUND",
-	ErrAccountValidation:    "ACCOUNT_VALIDATION_FAILED",
-	ErrCurrencyInvalidCode:  "INVALID_CURRENCY_CODE",
-	ErrCategoryValidation:   "CATEGORY_VALIDATION_FAILED",
+	ErrUnknown:                "UNKOWN",
+	ErrDatabaseConnectivity:   "DATABASE_CONNECTIVITY",
+	ErrDatabaseState:          "DATABASE_STATE",
+	ErrUserIdDuplicated:       "DUPLICATE_USER_ID",
+	ErrUserEmailInvalid:       "USER_EMAIL_INVALID",
+	ErrUserEmailDuplicated:    "DUPLICATE_USER_EMAIL",
+	ErrUserNotFound:           "USER_NOT_FOUND",
+	ErrAccountValidation:      "ACCOUNT_VALIDATION_FAILED",
+	ErrCurrencyInvalidCode:    "INVALID_CURRENCY_CODE",
+	ErrCategoryValidation:     "CATEGORY_VALIDATION_FAILED",
+	ErrCategoryNameDuplicated: "CATEGORY_NAME_DUPLICATED",
+	ErrCategoriesNotFound:     "CATEGORIES_NOT_FOUND",
 }
 
 func (c ErrorCode) Name() string {
