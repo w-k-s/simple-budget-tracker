@@ -24,7 +24,7 @@ func NewAccount(id AccountId, name string, currency string) (*Account, error) {
 
 	errors := validate.Validate(
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(account.id), Compared: 0, Message: "Id must be greater than 0"},
-		&validators.StringLengthInRange{Name: "Name", Field: account.name, Min: 1, Max: 255, Message: "Name must be 1 and 255 characters long"},
+		&validators.StringLengthInRange{Name: "Name", Field: account.name, Min: 1, Max: 25, Message: "Name must be 1 and 25 characters long"},
 		&validators.StringLengthInRange{Name: "Currency", Field: account.currency, Min: 3, Max: 4, Message: "Currency must be 3 characters long"},
 		&validators.FuncValidator{Name: "Currency", Field: account.currency, Message: "No such currency %q", Fn: func() bool { return IsValidCurrency(account.currency) }},
 	)

@@ -41,8 +41,8 @@ func (suite *AccountTestSuite) Test_GIVEN_emptyAccountName_WHEN_AccountIsCreated
 	assert.Nil(suite.T(), account)
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), ErrAccountValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "Name must be 1 and 255 characters long", err.(Error).Error())
-	assert.Equal(suite.T(), "Name must be 1 and 255 characters long", err.(Error).Fields()["name"])
+	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.(Error).Error())
+	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.(Error).Fields()["name"])
 }
 
 func (suite *AccountTestSuite) Test_GIVEN_noCurrency_WHEN_AccountIsCreated_THEN_errorIsReturned() {

@@ -24,7 +24,7 @@ func NewCategory(id CategoryId, name string) (*Category, error) {
 
 	errors := validate.Validate(
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(category.id), Compared: 0, Message: "Id must be greater than 0"},
-		&validators.StringLengthInRange{Name: "Name", Field: category.name, Min: 1, Max: 255, Message: "Name must be 1 and 255 characters long"},
+		&validators.StringLengthInRange{Name: "Name", Field: category.name, Min: 1, Max: 25, Message: "Name must be 1 and 25 characters long"},
 	)
 
 	if errors.HasAny() {

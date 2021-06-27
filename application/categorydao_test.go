@@ -121,5 +121,5 @@ func (suite *CategoryDaoTestSuite) Test_Given_twoCategoriesPerUsers_WHEN_oneUser
 
 	coreError := err2.(core.Error)
 	assert.Equal(suite.T(), core.ErrCategoryNameDuplicated, coreError.Code())
-	assert.Equal(suite.T(), "Category name must be unique", coreError.Error())
+	assert.Equal(suite.T(), "Category names must be unique. One of these is duplicated: Shopping, Shopping", coreError.Error())
 }

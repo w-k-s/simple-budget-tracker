@@ -42,8 +42,8 @@ func (suite *CategoryTestSuite) Test_GIVEN_emptyCategoryName_WHEN_CategoryIsCrea
 	assert.Nil(suite.T(), category)
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), ErrCategoryValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "Name must be 1 and 255 characters long", err.(Error).Error())
-	assert.Equal(suite.T(), "Name must be 1 and 255 characters long", err.(Error).Fields()["name"])
+	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.(Error).Error())
+	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.(Error).Fields()["name"])
 }
 
 func (suite *CategoryTestSuite) Test_GIVEN_validParameters_WHEN_CategoryIsCreated_THEN_noErrorsAreReturned() {

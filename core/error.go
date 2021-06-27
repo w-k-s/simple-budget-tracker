@@ -22,6 +22,7 @@ const (
 	ErrCategoryValidation
 	ErrCategoryNameDuplicated
 	ErrCategoriesNotFound
+	ErrRecordValidation
 )
 
 var errorCodeNames = map[ErrorCode]string{
@@ -37,6 +38,7 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrCategoryValidation:     "CATEGORY_VALIDATION_FAILED",
 	ErrCategoryNameDuplicated: "CATEGORY_NAME_DUPLICATED",
 	ErrCategoriesNotFound:     "CATEGORIES_NOT_FOUND",
+	ErrRecordValidation:       "RECORD_VALIDATION_FAILED",
 }
 
 func (c ErrorCode) Name() string {

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/lib/pq"
 	"github.com/w-k-s/simple-budget-tracker/core"
@@ -39,8 +40,15 @@ func (d *DefaultCategoryDao) NewCategoryId() (core.CategoryId, error) {
 func (d *DefaultCategoryDao) SaveTx(userId core.UserId, c core.Categories, tx *sql.Tx) error {
 	checkError := func(err error) error {
 		if err != nil {
-			log.Printf("Failed to save categories '%q'. Reason: %q", c, err)
-			return core.NewError(core.ErrDatabaseState, fmt.Sprintf("Failed to save categories %q", c), err)
+			log.Printf("Failed to save categories '%q' for user id %d. Reason: %q", c,userId, err)
+			if _, ok := isDuplicateKeyError(err); ok {
+				message := fmt.Sprintf("Category names must be unique. One of these is duplicated: %s", strings.Join(c.Names(),", "))
+				if c.Len() == 1{
+					message = fmt.Sprintf("Category named %q already exists", c.Names()[0])
+				}
+				return core.NewError(core.ErrCategoryNameDuplicated, message, err)
+			}
+			return core.NewError(core.ErrDatabaseState, fmt.Sprintf("Failed to save categories %q", c.Names()), err)
 		}
 		return nil
 	}
@@ -53,20 +61,14 @@ func (d *DefaultCategoryDao) SaveTx(userId core.UserId, c core.Categories, tx *s
 	for _, category := range c {
 		_, err = stmt.Exec(category.Id(), category.Name(), userId)
 		if err != nil {
-			log.Printf("Failed to save category %q. Reason: %q", category, err)
+			log.Printf("Failed to save category %q for user id %d. Reason: %q", category.Name(), userId, err)
 		}
 
 	}
 
 	_, err = stmt.Exec()
-	if err != nil {
-		log.Printf("Failed to save categories '%q'. Reason: %q", c, err)
-		if _, ok := isDuplicateKeyError(err); ok {
-			return core.NewError(core.ErrCategoryNameDuplicated, "Category name must be unique", err)
-		}
-		if err = checkError(err); err != nil {
-			return err
-		}
+	if err = checkError(err); err != nil {
+		return err
 	}
 
 	err = stmt.Close()
