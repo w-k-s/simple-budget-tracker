@@ -40,10 +40,10 @@ func (d *DefaultCategoryDao) NewCategoryId() (core.CategoryId, error) {
 func (d *DefaultCategoryDao) SaveTx(userId core.UserId, c core.Categories, tx *sql.Tx) error {
 	checkError := func(err error) error {
 		if err != nil {
-			log.Printf("Failed to save categories '%q' for user id %d. Reason: %q", c,userId, err)
+			log.Printf("Failed to save categories '%q' for user id %d. Reason: %q", c, userId, err)
 			if _, ok := isDuplicateKeyError(err); ok {
-				message := fmt.Sprintf("Category names must be unique. One of these is duplicated: %s", strings.Join(c.Names(),", "))
-				if c.Len() == 1{
+				message := fmt.Sprintf("Category names must be unique. One of these is duplicated: %s", strings.Join(c.Names(), ", "))
+				if c.Len() == 1 {
 					message = fmt.Sprintf("Category named %q already exists", c.Names()[0])
 				}
 				return core.NewError(core.ErrCategoryNameDuplicated, message, err)

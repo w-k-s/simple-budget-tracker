@@ -1,23 +1,18 @@
 package application
 
 import (
-	"context"
-	"os"
+	"log"
 	"testing"
 
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	tc "github.com/testcontainers/testcontainers-go"
 	"github.com/w-k-s/simple-budget-tracker/core"
-	"github.com/w-k-s/simple-budget-tracker/migrations"
 )
 
 type UserDaoTestSuite struct {
 	suite.Suite
-	containerCtx context.Context
-	postgresC    tc.Container
-	userDao      core.UserDao
+	userDao core.UserDao
 }
 
 func TestUserDaoTestSuite(t *testing.T) {
@@ -27,24 +22,15 @@ func TestUserDaoTestSuite(t *testing.T) {
 // -- SETUP
 
 func (suite *UserDaoTestSuite) SetupTest() {
-	containerCtx, postgresC, dataSourceName, err := requestPostgresTestContainer()
-	if err != nil {
-		panic(err)
-	}
-
-	suite.containerCtx = *containerCtx
-	suite.postgresC = postgresC
-	migrations.MustRunMigrations(TestContainerDriverName, dataSourceName, os.Getenv("TEST_MIGRATIONS_DIRECTORY"))
-	suite.userDao = MustOpenUserDao(TestContainerDriverName, dataSourceName)
+	suite.userDao = UserDao
 }
 
 // -- TEARDOWN
 
 func (suite *UserDaoTestSuite) TearDownTest() {
-	if container := suite.postgresC; container != nil {
-		_ = container.Terminate(suite.containerCtx)
+	if err := ClearTables(); err != nil {
+		log.Fatalf("Failed to tear down UserDaoTestSuite: %s", err)
 	}
-	suite.userDao.Close()
 }
 
 // -- SUITE

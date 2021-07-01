@@ -1,26 +1,20 @@
 package application
 
 import (
-	"context"
 	"log"
-	"os"
 	"sort"
 	"testing"
 
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	tc "github.com/testcontainers/testcontainers-go"
 	"github.com/w-k-s/simple-budget-tracker/core"
-	"github.com/w-k-s/simple-budget-tracker/migrations"
 )
 
 type CategoryDaoTestSuite struct {
 	suite.Suite
-	containerCtx context.Context
-	postgresC    tc.Container
-	userDao      core.UserDao
-	categoryDao  core.CategoryDao
+	userDao     core.UserDao
+	categoryDao core.CategoryDao
 }
 
 func TestCategoryDaoTestSuite(t *testing.T) {
@@ -30,20 +24,12 @@ func TestCategoryDaoTestSuite(t *testing.T) {
 // -- SETUP
 
 func (suite *CategoryDaoTestSuite) SetupTest() {
-	containerCtx, postgresC, dataSourceName, err := requestPostgresTestContainer()
-	if err != nil {
-		panic(err)
-	}
 
-	suite.containerCtx = *containerCtx
-	suite.postgresC = postgresC
-	migrations.MustRunMigrations(TestContainerDriverName, dataSourceName, os.Getenv("TEST_MIGRATIONS_DIRECTORY"))
-
-	suite.userDao = MustOpenUserDao(TestContainerDriverName, dataSourceName)
-	suite.categoryDao = MustOpenCategoryDao(TestContainerDriverName, dataSourceName)
+	suite.userDao = UserDao
+	suite.categoryDao = CategoryDao
 
 	aUser, _ := core.NewUserWithEmailString(testUserId, testUserEmail)
-	if err = suite.userDao.Save(aUser); err != nil {
+	if err := suite.userDao.Save(aUser); err != nil {
 		log.Fatalf("CategoryDaoTestSuite: Test setup failed: %s", err)
 	}
 }
@@ -51,11 +37,9 @@ func (suite *CategoryDaoTestSuite) SetupTest() {
 // -- TEARDOWN
 
 func (suite *CategoryDaoTestSuite) TearDownTest() {
-	if container := suite.postgresC; container != nil {
-		_ = container.Terminate(suite.containerCtx)
+	if err := ClearTables(); err != nil {
+		log.Fatalf("Failed to tear down CategoryDaoTestSuite: %s", err)
 	}
-	suite.categoryDao.Close()
-	suite.userDao.Close()
 }
 
 // -- SUITE

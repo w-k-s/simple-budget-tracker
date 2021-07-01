@@ -10,31 +10,32 @@ import (
 )
 
 type RecordType string
+
 const (
-	Income RecordType = "INCOME"
-	Expense RecordType = "EXPENSE"
+	Income   RecordType = "INCOME"
+	Expense  RecordType = "EXPENSE"
 	Transfer RecordType = "TRANSFER"
 )
 
 type RecordId uint64
 type Record struct {
-	id       RecordId
-	note     string
-	category     *Category
-	amount		Money
-	date        time.Time
-	recordType  RecordType
+	id            RecordId
+	note          string
+	category      *Category
+	amount        Money
+	date          time.Time
+	recordType    RecordType
 	beneficiaryId AccountId
 }
 
 func NewRecord(id RecordId, note string, category *Category, amount Money, dateUTC time.Time, recordType RecordType, beneficiaryId AccountId) (*Record, error) {
 	record := &Record{
-		id:       id,
-		note:     note,
-		category: category,
-		amount: amount,
-		date: dateUTC,
-		recordType: recordType,
+		id:            id,
+		note:          note,
+		category:      category,
+		amount:        amount,
+		date:          dateUTC,
+		recordType:    recordType,
 		beneficiaryId: beneficiaryId,
 	}
 
@@ -44,9 +45,9 @@ func NewRecord(id RecordId, note string, category *Category, amount Money, dateU
 		&NotNilValidator{Field: "Category", Value: record.category},
 		&NotNilValidator{Field: "Amount", Value: record.amount},
 		&validators.TimeIsPresent{Name: "Date", Field: record.date, Message: "Invalid date: %q"},
-		&validators.FuncValidator{Name: "RecordType", Field: string(record.recordType), Message: "recordType must be INCOME,EXPENSE or TRANSFER. Invalid: %q", Fn: func() bool { 
-			for _, rt := range []RecordType{Income,Expense,Transfer}{
-				if(record.recordType == rt){
+		&validators.FuncValidator{Name: "RecordType", Field: string(record.recordType), Message: "recordType must be INCOME,EXPENSE or TRANSFER. Invalid: %q", Fn: func() bool {
+			for _, rt := range []RecordType{Income, Expense, Transfer} {
+				if record.recordType == rt {
 					return true
 				}
 			}
@@ -106,8 +107,8 @@ func (r Record) String() string {
 }
 
 type BeneficiaryIdValidator struct {
-	Field string
-	Value AccountId
+	Field      string
+	Value      AccountId
 	RecordType RecordType
 }
 
@@ -117,7 +118,7 @@ func (v *BeneficiaryIdValidator) IsValid(errors *validate.Errors) {
 	}
 }
 
-type NotNilValidator struct{
+type NotNilValidator struct {
 	Field string
 	Value interface{}
 }

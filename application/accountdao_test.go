@@ -1,25 +1,19 @@
 package application
 
 import (
-	"context"
 	"log"
-	"os"
 	"testing"
 
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	tc "github.com/testcontainers/testcontainers-go"
 	"github.com/w-k-s/simple-budget-tracker/core"
-	"github.com/w-k-s/simple-budget-tracker/migrations"
 )
 
 type AccountDaoTestSuite struct {
 	suite.Suite
-	containerCtx context.Context
-	postgresC    tc.Container
-	userDao      core.UserDao
-	accountDao   core.AccountDao
+	userDao    core.UserDao
+	accountDao core.AccountDao
 }
 
 func TestAccountDaoTestSuite(t *testing.T) {
@@ -34,32 +28,19 @@ const (
 )
 
 func (suite *AccountDaoTestSuite) SetupTest() {
-	containerCtx, postgresC, dataSourceName, err := requestPostgresTestContainer()
-	if err != nil {
-		panic(err)
-	}
-
-	suite.containerCtx = *containerCtx
-	suite.postgresC = postgresC
-	migrations.MustRunMigrations(TestContainerDriverName, dataSourceName, os.Getenv("TEST_MIGRATIONS_DIRECTORY"))
-
-	suite.userDao = MustOpenUserDao(TestContainerDriverName, dataSourceName)
-	suite.accountDao = MustOpenAccountDao(TestContainerDriverName, dataSourceName)
+	suite.userDao = UserDao
+	suite.accountDao = AccountDao
 
 	aUser, _ := core.NewUserWithEmailString(testUserId, testUserEmail)
-	if err = suite.userDao.Save(aUser); err != nil {
+	if err := suite.userDao.Save(aUser); err != nil {
 		log.Fatalf("AccountDaoTestSuite: Test setup failed: %s", err)
 	}
 }
 
-// -- TEARDOWN
-
 func (suite *AccountDaoTestSuite) TearDownTest() {
-	if container := suite.postgresC; container != nil {
-		_ = container.Terminate(suite.containerCtx)
+	if err := ClearTables(); err != nil {
+		log.Fatalf("Failed to tear down AccountDaoTestSuite: %s", err)
 	}
-	suite.accountDao.Close()
-	suite.userDao.Close()
 }
 
 // -- SUITE
@@ -75,11 +56,11 @@ func (suite *AccountDaoTestSuite) Test_WHEN_NewAccountIdIsCalled_THEN_accountIdI
 
 func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedById() {
 	// GIVEN
-	anAccount, _ := core.NewAccount(1, "Current", "AED")
+	anAccount, _ := core.NewAccount(core.AccountId(1), "Current", "AED")
 
 	// WHEN
 	_ = suite.accountDao.Save(testUserId, anAccount)
-	theAccount, err := suite.accountDao.GetAccountById(1)
+	theAccount, err := suite.accountDao.GetAccountById(core.AccountId(1))
 
 	// THEN
 	assert.Nil(suite.T(), err)
