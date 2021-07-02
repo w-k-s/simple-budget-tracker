@@ -83,6 +83,61 @@ func (suite *MoneyTestSuite) Test_GIVEN_currenciesWithDifferentDenominations_WHE
 	assert.Equal(suite.T(), "KWD 0.100", quickMoney("KWD", 100).String())
 }
 
+func (suite *MoneyTestSuite) Test_GIVEN_negativeAmount_WHEN_amountSignChecksAreDone_THEN_resultsAreCorrect() {
+	money, _ := NewMoney("AED", -1)
+	assert.True(suite.T(), money.IsNegative())
+	assert.False(suite.T(), money.IsPositive())
+	assert.False(suite.T(), money.IsZero())
+}
+
+func (suite *MoneyTestSuite) Test_GIVEN_positiveAmount_WHEN_amountSignChecksAreDone_THEN_resultsAreCorrect() {
+	money, _ := NewMoney("AED", 1)
+	assert.False(suite.T(), money.IsNegative())
+	assert.True(suite.T(), money.IsPositive())
+	assert.False(suite.T(), money.IsZero())
+}
+
+func (suite *MoneyTestSuite) Test_GIVEN_zeroAmount_WHEN_amountSignChecksAreDone_THEN_resultsAreCorrect() {
+	money, _ := NewMoney("AED", 0)
+	assert.False(suite.T(), money.IsNegative())
+	assert.False(suite.T(), money.IsPositive())
+	assert.True(suite.T(), money.IsZero())
+}
+
+func (suite *MoneyTestSuite) Test_GIVEN_amount_WHEN_itIsAbsoluted_THEN_amountIsPositive() {
+
+	// GIVEN
+	negativeAmount, _ := NewMoney("AED", -1)
+	positiveAmount, _ := NewMoney("AED", -1)
+	zeroAmount, _ := NewMoney("AED", 0)
+
+	// WHEN
+	absOfNegative, _ := negativeAmount.Abs()
+	absOfPositive, _ := positiveAmount.Abs()
+	absOfZero, _ := zeroAmount.Abs()
+
+	assert.Equal(suite.T(), "AED 0.01", absOfNegative.String())
+	assert.Equal(suite.T(), "AED 0.01", absOfPositive.String())
+	assert.Equal(suite.T(), "AED 0.00", absOfZero.String())
+}
+
+func (suite *MoneyTestSuite) Test_GIVEN_amount_WHEN_itIsNegated_THEN_amountIsNegative() {
+
+	// GIVEN
+	negativeAmount, _ := NewMoney("AED", -1)
+	positiveAmount, _ := NewMoney("AED", -1)
+	zeroAmount, _ := NewMoney("AED", 0)
+
+	// WHEN
+	negativeNegated, _ := negativeAmount.Negate()
+	positiveNegated, _ := positiveAmount.Negate()
+	zeroNegated, _ := zeroAmount.Negate()
+
+	assert.Equal(suite.T(), "AED -0.01", negativeNegated.String())
+	assert.Equal(suite.T(), "AED -0.01", positiveNegated.String())
+	assert.Equal(suite.T(), "AED 0.00", zeroNegated.String())
+}
+
 func (suite *MoneyTestSuite) Test_GIVEN_aMoney_WHEN_stringIsCalled_THEN_stringIsReadable() {
 
 	// WHEN

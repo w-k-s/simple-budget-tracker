@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -29,31 +30,21 @@ type Record struct {
 }
 
 func NewRecord(id RecordId, note string, category *Category, amount Money, dateUTC time.Time, recordType RecordType, beneficiaryId AccountId) (*Record, error) {
-	record := &Record{
-		id:            id,
-		note:          note,
-		category:      category,
-		amount:        amount,
-		date:          dateUTC,
-		recordType:    recordType,
-		beneficiaryId: beneficiaryId,
-	}
-
 	errors := validate.Validate(
-		&validators.IntIsGreaterThan{Name: "Id", Field: int(record.id), Compared: 0, Message: "Id must be greater than 0"},
-		&validators.StringLengthInRange{Name: "Note", Field: record.note, Min: 0, Max: 50, Message: "Note can not be longer than 50 characters"},
-		&NotNilValidator{Field: "Category", Value: record.category},
-		&NotNilValidator{Field: "Amount", Value: record.amount},
-		&validators.TimeIsPresent{Name: "Date", Field: record.date, Message: "Invalid date: %q"},
-		&validators.FuncValidator{Name: "RecordType", Field: string(record.recordType), Message: "recordType must be INCOME,EXPENSE or TRANSFER. Invalid: %q", Fn: func() bool {
+		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
+		&validators.StringLengthInRange{Name: "Note", Field: note, Min: 0, Max: 50, Message: "Note can not be longer than 50 characters"},
+		&categoryValidator{Field: "Category", Value: category},
+		&amountValidator{Field: "Amount", Value: amount},
+		&validators.TimeIsPresent{Name: "Date", Field: dateUTC, Message: "Invalid date"},
+		&validators.FuncValidator{Name: "RecordType", Field: string(recordType), Message: "recordType must be INCOME,EXPENSE or TRANSFER. Invalid: %q", Fn: func() bool {
 			for _, rt := range []RecordType{Income, Expense, Transfer} {
-				if record.recordType == rt {
+				if recordType == rt {
 					return true
 				}
 			}
 			return false
 		}},
-		&BeneficiaryIdValidator{Field: "BeneficiaryId", Value: record.beneficiaryId, RecordType: record.recordType},
+		&beneficiaryIdValidator{Field: "BeneficiaryId", Value: beneficiaryId, RecordType: recordType},
 	)
 
 	if errors.HasAny() {
@@ -67,6 +58,30 @@ func NewRecord(id RecordId, note string, category *Category, amount Money, dateU
 		}
 		return nil, NewErrorWithFields(ErrRecordValidation, strings.Join(listErrors, ", "), errors, flatErrors)
 	}
+
+	var actualAmount Money
+	var err error
+
+	if actualAmount, err = amount.Negate(); err != nil {
+		return nil, err
+	}
+
+	if recordType == Income {
+		if actualAmount, err = amount.Abs(); err != nil {
+			return nil, err
+		}
+	}
+
+	record := &Record{
+		id:            id,
+		note:          note,
+		category:      category,
+		amount:        actualAmount,
+		date:          dateUTC,
+		recordType:    recordType,
+		beneficiaryId: beneficiaryId,
+	}
+
 	return record, nil
 }
 
@@ -90,8 +105,8 @@ func (r Record) DateUTC() time.Time {
 	return r.date
 }
 
-func (r Record) DateUTCString() time.Time {
-	return r.date
+func (r Record) DateUTCString() string {
+	return r.date.Format("2006-01-02T15:04:05-0700")
 }
 
 func (r Record) Type() RecordType {
@@ -106,25 +121,43 @@ func (r Record) String() string {
 	return fmt.Sprintf("Record{id: %d, type: %s, amount: %s, category: %s, date: %s, beneficiaryId: %d}", r.id, r.recordType, r.amount, r.category, r.DateUTCString(), r.beneficiaryId)
 }
 
-type BeneficiaryIdValidator struct {
+type beneficiaryIdValidator struct {
 	Field      string
 	Value      AccountId
 	RecordType RecordType
 }
 
-func (v *BeneficiaryIdValidator) IsValid(errors *validate.Errors) {
+func (v *beneficiaryIdValidator) IsValid(errors *validate.Errors) {
 	if v.RecordType == Transfer && v.Value <= 0 {
 		errors.Add("beneficiary_id", fmt.Sprintf("beneficiaryId can not be <= 0 when record type is %s", Transfer))
 	}
+	if v.RecordType != Transfer && v.Value > 0 {
+		errors.Add("beneficiary_id", fmt.Sprintf("beneficiaryId must be 0 when record type is %q", v.RecordType))
+	}
 }
 
-type NotNilValidator struct {
+type categoryValidator struct {
 	Field string
-	Value interface{}
+	Value *Category
 }
 
-func (v *NotNilValidator) IsValid(errors *validate.Errors) {
+func (v *categoryValidator) IsValid(errors *validate.Errors) {
 	if v.Value == nil {
 		errors.Add(strings.ToLower(v.Field), fmt.Sprintf("%s is required", v.Field))
+	}
+}
+
+type amountValidator struct {
+	Field string
+	Value Money
+}
+
+func (v *amountValidator) IsValid(errors *validate.Errors) {
+	if v.Value == nil || (reflect.ValueOf(v.Value).Kind() == reflect.Ptr && reflect.ValueOf(v.Value).IsNil()) {
+		errors.Add(strings.ToLower(v.Field), fmt.Sprintf("%s is required", v.Field))
+		return
+	}
+	if v.Value.IsZero() {
+		errors.Add(strings.ToLower(v.Field), "amount must not be zero")
 	}
 }

@@ -20,6 +20,11 @@ type Currency interface {
 
 type Money interface {
 	Currency() Currency
+	IsPositive() bool
+	IsZero() bool
+	IsNegative() bool
+	Abs() (Money, error)
+	Negate() (Money, error)
 	MinorUnits() (int64, error)
 	String() string
 }
@@ -38,6 +43,40 @@ type internalMoney struct {
 
 func (i internalMoney) Currency() Currency {
 	return internalCurrency{i.amount.CurrencyCode()}
+}
+
+func (i internalMoney) IsZero() bool {
+	return i.amount.IsZero()
+}
+
+func (i internalMoney) IsPositive() bool {
+	return i.amount.IsPositive()
+}
+
+func (i internalMoney) IsNegative() bool {
+	return i.amount.IsNegative()
+}
+
+func (i internalMoney) Abs() (Money, error) {
+	if i.IsNegative() {
+		minorUnits, err := i.MinorUnits()
+		if err != nil {
+			return nil, NewError(ErrAmountOverflow, "The number is too large to be represented", err)
+		}
+		return NewMoney(i.Currency().Code(), -1*minorUnits)
+	}
+	return i, nil
+}
+
+func (i internalMoney) Negate() (Money, error) {
+	if i.IsPositive() {
+		minorUnits, err := i.MinorUnits()
+		if err != nil {
+			return nil, NewError(ErrAmountOverflow, "The number is too large to be represented", err)
+		}
+		return NewMoney(i.Currency().Code(), -1*minorUnits)
+	}
+	return i, nil
 }
 
 func (i internalMoney) MinorUnits() (int64, error) {
