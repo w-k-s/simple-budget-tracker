@@ -146,3 +146,33 @@ func (suite *MoneyTestSuite) Test_GIVEN_aMoney_WHEN_stringIsCalled_THEN_stringIs
 	// THEN
 	assert.Equal(suite.T(), "AED 100.00", money.String())
 }
+
+func (suite *MoneyTestSuite) Test_GIVEN_amountsOfSameCurrency_WHEN_adding_THEN_sumIsCalculatedCorrectly() {
+
+	// GIVEN
+	money1, _ := NewMoney("AED", 2975)
+	money2, _ := NewMoney("AED", 21644)
+
+	// WHEN
+	total, err := money1.Add(money2)
+
+	// THEN
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), "AED 246.19", total.String())
+}
+
+func (suite *MoneyTestSuite) Test_GIVEN_amountsOfDifferentCurrency_WHEN_adding_THEN_errorIsRetuend() {
+
+	// GIVEN
+	money1, _ := NewMoney("AED", 2975)
+	money2, _ := NewMoney("KWD", 21644)
+
+	// WHEN
+	total, err := money1.Add(money2)
+
+	// THEN
+	assert.Nil(suite.T(), total)
+	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), ErrAmountMismatchingCurrencies, err.(Error).Code())
+	assert.Equal(suite.T(), "Can not sum mismatching currencies", err.(Error).Error())
+}

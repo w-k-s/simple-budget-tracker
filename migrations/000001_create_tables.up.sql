@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS budget.record(
     amount_minor_units DECIMAL(19,0) NOT NULL DEFAULT 0,
     date DATE NOT NULL,
     type budget.record_type NOT NULL,
-    transfer_account_id BIGINT,
+    beneficiary_id BIGINT,
     CONSTRAINT fk_record_account FOREIGN KEY(account_id) REFERENCES budget.account(id) ON DELETE CASCADE,
     CONSTRAINT fk_record_category FOREIGN KEY(category_id) REFERENCES budget.category(id) ON DELETE NO ACTION,
-    CONSTRAINT fk_record_transfer_account_id FOREIGN KEY(transfer_account_id) REFERENCES budget.account(id) ON DELETE CASCADE
+    CONSTRAINT fk_record_beneficiary_id FOREIGN KEY(beneficiary_id) REFERENCES budget.account(id) ON DELETE CASCADE
 );

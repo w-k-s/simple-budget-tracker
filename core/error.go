@@ -24,23 +24,27 @@ const (
 	ErrCategoriesNotFound
 	ErrRecordValidation
 	ErrAmountOverflow
+	ErrAmountMismatchingCurrencies
+	ErrAmountTotalOfEmptySet
 )
 
 var errorCodeNames = map[ErrorCode]string{
-	ErrUnknown:                "UNKOWN",
-	ErrDatabaseConnectivity:   "DATABASE_CONNECTIVITY",
-	ErrDatabaseState:          "DATABASE_STATE",
-	ErrUserIdDuplicated:       "DUPLICATE_USER_ID",
-	ErrUserEmailInvalid:       "USER_EMAIL_INVALID",
-	ErrUserEmailDuplicated:    "DUPLICATE_USER_EMAIL",
-	ErrUserNotFound:           "USER_NOT_FOUND",
-	ErrAccountValidation:      "ACCOUNT_VALIDATION_FAILED",
-	ErrCurrencyInvalidCode:    "INVALID_CURRENCY_CODE",
-	ErrCategoryValidation:     "CATEGORY_VALIDATION_FAILED",
-	ErrCategoryNameDuplicated: "CATEGORY_NAME_DUPLICATED",
-	ErrCategoriesNotFound:     "CATEGORIES_NOT_FOUND",
-	ErrRecordValidation:       "RECORD_VALIDATION_FAILED",
-	ErrAmountOverflow:         "AMOUNT_OVERFLOW",
+	ErrUnknown:                     "UNKOWN",
+	ErrDatabaseConnectivity:        "DATABASE_CONNECTIVITY",
+	ErrDatabaseState:               "DATABASE_STATE",
+	ErrUserIdDuplicated:            "DUPLICATE_USER_ID",
+	ErrUserEmailInvalid:            "USER_EMAIL_INVALID",
+	ErrUserEmailDuplicated:         "DUPLICATE_USER_EMAIL",
+	ErrUserNotFound:                "USER_NOT_FOUND",
+	ErrAccountValidation:           "ACCOUNT_VALIDATION_FAILED",
+	ErrCurrencyInvalidCode:         "INVALID_CURRENCY_CODE",
+	ErrCategoryValidation:          "CATEGORY_VALIDATION_FAILED",
+	ErrCategoryNameDuplicated:      "CATEGORY_NAME_DUPLICATED",
+	ErrCategoriesNotFound:          "CATEGORIES_NOT_FOUND",
+	ErrRecordValidation:            "RECORD_VALIDATION_FAILED",
+	ErrAmountOverflow:              "AMOUNT_OVERFLOW",
+	ErrAmountMismatchingCurrencies: "AMOUNT_MISMATCHING_CURRENCIES",
+	ErrAmountTotalOfEmptySet:       "AMOUNT_TOTAL_OF_EMPTY_SET",
 }
 
 func (c ErrorCode) Name() string {

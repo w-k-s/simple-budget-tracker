@@ -1,6 +1,7 @@
 package core
 
 import (
+	"sort"
 	"testing"
 	"time"
 
@@ -305,4 +306,106 @@ func (suite *RecordTestSuite) Test_GIVEN_aRecord_WHEN_stringIsCalled_THEN_string
 
 	// THEN
 	assert.Equal(suite.T(), "Record{id: 1, type: EXPENSE, amount: AED -200.00, category: Category{id: 1, name: Bills}, date: 2021-07-02T21:10:00+0000, beneficiaryId: 0}", record.String())
+}
+
+func (suite *RecordTestSuite) Test_GIVEN_records_WHEN_stringIsCalled_THEN_recordsArePrintedInSortedOrder() {
+	// GIVEN
+	salaryCategory, _ := NewCategory(CategoryId(1), "Salary")
+	salaryAmount, _ := NewMoney("AED", 100000)
+	salaryDate := time.Date(2021, time.July, 1, 12, 0, 0, 0, time.UTC)
+
+	billsCategory, _ := NewCategory(CategoryId(2), "Bills")
+	billAmount, _ := NewMoney("AED", 5000)
+	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
+
+	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
+	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
+
+	// WHEN
+	records := Records{record1, record2}
+
+	// THEN
+	assert.Equal(suite.T(), "Records{Record{id: 1, type: INCOME, amount: AED 1000.00, category: Category{id: 1, name: Salary}, date: 2021-07-01T12:00:00+0000, beneficiaryId: 0}, Record{id: 2, type: EXPENSE, amount: AED -50.00, category: Category{id: 2, name: Bills}, date: 2021-07-03T13:30:00+0000, beneficiaryId: 0}}", records.String())
+}
+
+func (suite *RecordTestSuite) Test_GIVEN_records_WHEN_recordsAreSorted_THEN_recordsAreSortedByDate() {
+	// GIVEN
+	salaryCategory, _ := NewCategory(CategoryId(1), "Salary")
+	salaryAmount, _ := NewMoney("AED", 100000)
+	salaryDate := time.Date(2021, time.July, 1, 12, 0, 0, 0, time.UTC)
+
+	billsCategory, _ := NewCategory(CategoryId(2), "Bills")
+	billAmount, _ := NewMoney("AED", 5000)
+	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
+
+	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
+	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
+
+	// WHEN
+	records := Records{record1, record2}
+	sort.Sort(records)
+
+	// THEN
+	assert.Equal(suite.T(), 2, records.Len())
+	assert.Equal(suite.T(), RecordId(1), records[0].Id())
+	assert.Equal(suite.T(), RecordId(2), records[1].Id())
+}
+
+func (suite *RecordTestSuite) Test_GIVEN_recordsOfSameCurrency_WHEN_recordsAreTotaled_THEN_totalIsCorrect() {
+	// GIVEN
+	salaryCategory, _ := NewCategory(CategoryId(1), "Salary")
+	salaryAmount, _ := NewMoney("AED", 100000)
+	salaryDate := time.Date(2021, time.July, 1, 12, 0, 0, 0, time.UTC)
+
+	billsCategory, _ := NewCategory(CategoryId(2), "Bills")
+	billAmount, _ := NewMoney("AED", 5000)
+	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
+
+	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
+	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
+
+	// WHEN
+	records := Records{record1, record2}
+	total, err := records.Total()
+
+	// THEN
+	assert.Nil(suite.T(), err)
+	assert.NotNil(suite.T(), total)
+	assert.Equal(suite.T(), "AED 950.00", total.String())
+}
+
+func (suite *RecordTestSuite) Test_GIVEN_recordsOfDifferentCurrency_WHEN_recordsAreTotaled_THEN_errorIsReturned() {
+	// GIVEN
+	salaryCategory, _ := NewCategory(CategoryId(1), "Salary")
+	salaryAmount, _ := NewMoney("AED", 100000)
+	salaryDate := time.Date(2021, time.July, 1, 12, 0, 0, 0, time.UTC)
+
+	billsCategory, _ := NewCategory(CategoryId(2), "Bills")
+	billAmount, _ := NewMoney("KWD", 5000)
+	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
+
+	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
+	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
+
+	// WHEN
+	records := Records{record1, record2}
+	total, err := records.Total()
+
+	// THEN
+	assert.Nil(suite.T(), total)
+	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), ErrAmountMismatchingCurrencies, err.(Error).Code())
+	assert.Equal(suite.T(), "Can not sum mismatching currencies", err.(Error).Error())
+}
+
+func (suite *RecordTestSuite) Test_GIVEN_emptyRecords_WHEN_recordsAreTotaled_THEN_errorIsReturned() {
+
+	// WHEN
+	total, err := Records{}.Total()
+
+	// THEN
+	assert.Nil(suite.T(), total)
+	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), ErrAmountTotalOfEmptySet, err.(Error).Code())
+	assert.Equal(suite.T(), "No amounts to total", err.(Error).Error())
 }

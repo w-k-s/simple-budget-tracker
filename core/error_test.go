@@ -34,4 +34,6 @@ func (suite *ErrorTestSuite) Test_GIVEN_errorCode_WHEN_mappedToNumber_THEN_mappi
 	assert.Equal(suite.T(), uint64(1013), uint64(ErrCategoriesNotFound))
 	assert.Equal(suite.T(), uint64(1014), uint64(ErrRecordValidation))
 	assert.Equal(suite.T(), uint64(1015), uint64(ErrAmountOverflow))
+	assert.Equal(suite.T(), uint64(1016), uint64(ErrAmountMismatchingCurrencies))
+	assert.Equal(suite.T(), uint64(1017), uint64(ErrAmountTotalOfEmptySet))
 }

@@ -1,6 +1,9 @@
 package core
 
-import "database/sql"
+import (
+	"database/sql"
+	"time"
+)
 
 type UserDao interface {
 	Close() error
@@ -31,4 +34,24 @@ type CategoryDao interface {
 	SaveTx(id UserId, c Categories, tx *sql.Tx) error
 
 	GetCategoriesForUser(id UserId) (Categories, error)
+}
+
+type RecordDao interface {
+	Close() error
+	NewRecordId() (RecordId, error)
+
+	Save(id AccountId, r *Record) error
+	SaveTx(id AccountId, r *Record, tx *sql.Tx) error
+
+	Search(id AccountId, search RecordSearch) (Records, error)
+	GetRecordsForMonth(id AccountId, month int, year int) (Records, error)
+	GetRecordsForLastPeriod(id AccountId) (Records, error)
+}
+
+type RecordSearch struct {
+	SearchTerm    string
+	FromDate      *time.Time
+	ToDate        *time.Time
+	CategoryNames []string
+	RecordTypes   []RecordType
 }

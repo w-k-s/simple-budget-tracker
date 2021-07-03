@@ -15,7 +15,7 @@ func IsValidCurrency(currencyCode string) bool {
 }
 
 type Currency interface {
-	Code() string
+	CurrencyCode() string
 }
 
 type Money interface {
@@ -23,6 +23,7 @@ type Money interface {
 	IsPositive() bool
 	IsZero() bool
 	IsNegative() bool
+	Add(m Money) (Money, error)
 	Abs() (Money, error)
 	Negate() (Money, error)
 	MinorUnits() (int64, error)
@@ -33,7 +34,7 @@ type internalCurrency struct {
 	code string
 }
 
-func (i internalCurrency) Code() string {
+func (i internalCurrency) CurrencyCode() string {
 	return i.code
 }
 
@@ -57,24 +58,45 @@ func (i internalMoney) IsNegative() bool {
 	return i.amount.IsNegative()
 }
 
+func (i internalMoney) Add(m Money) (Money, error) {
+	if i.Currency().CurrencyCode() != m.Currency().CurrencyCode() {
+		return nil, NewError(ErrAmountMismatchingCurrencies, "Can not sum mismatching currencies", nil)
+	}
+	var (
+		leftMinorUnits  int64
+		rightMinorUnits int64
+		err             error
+	)
+
+	if leftMinorUnits, err = i.MinorUnits(); err != nil {
+		return nil, err
+	}
+	if rightMinorUnits, err = m.MinorUnits(); err != nil {
+		return nil, err
+	}
+	return NewMoney(i.Currency().CurrencyCode(), leftMinorUnits+rightMinorUnits)
+}
+
 func (i internalMoney) Abs() (Money, error) {
 	if i.IsNegative() {
-		minorUnits, err := i.MinorUnits()
-		if err != nil {
+		var minorUnits int64
+		var err error
+		if minorUnits, err = i.MinorUnits(); err != nil {
 			return nil, NewError(ErrAmountOverflow, "The number is too large to be represented", err)
 		}
-		return NewMoney(i.Currency().Code(), -1*minorUnits)
+		return NewMoney(i.Currency().CurrencyCode(), -1*minorUnits)
 	}
 	return i, nil
 }
 
 func (i internalMoney) Negate() (Money, error) {
 	if i.IsPositive() {
-		minorUnits, err := i.MinorUnits()
-		if err != nil {
+		var minorUnits int64
+		var err error
+		if minorUnits, err = i.MinorUnits(); err != nil {
 			return nil, NewError(ErrAmountOverflow, "The number is too large to be represented", err)
 		}
-		return NewMoney(i.Currency().Code(), -1*minorUnits)
+		return NewMoney(i.Currency().CurrencyCode(), -1*minorUnits)
 	}
 	return i, nil
 }

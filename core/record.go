@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"time"
 
@@ -161,3 +162,33 @@ func (v *amountValidator) IsValid(errors *validate.Errors) {
 		errors.Add(strings.ToLower(v.Field), "amount must not be zero")
 	}
 }
+
+type Records []*Record
+
+func (rs Records) Total() (Money, error) {
+	if rs.Len() == 0 {
+		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
+	}
+	total := rs[0].Amount()
+	var err error
+	for i := 1; i < rs.Len(); i++ {
+		total, err = total.Add(rs[i].Amount())
+		if err != nil {
+			return nil, err
+		}
+	}
+	return total, nil
+}
+
+func (rs Records) String() string {
+	sort.Sort(rs)
+	strs := make([]string, 0, len(rs))
+	for _, record := range rs {
+		strs = append(strs, record.String())
+	}
+	return fmt.Sprintf("Records{%s}", strings.Join(strs, ", "))
+}
+
+func (rs Records) Len() int           { return len(rs) }
+func (rs Records) Swap(i, j int)      { rs[i], rs[j] = rs[j], rs[i] }
+func (rs Records) Less(i, j int) bool { return rs[i].DateUTC().Unix() < rs[j].DateUTC().Unix() }
