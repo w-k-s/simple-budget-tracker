@@ -22,11 +22,6 @@ func TestAccountDaoTestSuite(t *testing.T) {
 
 // -- SETUP
 
-const (
-	testUserId    = core.UserId(1)
-	testUserEmail = "jack.torrence@theoverlook.com"
-)
-
 func (suite *AccountDaoTestSuite) SetupTest() {
 	suite.userDao = UserDao
 	suite.accountDao = AccountDao

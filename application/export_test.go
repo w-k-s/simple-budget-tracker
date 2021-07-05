@@ -28,6 +28,7 @@ var testContainerDataSourceName string
 var UserDao core.UserDao
 var AccountDao core.AccountDao
 var CategoryDao core.CategoryDao
+var RecordDao core.RecordDao
 
 func init() {
 	testContainerContext = context.Background()
@@ -59,6 +60,7 @@ func init() {
 	UserDao = MustOpenUserDao(testContainerDriverName, testContainerDataSourceName)
 	AccountDao = MustOpenAccountDao(testContainerDriverName, testContainerDataSourceName)
 	CategoryDao = MustOpenCategoryDao(testContainerDriverName, testContainerDataSourceName)
+	RecordDao = MustOpenRecordDao(testContainerDriverName, testContainerDataSourceName)
 }
 
 func TestMain(m *testing.M) {
@@ -76,6 +78,10 @@ func TestMain(m *testing.M) {
 
 		if err := CategoryDao.Close(); err != nil {
 			log.Printf("Error closing CategoryDao: %s", err)
+		}
+
+		if err := RecordDao.Close(); err != nil {
+			log.Printf("Error closing RecordDao: %s", err)
 		}
 
 		if err := testPostgresContainer.Terminate(testContainerContext); err != nil {
@@ -105,5 +111,16 @@ func ClearTables() error {
 	if _, err = db.Exec("DELETE FROM budget.category"); err != nil {
 		return fmt.Errorf("Failed to delete category table: %w", err)
 	}
+	if _, err = db.Exec("DELETE FROM budget.record"); err != nil {
+		return fmt.Errorf("Failed to delete record table: %w", err)
+	}
 	return nil
+}
+
+func quickMoney(currency string, amountMinorUnits int64) core.Money {
+	amount, err := core.NewMoney(currency, amountMinorUnits)
+	if err != nil {
+		log.Fatalf("Failed to create money: %s", err)
+	}
+	return amount
 }

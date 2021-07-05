@@ -388,8 +388,7 @@ func (suite *RecordTestSuite) Test_GIVEN_recordsOfDifferentCurrency_WHEN_records
 	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
 
 	// WHEN
-	records := Records{record1, record2}
-	total, err := records.Total()
+	total, err := Records{record1, record2}.Total()
 
 	// THEN
 	assert.Nil(suite.T(), total)
