@@ -4,8 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/w-k-s/simple-budget-tracker/core"
 )
 
@@ -73,14 +76,163 @@ func (d *DefaultRecordDao) SaveTx(accountId core.AccountId, r *core.Record, tx *
 	return nil
 }
 
-func (d *DefaultRecordDao) Search(id core.AccountId, search core.RecordSearch) (core.Records, error) {
-	// TODO
-	return nil, fmt.Errorf("To implement")
+func (d *DefaultRecordDao) Search(accountId core.AccountId, search core.RecordSearch) (core.Records, error) {
+	checkError := func(err error) bool {
+		if err != nil {
+			log.Printf("Error searching for records with criteria %v account id: %d. Reason: %s", search, accountId, err)
+			return true
+		}
+		return false
+	}
+
+	if search.FromDate == nil {
+		defaultFromDate := startOfCurrentMonth()
+		search.FromDate = &defaultFromDate
+	}
+
+	if search.ToDate == nil {
+		defaultToDate := time.Now().UTC()
+		search.ToDate = &defaultToDate
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query := psql.Select(
+		"r.id",
+		"r.category_id",
+		"c.name",
+		"r.note",
+		"r.currency",
+		"r.amount_minor_units",
+		"r.date",
+		"r.type",
+		"r.beneficiary_id",
+	).
+		From("budget.record r").
+		LeftJoin("budget.category c ON c.id = r.category_id").
+		Where(sq.Eq{
+			"r.account_id": accountId,
+		})
+
+	if len(search.CategoryNames) != 0 {
+		query = query.Where(
+			sq.Eq{"c.name": search.CategoryNames},
+		)
+	}
+
+	if len(search.RecordTypes) != 0 {
+		query = query.Where(sq.Eq{"r.type": search.RecordTypes})
+	}
+
+	if len(search.SearchTerm) != 0 {
+		keywords := strings.Split(search.SearchTerm, " ")
+
+		likes := make([]sq.Sqlizer, 0, len(keywords))
+		for _, keyword := range keywords {
+			if len(keyword) == 0 {
+				continue
+			}
+			if strings.Contains(keyword, "\"") || strings.Contains(keyword, ";") {
+				// Crappy check against sql injection
+				continue
+			}
+			likes = append(likes, sq.Like{"r.note": fmt.Sprintf("%%%s%%", keyword)})
+		}
+
+		query = query.Where(sq.Or(likes))
+	}
+
+	var (
+		rows *sql.Rows
+		err  error
+	)
+
+	if rows, err = query.OrderBy("r.date DESC").
+		RunWith(d.db).
+		Query(); checkError(err) {
+		return core.Records{}, nil
+	}
+
+	defer rows.Close()
+
+	entities := make([]*core.Record, 0)
+	for rows.Next() {
+
+		var (
+			recordId            core.RecordId
+			categoryId          core.CategoryId
+			categoryName        string
+			note                string
+			currency            string
+			amountMinorUnits    int64
+			date                time.Time
+			recordType          core.RecordType
+			beneficiaryIdOrNull sql.NullInt64
+			beneficiaryId       core.AccountId
+		)
+
+		if err = rows.Scan(&recordId, &categoryId, &categoryName, &note, &currency, &amountMinorUnits, &date, &recordType, &beneficiaryIdOrNull); err != nil {
+			log.Printf("Error processing records for account %d. Reason: %s", accountId, err)
+			continue
+		}
+
+		if beneficiaryIdOrNull.Valid {
+			beneficiaryId = core.AccountId(beneficiaryIdOrNull.Int64)
+		}
+
+		var (
+			amount   core.Money
+			category *core.Category
+			record   *core.Record
+		)
+
+		if amount, err = core.NewMoney(currency, amountMinorUnits); err != nil {
+			log.Printf("Error loading record id: %d for account id %d, currency: %q, amount (minor units): %d from database. Reason: %s", recordId, accountId, currency, amountMinorUnits, err)
+			continue
+		}
+
+		if category, err = core.NewCategory(categoryId, categoryName); err != nil {
+			log.Printf("Error loading record id: %d for account id %d, category id: %d, category name: %s from database. Reason: %s", recordId, accountId, categoryId, categoryName, err)
+			continue
+		}
+
+		if record, err = core.NewRecord(recordId, note, category, amount, date, recordType, beneficiaryId); err != nil {
+			log.Printf("Error loading account with id: %d from database. Reason: %s", recordId, err)
+			continue
+		}
+
+		entities = append(entities, record)
+	}
+
+	records := core.Records(entities)
+	sort.Sort(records)
+
+	return records, nil
 }
 
 func (d *DefaultRecordDao) GetRecordsForLastPeriod(accountId core.AccountId) (core.Records, error) {
-	// TODO
-	return nil, fmt.Errorf("To implement")
+	checkError := func(err error) bool {
+		if err != nil {
+			log.Printf("Error loading records for last period for account id: %d. Reason: %s", accountId, err)
+			return true
+		}
+		return false
+	}
+
+	var rows *sql.Rows
+	var err error
+	if rows, err = d.db.Query("SELECT MAX(r.date) FROM budget.record r WHERE r.account_id = $1", accountId); checkError(err) {
+		return core.Records{}, nil
+	}
+
+	defer rows.Close()
+	rows.Next()
+
+	var max time.Time
+	if err = rows.Scan(&max); checkError(err) {
+		return core.Records{}, nil
+	}
+
+	return d.GetRecordsForMonth(accountId, int(max.Month()), max.Year())
 }
 
 func (d *DefaultRecordDao) GetRecordsForMonth(queryId core.AccountId, month int, year int) (core.Records, error) {
@@ -148,5 +300,12 @@ func (d *DefaultRecordDao) GetRecordsForMonth(queryId core.AccountId, month int,
 		entities = append(entities, record)
 	}
 
-	return entities, nil
+	records := core.Records(entities)
+	sort.Sort(records)
+
+	return records, nil
+}
+
+func startOfCurrentMonth() time.Time {
+	return time.Now().UTC().AddDate(0, -1, time.Now().UTC().Day()+1)
 }

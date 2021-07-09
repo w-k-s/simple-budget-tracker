@@ -3,6 +3,7 @@ module github.com/w-k-s/simple-budget-tracker
 go 1.14
 
 require (
+	github.com/Masterminds/squirrel v1.5.0
 	github.com/bojanz/currency v0.0.0-20210528213321-e806b5aaa94a
 	github.com/cenkalti/backoff/v4 v4.0.2
 	github.com/gobuffalo/validate v2.0.4+incompatible

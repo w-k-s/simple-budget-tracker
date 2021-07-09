@@ -25,6 +25,7 @@ var testContainerContext context.Context
 var testPostgresContainer tc.Container
 var testContainerDataSourceName string
 
+var TestDB *sql.DB
 var UserDao core.UserDao
 var AccountDao core.AccountDao
 var CategoryDao core.CategoryDao
@@ -56,6 +57,10 @@ func init() {
 	testContainerDataSourceName = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", containerHost, containerPort.Int(), testContainerPostgresUser, testContainerPostgresPassword, testContainerPostgresDB)
 
 	migrations.MustRunMigrations(testContainerDriverName, testContainerDataSourceName, os.Getenv("TEST_MIGRATIONS_DIRECTORY"))
+
+	if TestDB, err = sql.Open(testContainerDriverName, testContainerDataSourceName); err != nil {
+		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", testContainerDriverName, testContainerDataSourceName, err)
+	}
 
 	UserDao = MustOpenUserDao(testContainerDriverName, testContainerDataSourceName)
 	AccountDao = MustOpenAccountDao(testContainerDriverName, testContainerDataSourceName)

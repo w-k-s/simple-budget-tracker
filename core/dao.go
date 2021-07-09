@@ -49,9 +49,10 @@ type RecordDao interface {
 }
 
 type RecordSearch struct {
-	SearchTerm    string
-	FromDate      *time.Time
-	ToDate        *time.Time
-	CategoryNames []string
-	RecordTypes   []RecordType
+	SearchTerm              string
+	FromDate                *time.Time
+	ToDate                  *time.Time
+	CategoryNames           []string
+	RecordTypes             []RecordType
+	BeneficiaryAccountNames []string
 }
