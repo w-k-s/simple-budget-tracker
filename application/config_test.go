@@ -1,6 +1,7 @@
 package application
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -24,7 +25,7 @@ func TestConfigTestSuite(t *testing.T) {
 
 var configFileContents string
 
-func (suite *ConfigTestSuite) SetupSuite() {
+func (suite *ConfigTestSuite) SetupTest() {
 
 	configFileContents =
 		`
@@ -68,4 +69,49 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsNotProvided_WHEN_loadin
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), config)
 	assert.Equal(suite.T(), 8080, config.Server().Port())
+	assert.Equal(suite.T(), "jack.torrence", config.Database().Username())
+	assert.Equal(suite.T(), "password", config.Database().Password())
+	assert.Equal(suite.T(), "overlook", config.Database().Name())
+	assert.Equal(suite.T(), 5432, config.Database().Port())
+	assert.Equal(suite.T(), "disable", config.Database().SslMode())
+}
+
+func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsNotProvided_WHEN_configFileDoesNotExistAtDefaultPath_THEN_errorIsReturned() {
+	// GIVEN
+	path := strings.Replace(DefaultConfigFilePath(), "file://", "", 1)
+	_ = os.Remove(path)
+
+	// WHEN
+	config, err := LoadConfig("", "", "")
+
+	// THEN
+	assert.Nil(suite.T(), config)
+	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), fmt.Sprintf("failed to read config file from local path '%s'. Reason: open %s: no such file or directory", path, path), err.Error())
+}
+
+func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsProvided_WHEN_configFileDoesNotExistAtProvidedPath_THEN_errorIsReturned() {
+	// GIVEN
+	uri := "file://" + filepath.Join("/.budget", "test.d", "config.toml")
+
+	// WHEN
+	config, err := LoadConfig(uri, "", "")
+
+	// THEN
+	assert.NotNil(suite.T(), err)
+	assert.Nil(suite.T(), config)
+	assert.Equal(suite.T(), "failed to read config file from local path '/.budget/test.d/config.toml'. Reason: open /.budget/test.d/config.toml: no such file or directory", err.Error())
+}
+
+func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsNotPrefixedWithFileOrS3Protocol_WHEN_configFileIsLoaded_THEN_errorIsReturned() {
+	// GIVEN
+	uri := "http://" + filepath.Join("/.budget", "test.d", "config.toml")
+
+	// WHEN
+	config, err := LoadConfig(uri, "", "")
+
+	// THEN
+	assert.NotNil(suite.T(), err)
+	assert.Nil(suite.T(), config)
+	assert.Equal(suite.T(), "Config file must start with file:// or s3://", err.Error())
 }
