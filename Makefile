@@ -1,5 +1,7 @@
 test:
-	TEST_MIGRATIONS_DIRECTORY="$(shell pwd)/migrations" go test -v ./...
+	mkdir -p ~/.budget/migrations.d/
+	cp migrations/*.sql ~/.budget/migrations.d/
+	go test -v ./...
 
 fmt:
 	gofmt -w */**

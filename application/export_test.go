@@ -11,7 +11,6 @@ import (
 	tc "github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/w-k-s/simple-budget-tracker/core"
-	"github.com/w-k-s/simple-budget-tracker/migrations"
 )
 
 const (
@@ -56,7 +55,7 @@ func init() {
 	containerPort, _ := testPostgresContainer.MappedPort(testContainerContext, "5432")
 	testContainerDataSourceName = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", containerHost, containerPort.Int(), testContainerPostgresUser, testContainerPostgresPassword, testContainerPostgresDB)
 
-	migrations.MustRunMigrations(testContainerDriverName, testContainerDataSourceName, os.Getenv("TEST_MIGRATIONS_DIRECTORY"))
+	MustRunMigrations(testContainerDriverName, testContainerDataSourceName, DefaultMigrationsDirectoryPath())
 
 	if TestDB, err = sql.Open(testContainerDriverName, testContainerDataSourceName); err != nil {
 		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", testContainerDriverName, testContainerDataSourceName, err)

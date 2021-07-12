@@ -3,16 +3,15 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
 
 	app "github.com/w-k-s/simple-budget-tracker/application"
-	"github.com/w-k-s/simple-budget-tracker/migrations"
 )
 
 var (
 	configFilePath string
 	awsAccessKey string
 	awsSecretKey string
+	config *app.Config
 )
 
 func init(){
@@ -26,11 +25,11 @@ func init(){
 	flag.StringVar(&awsSecretKey, "aws_secret_key", "", awsSecretKey)
 
 	var err error
-	if _,err = app.LoadConfig(configFilePath, awsAccessKey, awsSecretKey); err == nil{
+	if config,err = app.LoadConfig(configFilePath, awsAccessKey, awsSecretKey); err == nil{
 		log.Fatalf("failed to load config file. Reason: %s", err)
 	}
 }
 
 func main() {
-	migrations.MustRunMigrations("postgres", "postgres://localhost:5432/simple_budget_tracker?sslmode=disable",os.Getenv("MIGRATIONS_DIRECTORY"))
+	app.MustRunMigrations("postgres", config.Database().ConnectionString(), config.Database().MigrationDirectory())
 }

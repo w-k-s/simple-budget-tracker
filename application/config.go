@@ -35,12 +35,13 @@ func (s ServerConfig) Port() int {
 }
 
 type DBConfig struct {
-	username string
-	password string
-	host     string
-	port     int
-	name     string
-	sslMode  string
+	username     string
+	password     string
+	host         string
+	port         int
+	name         string
+	sslMode      string
+	migrationDir string
 }
 
 func (d DBConfig) Username() string {
@@ -67,18 +68,36 @@ func (d DBConfig) SslMode() string {
 	return d.sslMode
 }
 
+func (d DBConfig) MigrationDirectory() string {
+	if len(d.migrationDir) == 0 {
+		return DefaultMigrationsDirectoryPath()
+	}
+	return d.migrationDir
+}
+
+func (d DBConfig) ConnectionString() string {
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		d.Host(),
+		d.Port(),
+		d.Username(),
+		d.Password(),
+		d.SslMode(),
+	)
+}
+
 func readToml(bytes []byte) (*Config, error) {
 	var mutableConfig struct {
 		Server struct {
 			Port int
 		}
 		Database struct {
-			Username string
-			Password string
-			Host     string
-			Port     int
-			Name     string
-			SSLMode  string
+			Username     string
+			Password     string
+			Host         string
+			Port         int
+			Name         string
+			SSLMode      string
+			MigrationDir string
 		}
 	}
 
@@ -92,12 +111,13 @@ func readToml(bytes []byte) (*Config, error) {
 			port: mutableConfig.Server.Port,
 		},
 		db: DBConfig{
-			username: mutableConfig.Database.Username,
-			password: mutableConfig.Database.Password,
-			host:     mutableConfig.Database.Host,
-			port:     mutableConfig.Database.Port,
-			name:     mutableConfig.Database.Name,
-			sslMode:  mutableConfig.Database.SSLMode,
+			username:     mutableConfig.Database.Username,
+			password:     mutableConfig.Database.Password,
+			host:         mutableConfig.Database.Host,
+			port:         mutableConfig.Database.Port,
+			name:         mutableConfig.Database.Name,
+			sslMode:      mutableConfig.Database.SSLMode,
+			migrationDir: mutableConfig.Database.MigrationDir,
 		},
 	}
 
@@ -109,6 +129,7 @@ func readToml(bytes []byte) (*Config, error) {
 		&validators.IntIsGreaterThan{Name: "Database Port", Field: int(config.db.port), Compared: 0, Message: "Database port is required"},
 		&validators.StringLengthInRange{Name: "Database Name", Field: config.db.host, Min: 1, Max: 0, Message: "Database name is required"},
 		&validators.StringInclusion{Name: "Database SSL Mode", Field: config.db.sslMode, List: []string{"disable", "require", "verify-ca", "verify-full"}, Message: "Database SSL Mode is required"},
+		&validators.StringLengthInRange{Name: "Migration Directory", Field: config.db.host, Min: 1, Max: 0, Message: "Migration Directory path is required"},
 	)
 
 	if errors.HasAny() {
@@ -152,11 +173,19 @@ func (s3 s3ConfigSource) Load(objectPath string) (*Config, error) {
 }
 
 func DefaultConfigFilePath() string {
+	return "file://" + filepath.Join(MustUserHomeDir(), ".budget", "config.toml")
+}
+
+func DefaultMigrationsDirectoryPath() string {
+	return filepath.Join(MustUserHomeDir(), ".budget", "migrations.d")
+}
+
+func MustUserHomeDir() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatalf("Unable to access user's home directory")
 	}
-	return "file://" + filepath.Join(homeDir, ".budget", "config.toml")
+	return homeDir
 }
 
 func LoadConfig(configFilePath, awsAccessKey, awsSecretKey string) (*Config, error) {
