@@ -7,6 +7,7 @@ import (
 
 	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
@@ -24,36 +25,40 @@ var ping backoff.Operation = func() error {
 }
 
 func RunMigrations(driverName string, dataSourceName string, migrationsDirectory string) error {
-	checkError := func(err error, message string) {
-		if err != nil {
-			log.Fatalf("%s. Reason: %s", message, err)
-		}
-	}
-
 	if len(migrationsDirectory) == 0 {
 		return fmt.Errorf("invalid migrations directory: '%s'. Must be an absolute path", migrationsDirectory)
 	}
 
-	var err error
-	db, err = sql.Open(driverName, dataSourceName)
-	checkError(err, "Migrations: Failed to connect to database")
+	var (
+		driver database.Driver
+		migrations *migrate.Migrate
+		err error
+	)
+
+	if db, err = sql.Open(driverName, dataSourceName); err != nil{
+		return fmt.Errorf("failed to open connection. Reason: %w", err)
+	}
+	
 	db.SetMaxIdleConns(0) // Required, otherwise pinging will result in EOF
 
 	_ = backoff.Retry(ping, backoff.NewExponentialBackOff())
-	driver, err := postgres.WithInstance(db, &postgres.Config{
+	if driver, err = postgres.WithInstance(db, &postgres.Config{
 		DatabaseName: "simple_budget_tracker",
 		SchemaName:   "budget",
-	})
-	checkError(err, "Migrations: Failed to create instance of psql driver")
+	}); err != nil{
+		return fmt.Errorf("failed to create instance of psql driver. Reason: %w", err)
+	}
 
 	migrationsUrl := fmt.Sprintf("file://%s", migrationsDirectory)
-	m, err := migrate.NewWithDatabaseInstance(migrationsUrl, "postgres", driver)
-	checkError(err, fmt.Sprintf("Failed to load migrations from %s", migrationsUrl))
+	if migrations, err = migrate.NewWithDatabaseInstance(migrationsUrl, "postgres", driver); err != nil{
+		return fmt.Errorf("failed to load migrations from %s. Reason: %w", migrationsUrl, err)
+	}
 
-	err = m.Up()
-	checkError(err, fmt.Sprintf("Failed to apply migrations from %s", migrationsUrl))
+	if err = migrations.Up(); err != nil{
+		return fmt.Errorf("failed to apply migrations from %s. Reason: %w", migrationsUrl, err)
+	}
 
-	return err
+	return nil
 }
 
 func MustRunMigrations(driverName string, dataSourceName string, migrationsDirectory string) {

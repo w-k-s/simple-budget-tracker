@@ -76,11 +76,12 @@ func (d DBConfig) MigrationDirectory() string {
 }
 
 func (d DBConfig) ConnectionString() string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		d.Host(),
 		d.Port(),
 		d.Username(),
 		d.Password(),
+		d.Name(),
 		d.SslMode(),
 	)
 }
@@ -156,11 +157,11 @@ type s3ConfigSource struct {
 }
 
 func newS3ConfigSource(accessKey, secretKey string) (*s3ConfigSource, error) {
-	if len(accessKey) == 0 {
-		return nil, fmt.Errorf("AWS access key is required to load config file from s3")
-	}
-	if len(secretKey) == 0 {
-		return nil, fmt.Errorf("AWS secret key is required to load config file from s3")
+	if len(accessKey) == 0 && len(secretKey) == 0{
+		log.Print(
+			`AWS Access Key and AWS Secret Access Key not provided. 
+			Will try to fetch these credentials from Environment Variables / ~/.aws/credentials.txt or that the server has appopriate AWS role.`,
+		)
 	}
 	return &s3ConfigSource{
 		awsAccessKey: accessKey,
