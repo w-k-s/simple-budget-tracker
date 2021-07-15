@@ -30,32 +30,31 @@ func RunMigrations(driverName string, dataSourceName string, migrationsDirectory
 	}
 
 	var (
-		driver database.Driver
+		driver     database.Driver
 		migrations *migrate.Migrate
-		err error
+		err        error
 	)
 
-	if db, err = sql.Open(driverName, dataSourceName); err != nil{
+	if db, err = sql.Open(driverName, dataSourceName); err != nil {
 		return fmt.Errorf("failed to open connection. Reason: %w", err)
 	}
-	
+
 	db.SetMaxIdleConns(0) // Required, otherwise pinging will result in EOF
 
 	_ = backoff.Retry(ping, backoff.NewExponentialBackOff())
 	if driver, err = postgres.WithInstance(db, &postgres.Config{
 		DatabaseName: "simple_budget_tracker",
 		SchemaName:   "budget",
-	}); err != nil{
+	}); err != nil {
 		return fmt.Errorf("failed to create instance of psql driver. Reason: %w", err)
 	}
 
-	migrationsUrl := fmt.Sprintf("file://%s", migrationsDirectory)
-	if migrations, err = migrate.NewWithDatabaseInstance(migrationsUrl, "postgres", driver); err != nil{
-		return fmt.Errorf("failed to load migrations from %s. Reason: %w", migrationsUrl, err)
+	if migrations, err = migrate.NewWithDatabaseInstance(migrationsDirectory, "postgres", driver); err != nil {
+		return fmt.Errorf("failed to load migrations from %s. Reason: %w", migrationsDirectory, err)
 	}
 
-	if err = migrations.Up(); err != nil{
-		return fmt.Errorf("failed to apply migrations from %s. Reason: %w", migrationsUrl, err)
+	if err = migrations.Up(); err != nil {
+		return fmt.Errorf("failed to apply migrations from %s. Reason: %w", migrationsDirectory, err)
 	}
 
 	return nil

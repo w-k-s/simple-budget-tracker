@@ -23,8 +23,7 @@ func TestConfigTestSuite(t *testing.T) {
 
 // -- SETUP
 
-var configFileContents string =
-`
+var configFileContents string = `
 [server]
 port = 8080
 
@@ -37,7 +36,7 @@ port     = 5432
 sslmode  = "disable"
 `
 
-func createTestConfigFile(content string, uri string) error{
+func createTestConfigFile(content string, uri string) error {
 	path := strings.Replace(uri, "file://", "", 1)
 	if err := os.MkdirAll(filepath.Dir(path), 0777); err != nil {
 		return fmt.Errorf("Failed to create path '%s'. Reason: %w", path, err)
@@ -49,7 +48,7 @@ func createTestConfigFile(content string, uri string) error{
 }
 
 func (suite *ConfigTestSuite) SetupTest() {
-	if err := createTestConfigFile(configFileContents, DefaultConfigFilePath()); err != nil{
+	if err := createTestConfigFile(configFileContents, DefaultConfigFilePath()); err != nil {
 		log.Fatalf("Failed to create test config file. Reason: %s", err)
 	}
 }
@@ -65,7 +64,7 @@ func (suite *ConfigTestSuite) TearDownTest() {
 
 func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsNotProvided_WHEN_loadingConfig_THEN_configsLoadedFromDefaultPath() {
 	// WHEN
-	config, err := LoadConfig("", "", "")
+	config, err := LoadConfig("", "", "", "")
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -85,7 +84,7 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsNotProvided_WHEN_config
 	_ = os.Remove(path)
 
 	// WHEN
-	config, err := LoadConfig("", "", "")
+	config, err := LoadConfig("", "", "", "")
 
 	// THEN
 	assert.Nil(suite.T(), config)
@@ -98,7 +97,7 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsProvided_WHEN_configFil
 	uri := "file://" + filepath.Join("/.budget", "test.d", "config.toml")
 
 	// WHEN
-	config, err := LoadConfig(uri, "", "")
+	config, err := LoadConfig(uri, "", "", "")
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -111,7 +110,7 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsProvided_WHEN_configFil
 	assert.Nil(suite.T(), createTestConfigFile(configFileContents, DefaultConfigFilePath()))
 
 	// WHEN
-	config, err := LoadConfig("", "", "")
+	config, err := LoadConfig("", "", "", "")
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -131,7 +130,7 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsProvided_WHEN_configFil
 	assert.Nil(suite.T(), createTestConfigFile("", DefaultConfigFilePath()))
 
 	// WHEN
-	config, err := LoadConfig("", "", "")
+	config, err := LoadConfig("", "", "", "")
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -156,7 +155,7 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsProvided_WHEN_configFil
 	assert.Nil(suite.T(), createTestConfigFile(invalidToml, DefaultConfigFilePath()))
 
 	// WHEN
-	config, err := LoadConfig("", "", "")
+	config, err := LoadConfig("", "", "", "")
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -169,7 +168,7 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsNotPrefixedWithFileOrS3
 	uri := "http://" + filepath.Join("/.budget", "test.d", "config.toml")
 
 	// WHEN
-	config, err := LoadConfig(uri, "", "")
+	config, err := LoadConfig(uri, "", "", "")
 
 	// THEN
 	assert.NotNil(suite.T(), err)
