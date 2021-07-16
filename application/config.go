@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -34,10 +35,38 @@ func (c Config) Database() DBConfig {
 
 type ServerConfig struct {
 	port int
+	readTimeout time.Duration
+	writeTimeout time.Duration
+	maxHeaderBytes int
 }
 
 func (s ServerConfig) Port() int {
 	return s.port
+}
+
+func (s ServerConfig) MaxHeaderBytes() int {
+	if s.maxHeaderBytes <= 0 {
+		return 1 << 20 // 1MB
+	} 
+	return s.maxHeaderBytes
+}
+
+func (s ServerConfig) ReadTimeout() time.Duration {
+	if s.readTimeout == 0 {
+		return 10 * time.Second
+	}
+	return s.readTimeout
+}
+
+func (s ServerConfig) WriteTimeout() time.Duration {
+	if s.writeTimeout == 0 {
+		return 10 * time.Second
+	}
+	return s.writeTimeout
+}
+
+func (s ServerConfig) ListenAddress() string{
+	return fmt.Sprintf(":%d", s.port)
 }
 
 type DBConfig struct {
@@ -96,6 +125,9 @@ func readToml(bytes []byte) (*Config, error) {
 	var mutableConfig struct {
 		Server struct {
 			Port int
+			WriteTimeoutSeconds int64 `toml:"write_timeout"`
+			ReadTimeoutSeconds int64 `toml:"read_timeout"`
+			MaxHeaderBytes int `toml:"max_header_bytes"`
 		}
 		Database struct {
 			Username     string
@@ -104,7 +136,7 @@ func readToml(bytes []byte) (*Config, error) {
 			Port         int
 			Name         string
 			SSLMode      string
-			MigrationDir string
+			MigrationDir string `toml:"migration_dir"`
 		}
 	}
 
@@ -116,6 +148,9 @@ func readToml(bytes []byte) (*Config, error) {
 	config := &Config{
 		server: ServerConfig{
 			port: mutableConfig.Server.Port,
+			readTimeout: time.Duration(mutableConfig.Server.ReadTimeoutSeconds) *  time.Second,
+			writeTimeout: time.Duration(mutableConfig.Server.WriteTimeoutSeconds) * time.Second,
+			maxHeaderBytes: mutableConfig.Server.MaxHeaderBytes,
 		},
 		db: DBConfig{
 			username:     mutableConfig.Database.Username,

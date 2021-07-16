@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -70,6 +71,10 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsNotProvided_WHEN_loadin
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), config)
 	assert.Equal(suite.T(), 8080, config.Server().Port())
+	assert.Equal(suite.T(), ":8080", config.Server().ListenAddress())
+	assert.Equal(suite.T(), 1048576, config.Server().MaxHeaderBytes())
+	assert.Equal(suite.T(), time.Duration(10) * time.Second, config.Server().ReadTimeout())
+	assert.Equal(suite.T(), time.Duration(10) * time.Second, config.Server().WriteTimeout())
 	assert.Equal(suite.T(), "jack.torrence", config.Database().Username())
 	assert.Equal(suite.T(), "password", config.Database().Password())
 	assert.Equal(suite.T(), "overlook", config.Database().Name())
@@ -107,7 +112,22 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsProvided_WHEN_configFil
 
 func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsProvided_WHEN_configFileDoesExistAtProvidedPath_THEN_configsParsedCorrectly() {
 	// GIVEN
-	assert.Nil(suite.T(), createTestConfigFile(configFileContents, DefaultConfigFilePath()))
+	var customConfigFileContents string = `
+[server]
+port = 8085
+read_timeout = 5
+write_timeout = 3
+max_header_bytes = 2097152
+
+[database]
+username = "danny.torrence"
+password = "password"
+name     = "tony"
+host     = "localhost"
+port     = 5432
+sslmode  = "disable"
+`
+	assert.Nil(suite.T(), createTestConfigFile(customConfigFileContents, DefaultConfigFilePath()))
 
 	// WHEN
 	config, err := LoadConfig("", "", "", "")
@@ -115,13 +135,17 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsProvided_WHEN_configFil
 	// THEN
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), config)
-	assert.Equal(suite.T(), 8080, config.Server().Port())
-	assert.Equal(suite.T(), "jack.torrence", config.Database().Username())
+	assert.Equal(suite.T(), 8085, config.Server().Port())
+	assert.Equal(suite.T(), ":8085", config.Server().ListenAddress())
+	assert.Equal(suite.T(), 2097152, config.Server().MaxHeaderBytes())
+	assert.Equal(suite.T(), time.Duration(5) * time.Second, config.Server().ReadTimeout())
+	assert.Equal(suite.T(), time.Duration(3) * time.Second, config.Server().WriteTimeout())
+	assert.Equal(suite.T(), "danny.torrence", config.Database().Username())
 	assert.Equal(suite.T(), "password", config.Database().Password())
-	assert.Equal(suite.T(), "overlook", config.Database().Name())
+	assert.Equal(suite.T(), "tony", config.Database().Name())
 	assert.Equal(suite.T(), 5432, config.Database().Port())
 	assert.Equal(suite.T(), "disable", config.Database().SslMode())
-	assert.Equal(suite.T(), "host=localhost port=5432 user=jack.torrence password=password dbname=overlook sslmode=disable", config.Database().ConnectionString())
+	assert.Equal(suite.T(), "host=localhost port=5432 user=danny.torrence password=password dbname=tony sslmode=disable", config.Database().ConnectionString())
 
 }
 

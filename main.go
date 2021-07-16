@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"log"
+	"net/http"
+	"time"
 
 	app "github.com/w-k-s/simple-budget-tracker/application"
 )
@@ -35,4 +37,12 @@ func init(){
 
 func main() {
 	app.MustRunMigrations("postgres", config.Database().ConnectionString(), config.Database().MigrationDirectory())
+
+	s := &http.Server{
+		Addr:           config.Server().ListenAddress(),
+		ReadTimeout:    config.Server().ReadTimeout(),
+		WriteTimeout:   config.Server().WriteTimeout(),
+		MaxHeaderBytes: config.Server().MaxHeaderBytes(),
+	}
+	log.Fatal(s.ListenAndServe())	
 }
