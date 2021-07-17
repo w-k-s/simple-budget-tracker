@@ -10,6 +10,7 @@ require (
 	github.com/gobuffalo/validate v2.0.4+incompatible
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/golang-migrate/migrate/v4 v4.14.1
+	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.2
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.3
 	github.com/serenize/snaker v0.0.0-20201027110005-a7ad2135616e // indirect

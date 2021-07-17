@@ -4,7 +4,6 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"time"
 
 	app "github.com/w-k-s/simple-budget-tracker/application"
 )
@@ -15,6 +14,7 @@ var (
 	awsSecretKey string
 	awsRegion string
 	config *app.Config
+	handler *app.App
 )
 
 func init(){
@@ -33,13 +33,22 @@ func init(){
 	if config,err = app.LoadConfig(configFilePath, awsAccessKey, awsSecretKey, awsRegion); err == nil{
 		log.Fatalf("failed to load config file. Reason: %s", err)
 	}
+
+	if handler, err = app.Init(config); err != nil{
+		log.Fatalf("failed to init application. Reason: %s", err)
+	}
 }
 
 func main() {
-	app.MustRunMigrations("postgres", config.Database().ConnectionString(), config.Database().MigrationDirectory())
+	app.MustRunMigrations(
+		config.Database().DriverName(), 
+		config.Database().ConnectionString(), 
+		config.Database().MigrationDirectory(),
+	)
 
 	s := &http.Server{
 		Addr:           config.Server().ListenAddress(),
+		Handler:        handler.Router(),
 		ReadTimeout:    config.Server().ReadTimeout(),
 		WriteTimeout:   config.Server().WriteTimeout(),
 		MaxHeaderBytes: config.Server().MaxHeaderBytes(),

@@ -49,7 +49,7 @@ func RunMigrations(driverName string, dataSourceName string, migrationsDirectory
 		return fmt.Errorf("failed to create instance of psql driver. Reason: %w", err)
 	}
 
-	if migrations, err = migrate.NewWithDatabaseInstance(migrationsDirectory, "postgres", driver); err != nil {
+	if migrations, err = migrate.NewWithDatabaseInstance(migrationsDirectory, driverName, driver); err != nil {
 		return fmt.Errorf("failed to load migrations from %s. Reason: %w", migrationsDirectory, err)
 	}
 

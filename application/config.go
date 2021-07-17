@@ -34,9 +34,9 @@ func (c Config) Database() DBConfig {
 }
 
 type ServerConfig struct {
-	port int
-	readTimeout time.Duration
-	writeTimeout time.Duration
+	port           int
+	readTimeout    time.Duration
+	writeTimeout   time.Duration
 	maxHeaderBytes int
 }
 
@@ -47,7 +47,7 @@ func (s ServerConfig) Port() int {
 func (s ServerConfig) MaxHeaderBytes() int {
 	if s.maxHeaderBytes <= 0 {
 		return 1 << 20 // 1MB
-	} 
+	}
 	return s.maxHeaderBytes
 }
 
@@ -65,7 +65,7 @@ func (s ServerConfig) WriteTimeout() time.Duration {
 	return s.writeTimeout
 }
 
-func (s ServerConfig) ListenAddress() string{
+func (s ServerConfig) ListenAddress() string {
 	return fmt.Sprintf(":%d", s.port)
 }
 
@@ -103,6 +103,10 @@ func (d DBConfig) SslMode() string {
 	return d.sslMode
 }
 
+func (d DBConfig) DriverName() string {
+	return "postgres"
+}
+
 func (d DBConfig) MigrationDirectory() string {
 	if len(d.migrationDir) == 0 {
 		return DefaultMigrationsDirectoryPath()
@@ -124,10 +128,10 @@ func (d DBConfig) ConnectionString() string {
 func readToml(bytes []byte) (*Config, error) {
 	var mutableConfig struct {
 		Server struct {
-			Port int
+			Port                int
 			WriteTimeoutSeconds int64 `toml:"write_timeout"`
-			ReadTimeoutSeconds int64 `toml:"read_timeout"`
-			MaxHeaderBytes int `toml:"max_header_bytes"`
+			ReadTimeoutSeconds  int64 `toml:"read_timeout"`
+			MaxHeaderBytes      int   `toml:"max_header_bytes"`
 		}
 		Database struct {
 			Username     string
@@ -147,9 +151,9 @@ func readToml(bytes []byte) (*Config, error) {
 
 	config := &Config{
 		server: ServerConfig{
-			port: mutableConfig.Server.Port,
-			readTimeout: time.Duration(mutableConfig.Server.ReadTimeoutSeconds) *  time.Second,
-			writeTimeout: time.Duration(mutableConfig.Server.WriteTimeoutSeconds) * time.Second,
+			port:           mutableConfig.Server.Port,
+			readTimeout:    time.Duration(mutableConfig.Server.ReadTimeoutSeconds) * time.Second,
+			writeTimeout:   time.Duration(mutableConfig.Server.WriteTimeoutSeconds) * time.Second,
 			maxHeaderBytes: mutableConfig.Server.MaxHeaderBytes,
 		},
 		db: DBConfig{
