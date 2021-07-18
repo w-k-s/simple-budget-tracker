@@ -29,6 +29,7 @@ var UserDao core.UserDao
 var AccountDao core.AccountDao
 var CategoryDao core.CategoryDao
 var RecordDao core.RecordDao
+var TestApp *App
 
 func init() {
 	testContainerContext = context.Background()
@@ -65,6 +66,27 @@ func init() {
 	AccountDao = MustOpenAccountDao(testContainerDriverName, testContainerDataSourceName)
 	CategoryDao = MustOpenCategoryDao(testContainerDriverName, testContainerDataSourceName)
 	RecordDao = MustOpenRecordDao(testContainerDriverName, testContainerDataSourceName)
+
+	var config *Config
+	if config, _ = NewConfig(
+		ServerConfig{
+			port: 9898,
+		},
+		DBConfig{
+			username:     testContainerPostgresUser,
+			password:     testContainerPostgresPassword,
+			host:         containerHost,
+			port:         containerPort.Int(),
+			name:         testContainerDataSourceName,
+			sslMode:      "disable",
+			migrationDir: DefaultMigrationsDirectoryPath(),
+		},
+	); err != nil {
+		log.Fatalf("Failed to configure application for tests. Reason: %s", err)
+	}
+	if TestApp, err = Init(config); err != nil {
+		log.Fatalf("Failed to initialize application for tests. Reason: %s", err)
+	}
 }
 
 func TestMain(m *testing.M) {

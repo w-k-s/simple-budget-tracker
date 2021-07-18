@@ -60,24 +60,22 @@ func (s status) HttpCode() int {
 
 type StatusReport map[string]status
 
-func (sr StatusReport) overallStatus() status {
+func (report StatusReport) overallStatus() status {
 	overall := up
-	for _, status := range sr {
+	for _, status := range report {
 		overall = overall && status
 	}
-	return true
+	return overall
 }
 
-func (app *App) HealthHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
+func (app *App) HealthHandler(w http.ResponseWriter, req *http.Request) {
 
-		dbConfig := app.Config().Database()
+	dbConfig := app.Config().Database()
 
-		report := make(StatusReport)
-		report["database"] = databaseStatusReport(&dbConfig)
+	report := make(StatusReport)
+	report["database"] = databaseStatusReport(&dbConfig)
 
-		app.MustEncodeJson(w, report, report.overallStatus().HttpCode())
-	}
+	app.MustEncodeJson(w, report, report.overallStatus().HttpCode())
 }
 
 func databaseStatusReport(dbConfig *DBConfig) status {
@@ -94,7 +92,7 @@ func databaseStatusReport(dbConfig *DBConfig) status {
 	}
 
 	db.SetMaxIdleConns(0) // Required, otherwise pinging will result in EOF
-	if err = db.Ping(); err != nil {
+	if err = PingWithBackOff(db); err != nil {
 		log.Printf("Ping failed for health check. Reason: %s", err)
 		return down
 	}

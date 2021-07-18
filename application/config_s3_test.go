@@ -58,7 +58,7 @@ func uploadTestConfigFile(content string, s3UriString string) error {
 	if err != nil {
 		return fmt.Errorf("failed to upload object %q. Reason: %w", s3Uri, err)
 	}
-	fmt.Printf("config file uploaded to %q", result.Location)
+	fmt.Printf("config file uploaded to %q\n", result.Location)
 	return nil
 }
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	backoff "github.com/cenkalti/backoff/v4"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -13,23 +12,13 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var db *sql.DB
-var ping backoff.Operation = func() error {
-	err := db.Ping()
-	if err != nil {
-		log.Printf("DB is not ready...backing off...: %s", err)
-		return err
-	}
-	log.Println("DB is ready!")
-	return nil
-}
-
 func RunMigrations(driverName string, dataSourceName string, migrationsDirectory string) error {
 	if len(migrationsDirectory) == 0 {
 		return fmt.Errorf("invalid migrations directory: '%s'. Must be an absolute path", migrationsDirectory)
 	}
 
 	var (
+		db         *sql.DB
 		driver     database.Driver
 		migrations *migrate.Migrate
 		err        error
@@ -41,7 +30,10 @@ func RunMigrations(driverName string, dataSourceName string, migrationsDirectory
 
 	db.SetMaxIdleConns(0) // Required, otherwise pinging will result in EOF
 
-	_ = backoff.Retry(ping, backoff.NewExponentialBackOff())
+	if err = PingWithBackOff(db); err != nil {
+		return fmt.Errorf("failed to ping database. Reason: %w", err)
+	}
+
 	if driver, err = postgres.WithInstance(db, &postgres.Config{
 		DatabaseName: "simple_budget_tracker",
 		SchemaName:   "budget",

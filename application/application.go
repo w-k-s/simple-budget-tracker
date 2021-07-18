@@ -30,7 +30,7 @@ func Init(config *Config) (*App, error) {
 func (app *App) Router() *mux.Router {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/health", app.HealthHandler())
+	r.HandleFunc("/health", app.HealthHandler)
 
 	return r
 }

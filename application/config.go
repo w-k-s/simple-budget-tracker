@@ -25,6 +25,30 @@ type Config struct {
 	db     DBConfig
 }
 
+func NewConfig(serverConfig ServerConfig, dbConfig DBConfig) (*Config, error) {
+	config := &Config{
+		server: serverConfig,
+		db:     dbConfig,
+	}
+
+	errors := validate.Validate(
+		&validators.IntIsGreaterThan{Name: "Server Port", Field: int(config.server.port), Compared: 1023, Message: "Server port must be at least 1023"},
+		&validators.StringLengthInRange{Name: "Database Username", Field: config.db.username, Min: 1, Max: 0, Message: "Database username is required"},
+		&validators.StringLengthInRange{Name: "Database Password", Field: config.db.password, Min: 1, Max: 0, Message: "Database password is required"},
+		&validators.StringLengthInRange{Name: "Database Host", Field: config.db.host, Min: 1, Max: 0, Message: "Database host is required"},
+		&validators.IntIsGreaterThan{Name: "Database Port", Field: int(config.db.port), Compared: 0, Message: "Database port is required"},
+		&validators.StringLengthInRange{Name: "Database Name", Field: config.db.host, Min: 1, Max: 0, Message: "Database name is required"},
+		&validators.StringInclusion{Name: "Database SSL Mode", Field: config.db.sslMode, List: []string{"disable", "require", "verify-ca", "verify-full"}, Message: "Database SSL Mode is required"},
+		&validators.StringLengthInRange{Name: "Migration Directory", Field: config.db.host, Min: 1, Max: 0, Message: "Migration Directory path is required"},
+	)
+
+	if errors.HasAny() {
+		return nil, errors
+	}
+
+	return config, nil
+}
+
 func (c Config) Server() ServerConfig {
 	return c.server
 }
@@ -149,14 +173,14 @@ func readToml(bytes []byte) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file. Reason: %w", err)
 	}
 
-	config := &Config{
-		server: ServerConfig{
+	return NewConfig(
+		ServerConfig{
 			port:           mutableConfig.Server.Port,
 			readTimeout:    time.Duration(mutableConfig.Server.ReadTimeoutSeconds) * time.Second,
 			writeTimeout:   time.Duration(mutableConfig.Server.WriteTimeoutSeconds) * time.Second,
 			maxHeaderBytes: mutableConfig.Server.MaxHeaderBytes,
 		},
-		db: DBConfig{
+		DBConfig{
 			username:     mutableConfig.Database.Username,
 			password:     mutableConfig.Database.Password,
 			host:         mutableConfig.Database.Host,
@@ -165,24 +189,7 @@ func readToml(bytes []byte) (*Config, error) {
 			sslMode:      mutableConfig.Database.SSLMode,
 			migrationDir: mutableConfig.Database.MigrationDir,
 		},
-	}
-
-	errors := validate.Validate(
-		&validators.IntIsGreaterThan{Name: "Server Port", Field: int(config.server.port), Compared: 1023, Message: "Server port must be at least 1023"},
-		&validators.StringLengthInRange{Name: "Database Username", Field: config.db.username, Min: 1, Max: 0, Message: "Database username is required"},
-		&validators.StringLengthInRange{Name: "Database Password", Field: config.db.password, Min: 1, Max: 0, Message: "Database password is required"},
-		&validators.StringLengthInRange{Name: "Database Host", Field: config.db.host, Min: 1, Max: 0, Message: "Database host is required"},
-		&validators.IntIsGreaterThan{Name: "Database Port", Field: int(config.db.port), Compared: 0, Message: "Database port is required"},
-		&validators.StringLengthInRange{Name: "Database Name", Field: config.db.host, Min: 1, Max: 0, Message: "Database name is required"},
-		&validators.StringInclusion{Name: "Database SSL Mode", Field: config.db.sslMode, List: []string{"disable", "require", "verify-ca", "verify-full"}, Message: "Database SSL Mode is required"},
-		&validators.StringLengthInRange{Name: "Migration Directory", Field: config.db.host, Min: 1, Max: 0, Message: "Migration Directory path is required"},
 	)
-
-	if errors.HasAny() {
-		return nil, errors
-	}
-
-	return config, nil
 }
 
 type localConfigSource struct{}
