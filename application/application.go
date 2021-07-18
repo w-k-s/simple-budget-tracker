@@ -22,6 +22,7 @@ func Init(config *Config) (*App, error) {
 		return nil, fmt.Errorf("configuration is required. Got %v", nil)
 	}
 
+	log.Printf("--- Application Initialized ---")
 	return &App{
 		config: config,
 	}, nil

@@ -45,8 +45,8 @@ func RunMigrations(driverName string, dataSourceName string, migrationsDirectory
 		return fmt.Errorf("failed to load migrations from %s. Reason: %w", migrationsDirectory, err)
 	}
 
-	if err = migrations.Up(); err != nil {
-		return fmt.Errorf("failed to apply migrations from %s. Reason: %w", migrationsDirectory, err)
+	if err = migrations.Up(); err != nil && err != migrate.ErrNoChange{
+			return fmt.Errorf("failed to apply migrations from %s. Reason: %w", migrationsDirectory, err)
 	}
 
 	return nil

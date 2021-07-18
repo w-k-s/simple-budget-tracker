@@ -16,4 +16,5 @@ require (
 	github.com/serenize/snaker v0.0.0-20201027110005-a7ad2135616e // indirect
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
 	github.com/testcontainers/testcontainers-go v0.11.0
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )

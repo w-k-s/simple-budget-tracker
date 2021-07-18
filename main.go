@@ -30,13 +30,18 @@ func init(){
 	flag.StringVar(&awsRegion, "aws_region", "", awsRegionUsage)
 
 	var err error
-	if config,err = app.LoadConfig(configFilePath, awsAccessKey, awsSecretKey, awsRegion); err == nil{
+	if err = app.ConfigureLogging(); err != nil {
+		log.Fatalf("failed to configure logging. Reason: %s", err)
+	}
+	
+	if config,err = app.LoadConfig(configFilePath, awsAccessKey, awsSecretKey, awsRegion); err != nil{
 		log.Fatalf("failed to load config file. Reason: %s", err)
 	}
 
 	if handler, err = app.Init(config); err != nil{
 		log.Fatalf("failed to init application. Reason: %s", err)
 	}
+
 }
 
 func main() {

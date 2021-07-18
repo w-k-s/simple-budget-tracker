@@ -2,6 +2,7 @@ package application
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
 	toml "github.com/pelletier/go-toml/v2"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type Config struct {
@@ -312,6 +314,10 @@ func defaultTempDirectoryPath() string {
 	return "file://" + filepath.Join(DefaultApplicationRootDirectory(), "temporary.d")
 }
 
+func defaultLogsDirectoryPath() string {
+	return filepath.Join(DefaultApplicationRootDirectory(), "logs.d")
+}
+
 func mustUserHomeDir() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -341,4 +347,28 @@ func LoadConfig(configFilePath, awsAccessKey, awsSecretKey, awsRegion string) (*
 	}
 
 	return nil, fmt.Errorf("Config file must start with file:// or s3://")
+}
+
+func ConfigureLogging() error{
+	var err error
+	path := filepath.Join(defaultLogsDirectoryPath(), "server.log")
+	if err = os.MkdirAll(filepath.Dir(path), 0777); err != nil {
+		return fmt.Errorf("failed to create temporary directory %q. Reason: %w", path, err)
+	}
+
+	if _, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666); err != nil{
+		return fmt.Errorf("failed to open log file. Reason: %w", err)
+	}
+	lumberjackLogger := &lumberjack.Logger{
+        Filename:   path, 
+        MaxSize:    5, // MB
+        MaxBackups: 10,
+        MaxAge:     30,   // days
+        Compress:   true, // disabled by default
+    }
+
+	multiWriter := io.MultiWriter(os.Stderr, lumberjackLogger)
+	log.SetOutput(multiWriter)
+
+	return nil
 }
