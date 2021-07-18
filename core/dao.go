@@ -2,10 +2,19 @@ package core
 
 import (
 	"database/sql"
+	"log"
 	"time"
 )
 
+type Dao interface {
+	BeginTx() (*sql.Tx, error)
+	MustBeginTx() *sql.Tx
+}
+
 type UserDao interface {
+	BeginTx() (*sql.Tx, error)
+	MustBeginTx() *sql.Tx
+
 	Close() error
 	NewUserId() (UserId, error)
 
@@ -55,4 +64,23 @@ type RecordSearch struct {
 	CategoryNames           []string
 	RecordTypes             []RecordType
 	BeneficiaryAccountNames []string
+}
+
+func DeferRollback(tx *sql.Tx, reference string) {
+	if tx == nil {
+		return
+	}
+	if err := tx.Rollback(); err != nil {
+		log.Printf("failed to rollback transaction with reference %q. Reason: %s", reference, err)
+	}
+}
+
+func Commit(tx *sql.Tx) error {
+	if tx == nil {
+		log.Fatal("Commit should not be passed a nil transaction")
+	}
+	if err := tx.Commit(); err != nil {
+		return NewError(ErrDatabaseConnectivity, "Failed to save changes", err)
+	}
+	return nil
 }

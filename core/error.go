@@ -26,6 +26,7 @@ const (
 	ErrAmountOverflow
 	ErrAmountMismatchingCurrencies
 	ErrAmountTotalOfEmptySet
+	ErrRequestUnmarshallingFailed
 )
 
 var errorCodeNames = map[ErrorCode]string{
@@ -45,6 +46,7 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrAmountOverflow:              "AMOUNT_OVERFLOW",
 	ErrAmountMismatchingCurrencies: "AMOUNT_MISMATCHING_CURRENCIES",
 	ErrAmountTotalOfEmptySet:       "AMOUNT_TOTAL_OF_EMPTY_SET",
+	ErrRequestUnmarshallingFailed:  "REQUEST_UNMARSHALLING_FAILED",
 }
 
 func (c ErrorCode) Name() string {

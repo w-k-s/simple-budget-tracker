@@ -9,7 +9,7 @@ import (
 )
 
 type DefaultUserDao struct {
-	db *sql.DB
+	*RootDao
 }
 
 func MustOpenUserDao(driverName, dataSourceName string) core.UserDao {
@@ -18,7 +18,9 @@ func MustOpenUserDao(driverName, dataSourceName string) core.UserDao {
 	if db, err = sql.Open(driverName, dataSourceName); err != nil {
 		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", dataSourceName, driverName, err)
 	}
-	return &DefaultUserDao{db}
+	return &DefaultUserDao{
+		&RootDao{db},
+	}
 }
 
 func (d DefaultUserDao) Close() error {
