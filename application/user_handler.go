@@ -18,11 +18,11 @@ func (a *App) RegisterUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var user *core.CreateUserResponse
-	if user, err = a.UserService.CreateUser(createUserRequest); err != nil {
+	var resp core.CreateUserResponse
+	if resp, err = a.UserService.CreateUser(createUserRequest); err != nil {
 		a.MustEncodeProblem(w, req, err, http.StatusBadRequest)
 		return
 	}
 
-	a.MustEncodeJson(w, user, http.StatusCreated)
+	a.MustEncodeJson(w, resp, http.StatusCreated)
 }

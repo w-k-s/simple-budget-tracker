@@ -66,7 +66,7 @@ func (suite *UserDaoTestSuite) Test_Given_aUserId_WHEN_noUserWithThatIdExists_TH
 	theUser, err := suite.userDao.GetUserById(userId)
 
 	// THEN
-	assert.Nil(suite.T(), theUser)
+	assert.Equal(suite.T(), core.User{}, theUser)
 
 	coreError := err.(core.Error)
 	assert.EqualValues(suite.T(), coreError.Code(), core.ErrUserNotFound)

@@ -47,7 +47,7 @@ func simulateRecords(db *sql.DB, numberOfUsers int, startMonth core.CalendarMont
 	currentAccountIds := make([]core.AccountId, 0, numberOfUsers*10)
 	for i := 0; i < numberOfUsers; i++ {
 		// create user
-		var user *core.User
+		var user core.User
 		userId := core.UserId(time.Now().UnixNano())
 		if user, err = core.NewUserWithEmailString(userId, fmt.Sprintf("testUser+%d@gmail.com", userId)); err != nil {
 			return nil, err

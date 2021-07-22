@@ -15,7 +15,7 @@ type CreateUserResponse struct {
 }
 
 type UserService interface {
-	CreateUser(request CreateUserRequest) (*CreateUserResponse, error)
+	CreateUser(request CreateUserRequest) (CreateUserResponse, error)
 }
 
 type userService struct {
@@ -32,31 +32,31 @@ func NewUserService(userDao UserDao) (UserService, error) {
 	}, nil
 }
 
-func (u userService) CreateUser(request CreateUserRequest) (*CreateUserResponse, error) {
+func (u userService) CreateUser(request CreateUserRequest) (CreateUserResponse, error) {
 	var (
 		tx     *sql.Tx
 		userId UserId
-		user   *User
+		user   User
 		err    error
 	)
 	if tx, err = u.userDao.BeginTx(); err != nil {
-		return nil, err.(Error)
+		return CreateUserResponse{}, err.(Error)
 	}
 	defer DeferRollback(tx, "CreateUser: "+request.Email)
 
 	if userId, err = u.userDao.NewUserId(); err != nil {
-		return nil, err.(Error)
+		return CreateUserResponse{}, err.(Error)
 	}
 	if user, err = NewUserWithEmailString(userId, request.Email); err != nil {
-		return nil, err.(Error)
+		return CreateUserResponse{}, err.(Error)
 	}
 	if err = u.userDao.SaveTx(user, tx); err != nil {
-		return nil, err.(Error)
+		return CreateUserResponse{}, err.(Error)
 	}
 	if err = Commit(tx); err != nil {
-		return nil, err.(Error)
+		return CreateUserResponse{}, err.(Error)
 	}
-	return &CreateUserResponse{
+	return CreateUserResponse{
 		Id:    userId,
 		Email: user.Email().Address,
 	}, nil

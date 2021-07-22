@@ -11,19 +11,19 @@ type User struct {
 	email *mail.Address
 }
 
-func NewUser(id UserId, email *mail.Address) *User {
-	return &User{
+func NewUser(id UserId, email *mail.Address) User {
+	return User{
 		id:    id,
 		email: email,
 	}
 }
 
-func NewUserWithEmailString(id UserId, emailString string) (*User, error) {
+func NewUserWithEmailString(id UserId, emailString string) (User, error) {
 	email, err := mail.ParseAddress(emailString)
 	if err != nil {
-		return nil, NewError(ErrUserEmailInvalid, err.Error(), err)
+		return User{}, NewError(ErrUserEmailInvalid, err.Error(), err)
 	}
-	return &User{
+	return User{
 		id:    id,
 		email: email,
 	}, nil

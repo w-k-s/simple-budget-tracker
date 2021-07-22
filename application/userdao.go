@@ -37,7 +37,7 @@ func (d *DefaultUserDao) NewUserId() (core.UserId, error) {
 	return userId, err
 }
 
-func (d *DefaultUserDao) SaveTx(u *core.User, tx *sql.Tx) error {
+func (d *DefaultUserDao) SaveTx(u core.User, tx *sql.Tx) error {
 	_, err := tx.Exec("INSERT INTO budget.user (id, email) VALUES ($1, $2)", u.Id(), u.Email().Address)
 	if err != nil {
 		log.Printf("Failed to save user %v. Reason: %s", u, err)
@@ -49,22 +49,22 @@ func (d *DefaultUserDao) SaveTx(u *core.User, tx *sql.Tx) error {
 	return nil
 }
 
-func (d *DefaultUserDao) GetUserById(queryId core.UserId) (*core.User, error) {
+func (d *DefaultUserDao) GetUserById(queryId core.UserId) (core.User, error) {
 	var userId core.UserId
 	var email string
 
 	err := d.db.QueryRow("SELECT id, email FROM budget.user WHERE id = $1", queryId).Scan(&userId, &email)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, core.NewError(core.ErrUserNotFound, fmt.Sprintf("User with id %d not found", queryId), err)
+			return core.User{}, core.NewError(core.ErrUserNotFound, fmt.Sprintf("User with id %d not found", queryId), err)
 		}
-		return nil, core.NewError(core.ErrDatabaseState, fmt.Sprintf("User with id %d not found", queryId), err)
+		return core.User{}, core.NewError(core.ErrDatabaseState, fmt.Sprintf("User with id %d not found", queryId), err)
 	}
 
 	return core.NewUserWithEmailString(userId, email)
 }
 
-func (d *DefaultUserDao) Save(u *core.User) error {
+func (d *DefaultUserDao) Save(u core.User) error {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return err
