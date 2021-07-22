@@ -27,17 +27,11 @@ func NewCategory(id CategoryId, name string) (*Category, error) {
 		&validators.StringLengthInRange{Name: "Name", Field: category.name, Min: 1, Max: 25, Message: "Name must be 1 and 25 characters long"},
 	)
 
-	if errors.HasAny() {
-		flatErrors := map[string]string{}
-		for field, violations := range errors.Errors {
-			flatErrors[field] = strings.Join(violations, ", ")
-		}
-		listErrors := []string{}
-		for _, violations := range flatErrors {
-			listErrors = append(listErrors, violations)
-		}
-		return nil, NewErrorWithFields(ErrCategoryValidation, strings.Join(listErrors, ", "), errors, flatErrors)
+	var err error
+	if err = makeCoreValidationError(ErrCategoryValidation, errors); err != nil {
+		return nil, err
 	}
+
 	return category, nil
 }
 

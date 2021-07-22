@@ -232,12 +232,12 @@ func (d *DefaultRecordDao) GetRecordsForLastPeriod(accountId core.AccountId) (co
 		return core.Records{}, nil
 	}
 
-	return d.GetRecordsForMonth(accountId, int(max.Month()), max.Year())
+	return d.GetRecordsForMonth(accountId, core.MakeCalendarMonthFromDate(max))
 }
 
-func (d *DefaultRecordDao) GetRecordsForMonth(queryId core.AccountId, month int, year int) (core.Records, error) {
-	fromDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
-	toDate := fromDate.AddDate(0, 1, -1)
+func (d *DefaultRecordDao) GetRecordsForMonth(queryId core.AccountId, month core.CalendarMonth) (core.Records, error) {
+	fromDate := month.FirstDay()
+	toDate := month.LastDay()
 	rows, err := d.db.Query("SELECT r.id, r.category_id, c.name, r.note, r.currency, r.amount_minor_units, r.date, r.type, r.beneficiary_id FROM budget.record r LEFT JOIN budget.account a ON r.account_id = a.id LEFT JOIN budget.category c ON r.category_id = c.id WHERE a.id = $1 AND r.date >= $2 AND r.date <= $3 ORDER BY r.date DESC",
 		queryId,
 		fromDate.Format("2006-01-02"),

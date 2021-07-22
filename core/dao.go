@@ -53,7 +53,7 @@ type RecordDao interface {
 	SaveTx(id AccountId, r *Record, tx *sql.Tx) error
 
 	Search(id AccountId, search RecordSearch) (Records, error)
-	GetRecordsForMonth(id AccountId, month int, year int) (Records, error)
+	GetRecordsForMonth(id AccountId, month CalendarMonth) (Records, error)
 	GetRecordsForLastPeriod(id AccountId) (Records, error)
 }
 

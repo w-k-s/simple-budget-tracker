@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
@@ -29,17 +28,11 @@ func NewAccount(id AccountId, name string, currency string) (*Account, error) {
 		&validators.FuncValidator{Name: "Currency", Field: account.currency, Message: "No such currency %q", Fn: func() bool { return IsValidCurrency(account.currency) }},
 	)
 
-	if errors.HasAny() {
-		flatErrors := map[string]string{}
-		for field, violations := range errors.Errors {
-			flatErrors[field] = strings.Join(violations, ", ")
-		}
-		listErrors := []string{}
-		for _, violations := range flatErrors {
-			listErrors = append(listErrors, violations)
-		}
-		return nil, NewErrorWithFields(ErrAccountValidation, strings.Join(listErrors, ", "), errors, flatErrors)
+	var err error
+	if err = makeCoreValidationError(ErrAccountValidation, errors); err != nil {
+		return nil, err
 	}
+
 	return account, nil
 }
 

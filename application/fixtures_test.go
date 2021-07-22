@@ -37,7 +37,7 @@ var (
 	testRecordDate = time.Date(2021, time.July, 5, 18, 30, 0, 0, time.UTC)
 )
 
-func simulateRecords(db *sql.DB, numberOfUsers, startMonth, startYear, endMonth, endYear int) ([]core.AccountId, error) {
+func simulateRecords(db *sql.DB, numberOfUsers int, startMonth core.CalendarMonth, endMonth core.CalendarMonth) ([]core.AccountId, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
@@ -103,8 +103,8 @@ func simulateRecords(db *sql.DB, numberOfUsers, startMonth, startYear, endMonth,
 		}
 
 		// create records
-		fromDate := time.Date(startYear, time.Month(startMonth), 1, 0, 0, 0, 0, time.UTC)
-		toDate := time.Date(endYear, time.Month(endMonth), 1, 23, 59, 59, 0, time.UTC).AddDate(0, 1, -1)
+		fromDate := startMonth.FirstDay()
+		toDate := endMonth.LastDay()
 
 		for date := fromDate; date.Before(toDate); date = date.AddDate(0, 0, 1) {
 			if date.Day() == 1 {

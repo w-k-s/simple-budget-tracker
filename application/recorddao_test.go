@@ -83,7 +83,7 @@ func (suite *RecordDaoTestSuite) Test_Given_anIncomeRecord_WHEN_theRecordIsSaved
 
 	// WHEN
 	_ = suite.recordDao.Save(testCurrentAccountId, aRecord)
-	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, int(testRecordDate.Month()), testRecordDate.Year())
+	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, core.MakeCalendarMonthFromDate(testRecordDate))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -103,7 +103,7 @@ func (suite *RecordDaoTestSuite) Test_Given_anExpenseRecord_WHEN_theRecordIsSave
 
 	// WHEN
 	_ = suite.recordDao.Save(testCurrentAccountId, aRecord)
-	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, int(testRecordDate.Month()), testRecordDate.Year())
+	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, core.MakeCalendarMonthFromDate(testRecordDate))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -123,7 +123,7 @@ func (suite *RecordDaoTestSuite) Test_Given_aTransferRecord_WHEN_theRecordIsSave
 
 	// WHEN
 	_ = suite.recordDao.Save(testCurrentAccountId, aRecord)
-	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, int(testRecordDate.Month()), testRecordDate.Year())
+	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, core.MakeCalendarMonthFromDate(testRecordDate))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -175,7 +175,7 @@ func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_loadingRecordsForLastPe
 
 func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_searchingBySearchTerm_THEN_recordIsFound() {
 	// GIVEN
-	accountIds, err := simulateRecords(TestDB, 1, int(time.June), 2021, int(time.July), 2021)
+	accountIds, err := simulateRecords(TestDB, 1, core.MakeCalendarMonth(2021, time.June), core.MakeCalendarMonth(2021, time.July))
 	assert.Nil(suite.T(), err)
 
 	// WHEN

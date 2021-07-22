@@ -48,20 +48,12 @@ func NewRecord(id RecordId, note string, category *Category, amount Money, dateU
 		&beneficiaryIdValidator{Field: "BeneficiaryId", Value: beneficiaryId, RecordType: recordType},
 	)
 
-	if errors.HasAny() {
-		flatErrors := map[string]string{}
-		for field, violations := range errors.Errors {
-			flatErrors[field] = strings.Join(violations, ", ")
-		}
-		listErrors := []string{}
-		for _, violations := range flatErrors {
-			listErrors = append(listErrors, violations)
-		}
-		return nil, NewErrorWithFields(ErrRecordValidation, strings.Join(listErrors, ", "), errors, flatErrors)
+	var err error
+	if err = makeCoreValidationError(ErrRecordValidation, errors); err != nil {
+		return nil, err
 	}
 
 	var actualAmount Money
-	var err error
 
 	if actualAmount, err = amount.Negate(); err != nil {
 		return nil, err
