@@ -1,4 +1,4 @@
-package server
+package test
 
 import (
 	"testing"
@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	cfg "github.com/w-k-s/simple-budget-tracker/internal/config"
+	db "github.com/w-k-s/simple-budget-tracker/internal/server/persistence"
 )
 
 type MigrationsTestSuite struct {
@@ -22,7 +23,7 @@ func TestMigrationsTestSuite(t *testing.T) {
 
 func (suite *MigrationsTestSuite) Test_WHEN_migrationsAreRunForASecondTime_THEN_noUpdateErrorIsIgnored() {
 	// WHEN
-	err := RunMigrations(testContainerDriverName, testContainerDataSourceName, cfg.DefaultMigrationsDirectoryPath())
+	err := db.RunMigrations(testContainerDriverName, testContainerDataSourceName, cfg.DefaultMigrationsDirectoryPath())
 
 	// THEN
 	assert.Nil(suite.T(), err)

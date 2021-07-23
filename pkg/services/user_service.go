@@ -14,7 +14,7 @@ type CreateUserRequest struct {
 
 type CreateUserResponse struct {
 	Id    ledger.UserId `json:"id"`
-	Email string `json:"emai"`
+	Email string        `json:"emai"`
 }
 
 type UserService interface {

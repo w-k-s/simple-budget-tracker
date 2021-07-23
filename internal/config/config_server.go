@@ -12,7 +12,7 @@ type ServerConfig struct {
 	maxHeaderBytes int
 }
 
-func makeServerConfig(b *serverConfigBuilder) ServerConfig{
+func makeServerConfig(b *serverConfigBuilder) ServerConfig {
 	return ServerConfig{
 		b.port,
 		b.readTimeout,
@@ -50,7 +50,7 @@ func (s ServerConfig) ListenAddress() string {
 	return fmt.Sprintf(":%d", s.port)
 }
 
-type serverConfigBuilder struct{
+type serverConfigBuilder struct {
 	port           int
 	readTimeout    time.Duration
 	writeTimeout   time.Duration
@@ -58,33 +58,33 @@ type serverConfigBuilder struct{
 }
 
 func NewServerConfigBuilder() *serverConfigBuilder {
-    return &serverConfigBuilder{
-		port: 8080,
-		readTimeout: time.Duration(0),
+	return &serverConfigBuilder{
+		port:         8080,
+		readTimeout:  time.Duration(0),
 		writeTimeout: time.Duration(0),
 	}
 }
 
-func (b *serverConfigBuilder) SetPort(port int) *serverConfigBuilder{
-    b.port = port
+func (b *serverConfigBuilder) SetPort(port int) *serverConfigBuilder {
+	b.port = port
 	return b
 }
 
-func (b *serverConfigBuilder) SetReadTimeout(timeout time.Duration) *serverConfigBuilder{
-    b.readTimeout = timeout
+func (b *serverConfigBuilder) SetReadTimeout(timeout time.Duration) *serverConfigBuilder {
+	b.readTimeout = timeout
 	return b
 }
 
-func (b *serverConfigBuilder) SetWriteTimeout(timeout time.Duration) *serverConfigBuilder{
-    b.readTimeout = timeout
+func (b *serverConfigBuilder) SetWriteTimeout(timeout time.Duration) *serverConfigBuilder {
+	b.readTimeout = timeout
 	return b
 }
 
-func (b *serverConfigBuilder) SetMaxHeaderBytes(maxHeaderBytes int) *serverConfigBuilder{
-    b.maxHeaderBytes = maxHeaderBytes
+func (b *serverConfigBuilder) SetMaxHeaderBytes(maxHeaderBytes int) *serverConfigBuilder {
+	b.maxHeaderBytes = maxHeaderBytes
 	return b
 }
 
-func (b *serverConfigBuilder) Build() ServerConfig{
-    return makeServerConfig(b)
+func (b *serverConfigBuilder) Build() ServerConfig {
+	return makeServerConfig(b)
 }

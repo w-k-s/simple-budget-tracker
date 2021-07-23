@@ -1,4 +1,4 @@
-package server
+package persistence
 
 import (
 	"database/sql"
@@ -12,7 +12,7 @@ import (
 )
 
 type DefaultCategoryDao struct {
-	db *sql.DB
+	*RootDao
 }
 
 func MustOpenCategoryDao(driverName, dataSourceName string) dao.CategoryDao {
@@ -21,7 +21,7 @@ func MustOpenCategoryDao(driverName, dataSourceName string) dao.CategoryDao {
 	if db, err = sql.Open(driverName, dataSourceName); err != nil {
 		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", dataSourceName, driverName, err)
 	}
-	return &DefaultCategoryDao{db}
+	return &DefaultCategoryDao{&RootDao{db}}
 }
 
 func (d DefaultCategoryDao) Close() error {
@@ -42,7 +42,7 @@ func (d *DefaultCategoryDao) SaveTx(userId ledger.UserId, c ledger.Categories, t
 	checkError := func(err error) error {
 		if err != nil {
 			log.Printf("Failed to save categories '%q' for user id %d. Reason: %q", c, userId, err)
-			if _, ok := isDuplicateKeyError(err); ok {
+			if _, ok := d.isDuplicateKeyError(err); ok {
 				message := fmt.Sprintf("Category names must be unique. One of these is duplicated: %s", strings.Join(c.Names(), ", "))
 				if c.Len() == 1 {
 					message = fmt.Sprintf("Category named %q already exists", c.Names()[0])

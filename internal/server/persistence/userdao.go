@@ -1,4 +1,4 @@
-package server
+package persistence
 
 import (
 	"database/sql"
@@ -42,7 +42,7 @@ func (d *DefaultUserDao) SaveTx(u ledger.User, tx *sql.Tx) error {
 	_, err := tx.Exec("INSERT INTO budget.user (id, email) VALUES ($1, $2)", u.Id(), u.Email().Address)
 	if err != nil {
 		log.Printf("Failed to save user %v. Reason: %s", u, err)
-		if message, ok := isDuplicateKeyError(err); ok {
+		if message, ok := d.isDuplicateKeyError(err); ok {
 			return ledger.NewError(ledger.ErrUserEmailDuplicated, message, err)
 		}
 		return ledger.NewError(ledger.ErrDatabaseState, "Failed to save user", err)

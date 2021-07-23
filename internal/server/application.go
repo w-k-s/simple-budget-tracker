@@ -8,9 +8,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	cfg "github.com/w-k-s/simple-budget-tracker/internal/config"
+	dao "github.com/w-k-s/simple-budget-tracker/internal/server/persistence"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	svc "github.com/w-k-s/simple-budget-tracker/pkg/services"
-	cfg "github.com/w-k-s/simple-budget-tracker/internal/config"
 	"schneider.vip/problem"
 )
 
@@ -33,7 +34,7 @@ func Init(config *cfg.Config) (*App, error) {
 		err         error
 	)
 
-	if userService, err = svc.NewUserService(MustOpenUserDao(
+	if userService, err = svc.NewUserService(dao.MustOpenUserDao(
 		config.Database().DriverName(),
 		config.Database().ConnectionString(),
 	)); err != nil {

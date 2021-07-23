@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	cfg "github.com/w-k-s/simple-budget-tracker/internal/config"
+	dao "github.com/w-k-s/simple-budget-tracker/internal/server/persistence"
 )
 
 type status bool
@@ -94,7 +95,7 @@ func databaseStatusReport(dbConfig *cfg.DBConfig) status {
 	}
 
 	db.SetMaxIdleConns(0) // Required, otherwise pinging will result in EOF
-	if err = PingWithBackOff(db); err != nil {
+	if err = dao.PingWithBackOff(db); err != nil {
 		log.Printf("Ping failed for health check. Reason: %s", err)
 		return down
 	}

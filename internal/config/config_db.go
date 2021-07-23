@@ -14,7 +14,7 @@ type DBConfig struct {
 	migrationDir string
 }
 
-func makeDBConfig(b *dbConfigBuilder) DBConfig{
+func makeDBConfig(b *dbConfigBuilder) DBConfig {
 	return DBConfig{
 		b.username,
 		b.password,
@@ -83,47 +83,47 @@ type dbConfigBuilder struct {
 }
 
 func NewDBConfigBuilder() *dbConfigBuilder {
-    return &dbConfigBuilder{
-		sslMode: "disable",
+	return &dbConfigBuilder{
+		sslMode:      "disable",
 		migrationDir: DefaultMigrationsDirectoryPath(),
 	}
 }
 
-func (b *dbConfigBuilder) SetUsername(username string) *dbConfigBuilder{
-    b.username = username
+func (b *dbConfigBuilder) SetUsername(username string) *dbConfigBuilder {
+	b.username = username
 	return b
 }
 
-func (b *dbConfigBuilder) SetPassword(password string) *dbConfigBuilder{
-    b.password = password
+func (b *dbConfigBuilder) SetPassword(password string) *dbConfigBuilder {
+	b.password = password
 	return b
 }
 
-func (b *dbConfigBuilder) SetHost(host string) *dbConfigBuilder{
-    b.host = host
+func (b *dbConfigBuilder) SetHost(host string) *dbConfigBuilder {
+	b.host = host
 	return b
 }
 
-func (b *dbConfigBuilder) SetPort(port int) *dbConfigBuilder{
-    b.port = port
+func (b *dbConfigBuilder) SetPort(port int) *dbConfigBuilder {
+	b.port = port
 	return b
 }
 
-func (b *dbConfigBuilder) SetName(name string) *dbConfigBuilder{
-    b.name = name
+func (b *dbConfigBuilder) SetName(name string) *dbConfigBuilder {
+	b.name = name
 	return b
 }
 
-func (b *dbConfigBuilder) SetSSLMode(sslMode string) *dbConfigBuilder{
-    b.sslMode = sslMode
+func (b *dbConfigBuilder) SetSSLMode(sslMode string) *dbConfigBuilder {
+	b.sslMode = sslMode
 	return b
 }
 
-func (b *dbConfigBuilder) SetMigrationDirectory(migrationDir string) *dbConfigBuilder{
-    b.migrationDir = migrationDir
+func (b *dbConfigBuilder) SetMigrationDirectory(migrationDir string) *dbConfigBuilder {
+	b.migrationDir = migrationDir
 	return b
 }
 
-func (b *dbConfigBuilder) Build() DBConfig{
-    return makeDBConfig(b)
+func (b *dbConfigBuilder) Build() DBConfig {
+	return makeDBConfig(b)
 }

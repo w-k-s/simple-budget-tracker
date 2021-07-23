@@ -1,4 +1,4 @@
-package server
+package persistence
 
 import (
 	"database/sql"
@@ -11,7 +11,7 @@ import (
 )
 
 type DefaultAccountDao struct {
-	db *sql.DB
+	*RootDao
 }
 
 func MustOpenAccountDao(driverName, dataSourceName string) dao.AccountDao {
@@ -20,7 +20,7 @@ func MustOpenAccountDao(driverName, dataSourceName string) dao.AccountDao {
 	if db, err = sql.Open(driverName, dataSourceName); err != nil {
 		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", dataSourceName, driverName, err)
 	}
-	return &DefaultAccountDao{db}
+	return &DefaultAccountDao{&RootDao{db}}
 }
 
 func (d DefaultAccountDao) Close() error {
@@ -41,7 +41,7 @@ func (d *DefaultAccountDao) SaveTx(userId ledger.UserId, a *ledger.Account, tx *
 	_, err := tx.Exec("INSERT INTO budget.account (id, user_id, name, currency) VALUES ($1, $2, $3, $4)", a.Id(), userId, a.Name(), a.Currency())
 	if err != nil {
 		log.Printf("Failed to save account %v. Reason: %s", a, err)
-		if _, ok := isDuplicateKeyError(err); ok {
+		if _, ok := d.isDuplicateKeyError(err); ok {
 			return ledger.NewError(ledger.ErrAccountNameDuplicated, "Account name must be unique", err)
 		}
 		return ledger.NewError(ledger.ErrDatabaseState, "Failed to save account", err)

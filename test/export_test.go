@@ -1,4 +1,4 @@
-package server
+package test
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	tc "github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	cfg "github.com/w-k-s/simple-budget-tracker/internal/config"
+	app "github.com/w-k-s/simple-budget-tracker/internal/server"
+	db "github.com/w-k-s/simple-budget-tracker/internal/server/persistence"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -31,7 +33,7 @@ var UserDao dao.UserDao
 var AccountDao dao.AccountDao
 var CategoryDao dao.CategoryDao
 var RecordDao dao.RecordDao
-var TestApp *App
+var TestApp *app.App
 
 func init() {
 	testContainerContext = context.Background()
@@ -58,16 +60,16 @@ func init() {
 	containerPort, _ := testPostgresContainer.MappedPort(testContainerContext, "5432")
 	testContainerDataSourceName = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", containerHost, containerPort.Int(), testContainerPostgresUser, testContainerPostgresPassword, testContainerPostgresDB)
 
-	MustRunMigrations(testContainerDriverName, testContainerDataSourceName, cfg.DefaultMigrationsDirectoryPath())
+	db.MustRunMigrations(testContainerDriverName, testContainerDataSourceName, cfg.DefaultMigrationsDirectoryPath())
 
 	if TestDB, err = sql.Open(testContainerDriverName, testContainerDataSourceName); err != nil {
 		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", testContainerDriverName, testContainerDataSourceName, err)
 	}
 
-	UserDao = MustOpenUserDao(testContainerDriverName, testContainerDataSourceName)
-	AccountDao = MustOpenAccountDao(testContainerDriverName, testContainerDataSourceName)
-	CategoryDao = MustOpenCategoryDao(testContainerDriverName, testContainerDataSourceName)
-	RecordDao = MustOpenRecordDao(testContainerDriverName, testContainerDataSourceName)
+	UserDao = db.MustOpenUserDao(testContainerDriverName, testContainerDataSourceName)
+	AccountDao = db.MustOpenAccountDao(testContainerDriverName, testContainerDataSourceName)
+	CategoryDao = db.MustOpenCategoryDao(testContainerDriverName, testContainerDataSourceName)
+	RecordDao = db.MustOpenRecordDao(testContainerDriverName, testContainerDataSourceName)
 
 	var config *cfg.Config
 	if config, _ = cfg.NewConfig(
@@ -84,7 +86,7 @@ func init() {
 	); err != nil {
 		log.Fatalf("Failed to configure application for tests. Reason: %s", err)
 	}
-	if TestApp, err = Init(config); err != nil {
+	if TestApp, err = app.Init(config); err != nil {
 		log.Fatalf("Failed to initialize application for tests. Reason: %s", err)
 	}
 }

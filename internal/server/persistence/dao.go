@@ -1,4 +1,4 @@
-package server
+package persistence
 
 import (
 	"database/sql"
@@ -6,11 +6,39 @@ import (
 	"log"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
+	"github.com/cenkalti/backoff"
 	"github.com/lib/pq"
+	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 )
 
-func isDuplicateKeyError(err error) (string, bool) {
+type RootDao struct {
+	db *sql.DB
+}
+
+func (r *RootDao) BeginTx() (*sql.Tx, error) {
+	var (
+		tx  *sql.Tx
+		err error
+	)
+	if tx, err = r.db.Begin(); err != nil {
+		return nil, ledger.NewError(ledger.ErrDatabaseState, "Failed to begin transaction", err)
+	}
+	return tx, nil
+}
+
+func (r *RootDao) MustBeginTx() *sql.Tx {
+	var (
+		tx  *sql.Tx
+		err error
+	)
+
+	if tx, err = r.db.Begin(); err != nil {
+		log.Fatalf("Failed to begin transaction. Reason: %s", err)
+	}
+	return tx
+}
+
+func (r *RootDao) isDuplicateKeyError(err error) (string, bool) {
 	if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
 		return pqErr.Detail, true
 	}
