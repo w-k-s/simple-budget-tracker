@@ -6,11 +6,10 @@ require (
 	github.com/Masterminds/squirrel v1.5.0
 	github.com/aws/aws-sdk-go v1.39.6
 	github.com/bojanz/currency v0.0.0-20210528213321-e806b5aaa94a
-	github.com/cenkalti/backoff/v4 v4.0.2
+	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/gobuffalo/validate v2.0.4+incompatible
 	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/golang-migrate/migrate/v4 v4.14.1
-	github.com/gookit/validate v1.2.11
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.2
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.3

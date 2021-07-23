@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/cenkalti/backoff"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/lib/pq"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 )
