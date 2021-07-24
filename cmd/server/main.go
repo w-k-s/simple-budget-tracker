@@ -30,6 +30,12 @@ func init() {
 	flag.StringVar(&awsAccessKey, "aws_access_key", "", awsAccessKeyUsage)
 	flag.StringVar(&awsSecretKey, "aws_secret_key", "", awsSecretKeyUsage)
 	flag.StringVar(&awsRegion, "aws_region", "", awsRegionUsage)
+}
+
+func main() {
+	// LoadConfig must be called in the main function and not in the init function because
+	// the init function is called in tests but the config file does not exist.
+	// This results in a panic.
 
 	var err error
 	if err = cfg.ConfigureLogging(); err != nil {
@@ -44,9 +50,6 @@ func init() {
 		log.Fatalf("failed to init application. Reason: %s", err)
 	}
 
-}
-
-func main() {
 	db.MustRunMigrations(
 		config.Database().DriverName(),
 		config.Database().ConnectionString(),

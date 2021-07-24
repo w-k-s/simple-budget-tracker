@@ -4,6 +4,6 @@ run:
 test:
 	mkdir -p ~/.budget/migrations.d/
 	cp migrations/*.sql ~/.budget/migrations.d/
-	go test -v -coverprofile=coverage.txt -coverpkg=test/...,./... `go list ./...`
+	go test -v -coverprofile=coverage.txt -coverpkg=test/...,./... ./...
 fmt:
 	gofmt -w */**
