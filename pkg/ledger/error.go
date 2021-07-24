@@ -3,6 +3,7 @@ package ledger
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/gobuffalo/validate"
@@ -123,6 +124,7 @@ func makeCoreValidationError(code ErrorCode, errors *validate.Errors) error {
 	for _, violations := range flatErrors {
 		listErrors = append(listErrors, violations)
 	}
+	sort.Strings(listErrors)
 
 	return NewErrorWithFields(code, strings.Join(listErrors, ", "), nil, flatErrors)
 }

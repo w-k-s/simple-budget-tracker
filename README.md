@@ -1,6 +1,7 @@
 # Simple Budget Tracker
 
 [![Actions Status](https://github.com/<github_username>/<repo>/workflows/build/badge.svg)](https://github.com/w-k-s/simple-budget-tracker/actions)
+
 [![codecov](https://codecov.io/gh/<github_username>/<repo>/branch/master/graph/badge.svg)](https://codecov.io/gh/w-k-s/simple-budget-tracker)
 
 ## Setting up Project
