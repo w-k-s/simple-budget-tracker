@@ -8,10 +8,12 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/rakyll/statik/fs"
 	cfg "github.com/w-k-s/simple-budget-tracker/internal/config"
 	dao "github.com/w-k-s/simple-budget-tracker/internal/server/persistence"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	svc "github.com/w-k-s/simple-budget-tracker/pkg/services"
+	_ "github.com/w-k-s/simple-budget-tracker/statik"
 	"schneider.vip/problem"
 )
 
@@ -57,9 +59,13 @@ func (app *App) Router() *mux.Router {
 	users.HandleFunc("", app.RegisterUser).
 		Methods("POST")
 
-	// accounts := r.PathPrefix("/api/v1/accounts").Subrouter()
-	// accounts.HandleFunc("/", app.CreateAccount).
-	// 	Methods("POST")
+	statikFS, err := fs.New()
+	if err != nil {
+		panic(err)
+	}
+	staticServer := http.FileServer(statikFS)
+	sh := http.StripPrefix("/swaggerui/", staticServer)
+	r.PathPrefix("/swaggerui/").Handler(sh)
 
 	return r
 }

@@ -13,6 +13,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.10.2
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.3
+	github.com/rakyll/statik v0.1.7
 	github.com/serenize/snaker v0.0.0-20201027110005-a7ad2135616e // indirect
 	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
 	github.com/testcontainers/testcontainers-go v0.11.0
