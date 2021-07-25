@@ -34,10 +34,12 @@ To install dependencies, run
 go get
 ```
 
-In ordeer to host the swagger documentation, `statik` is used to create a static file system that hosts the editor pages. Ensure that statik is installed when installing dependencies. If it isn't you can run:
+**Statik**
+
+In ordeer to host the swagger documentation, `statik` is used to create a static file system that hosts the editor pages. To install the command line tool, run the following command:
 
 ```
-go get github.com/rakyll/statik
+go get -u github.com/rakyll/statik
 ```
 
 ## Useful Resources
