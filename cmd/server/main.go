@@ -51,9 +51,7 @@ func main() {
 	}
 
 	db.MustRunMigrations(
-		config.Database().DriverName(),
-		config.Database().ConnectionString(),
-		config.Database().MigrationDirectory(),
+		config.Database(),
 	)
 
 	s := &http.Server{

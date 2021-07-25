@@ -192,3 +192,23 @@ func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_searchingBySearchTerm_T
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), 1, records.Len())
 }
+
+func (suite *RecordDaoTestSuite) Test_Given_aRecordWithAmountInDifferentCurrencyThanAccount_WHEN_recordIsSaved_THEN_currencyIsSetToAccountsCurrency() {
+	// GIVEN
+	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", testSavingsCategory, quickMoney("USD", 50000), testRecordDate, ledger.Transfer, testSavingsAccountId)
+
+	// WHEN
+	err := suite.recordDao.Save(testCurrentAccountId, aRecord)
+	records, _ := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, ledger.MakeCalendarMonthFromDate(testRecordDate))
+
+	// THEN
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), 1, records.Len())
+	assert.EqualValues(suite.T(), ledger.RecordId(1), records[0].Id())
+	assert.EqualValues(suite.T(), "Savings", records[0].Note())
+	assert.EqualValues(suite.T(), testSavingsCategoryName, records[0].Category().Name())
+	assert.EqualValues(suite.T(), "AED -500.00", records[0].Amount().String())
+	assert.EqualValues(suite.T(), ledger.Transfer, records[0].Type())
+	assert.EqualValues(suite.T(), "2021-07-05T00:00:00+0000", records[0].DateUTCString())
+	assert.EqualValues(suite.T(), ledger.AccountId(2), records[0].BeneficiaryId())
+}

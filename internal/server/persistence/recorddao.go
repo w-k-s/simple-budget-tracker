@@ -56,12 +56,12 @@ func (d *DefaultRecordDao) Save(accountId ledger.AccountId, r *ledger.Record) er
 
 func (d *DefaultRecordDao) SaveTx(accountId ledger.AccountId, r *ledger.Record, tx *sql.Tx) error {
 	amountMinorUnits, _ := r.Amount().MinorUnits()
-	_, err := tx.Exec("INSERT INTO budget.record (id, account_id, category_id, note, currency, amount_minor_units, date, type, beneficiary_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+	_, err := tx.Exec("INSERT INTO budget.record (id, account_id, category_id, note, currency, amount_minor_units, date, type, beneficiary_id) VALUES ($1, $2, $3, $4, (SELECT currency FROM budget.account WHERE id = $5), $6, $7, $8, $9)",
 		r.Id(),
 		accountId,
 		r.Category().Id(),
 		r.Note(),
-		r.Amount().Currency().CurrencyCode(),
+		accountId,
 		amountMinorUnits,
 		r.DateUTC(),
 		r.Type(),

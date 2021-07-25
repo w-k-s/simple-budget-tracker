@@ -46,6 +46,10 @@ func (d DBConfig) Name() string {
 	return d.name
 }
 
+func (d DBConfig) Schema() string {
+	return "budget"
+}
+
 func (d DBConfig) SslMode() string {
 	return d.sslMode
 }

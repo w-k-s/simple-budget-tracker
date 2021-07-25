@@ -33,6 +33,7 @@ var UserDao dao.UserDao
 var AccountDao dao.AccountDao
 var CategoryDao dao.CategoryDao
 var RecordDao dao.RecordDao
+var TestConfig *cfg.Config
 var TestApp *app.App
 
 func init() {
@@ -60,19 +61,7 @@ func init() {
 	containerPort, _ := testPostgresContainer.MappedPort(testContainerContext, "5432")
 	testContainerDataSourceName = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", containerHost, containerPort.Int(), testContainerPostgresUser, testContainerPostgresPassword, testContainerPostgresDB)
 
-	db.MustRunMigrations(testContainerDriverName, testContainerDataSourceName, cfg.DefaultMigrationsDirectoryPath())
-
-	if TestDB, err = sql.Open(testContainerDriverName, testContainerDataSourceName); err != nil {
-		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", testContainerDriverName, testContainerDataSourceName, err)
-	}
-
-	UserDao = db.MustOpenUserDao(testContainerDriverName, testContainerDataSourceName)
-	AccountDao = db.MustOpenAccountDao(testContainerDriverName, testContainerDataSourceName)
-	CategoryDao = db.MustOpenCategoryDao(testContainerDriverName, testContainerDataSourceName)
-	RecordDao = db.MustOpenRecordDao(testContainerDriverName, testContainerDataSourceName)
-
-	var config *cfg.Config
-	if config, _ = cfg.NewConfig(
+	if TestConfig, _ = cfg.NewConfig(
 		cfg.NewServerConfigBuilder().
 			SetPort(9898).
 			Build(),
@@ -86,7 +75,19 @@ func init() {
 	); err != nil {
 		log.Fatalf("Failed to configure application for tests. Reason: %s", err)
 	}
-	if TestApp, err = app.Init(config); err != nil {
+
+	db.MustRunMigrations(TestConfig.Database())
+
+	if TestDB, err = sql.Open(testContainerDriverName, testContainerDataSourceName); err != nil {
+		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", testContainerDriverName, testContainerDataSourceName, err)
+	}
+
+	UserDao = db.MustOpenUserDao(testContainerDriverName, testContainerDataSourceName)
+	AccountDao = db.MustOpenAccountDao(testContainerDriverName, testContainerDataSourceName)
+	CategoryDao = db.MustOpenCategoryDao(testContainerDriverName, testContainerDataSourceName)
+	RecordDao = db.MustOpenRecordDao(testContainerDriverName, testContainerDataSourceName)
+
+	if TestApp, err = app.Init(TestConfig); err != nil {
 		log.Fatalf("Failed to initialize application for tests. Reason: %s", err)
 	}
 }

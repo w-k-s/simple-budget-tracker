@@ -156,6 +156,7 @@ func (suite *ConfigS3TestSuite) Test_GIVEN_s3UriIsProvided_WHEN_configFileDoesEx
 	assert.Equal(suite.T(), "jack.torrence", config.Database().Username())
 	assert.Equal(suite.T(), "password", config.Database().Password())
 	assert.Equal(suite.T(), "overlook", config.Database().Name())
+	assert.Equal(suite.T(), "budget", config.Database().Schema())
 	assert.Equal(suite.T(), 5432, config.Database().Port())
 	assert.Equal(suite.T(), "disable", config.Database().SslMode())
 	assert.Equal(suite.T(), "host=localhost port=5432 user=jack.torrence password=password dbname=overlook sslmode=disable", config.Database().ConnectionString())

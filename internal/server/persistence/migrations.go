@@ -10,9 +10,13 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
+	"github.com/w-k-s/simple-budget-tracker/internal/config"
 )
 
-func RunMigrations(driverName string, dataSourceName string, migrationsDirectory string) error {
+func RunMigrations(dbConfig config.DBConfig) error {
+	driverName := dbConfig.DriverName()
+	migrationsDirectory := dbConfig.MigrationDirectory()
+
 	if len(migrationsDirectory) == 0 {
 		return fmt.Errorf("invalid migrations directory: '%s'. Must be an absolute path", migrationsDirectory)
 	}
@@ -24,7 +28,7 @@ func RunMigrations(driverName string, dataSourceName string, migrationsDirectory
 		err        error
 	)
 
-	if db, err = sql.Open(driverName, dataSourceName); err != nil {
+	if db, err = sql.Open(driverName, dbConfig.ConnectionString()); err != nil {
 		return fmt.Errorf("failed to open connection. Reason: %w", err)
 	}
 
@@ -35,8 +39,8 @@ func RunMigrations(driverName string, dataSourceName string, migrationsDirectory
 	}
 
 	if driver, err = postgres.WithInstance(db, &postgres.Config{
-		DatabaseName: "simple_budget_tracker",
-		SchemaName:   "budget",
+		DatabaseName: dbConfig.Name(),
+		SchemaName:   dbConfig.Schema(),
 	}); err != nil {
 		return fmt.Errorf("failed to create instance of psql driver. Reason: %w", err)
 	}
@@ -52,8 +56,8 @@ func RunMigrations(driverName string, dataSourceName string, migrationsDirectory
 	return nil
 }
 
-func MustRunMigrations(driverName string, dataSourceName string, migrationsDirectory string) {
-	if err := RunMigrations(driverName, dataSourceName, migrationsDirectory); err != nil {
+func MustRunMigrations(dbConfig config.DBConfig) {
+	if err := RunMigrations(dbConfig); err != nil {
 		log.Fatalf("Failed to run migrations. Reason: %s", err)
 	}
 }
