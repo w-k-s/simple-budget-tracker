@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 
@@ -78,12 +77,16 @@ func (app *App) MustEncodeJson(w http.ResponseWriter, v interface{}, status int)
 	}
 }
 
-func (app *App) MustDecodeJson(r io.Reader, v interface{}) error {
-	decoder := json.NewDecoder(r)
-	return decoder.Decode(v)
+func (app *App) DecodeJsonOrSendBadRequest(w http.ResponseWriter, req *http.Request, v interface{}) bool {
+	decoder := json.NewDecoder(req.Body)
+	if err := decoder.Decode(v); err != nil {
+		app.MustEncodeProblem(w, req, ledger.NewError(ledger.ErrRequestUnmarshallingFailed, "Failed to parse request", err))
+		return false
+	}
+	return true
 }
 
-func (app *App) MustEncodeProblem(w http.ResponseWriter, req *http.Request, err error, status int) {
+func (app *App) MustEncodeProblem(w http.ResponseWriter, req *http.Request, err error) {
 
 	log.Printf("Error: %s", err.Error())
 
@@ -91,11 +94,13 @@ func (app *App) MustEncodeProblem(w http.ResponseWriter, req *http.Request, err 
 	code := ledger.ErrUnknown
 	detail := err.Error()
 	opts := []problem.Option{}
+	status := ledger.ErrUnknown.Status()
 
 	if coreError, ok := err.(ledger.Error); ok {
 		title = coreError.Code().Name()
 		code = coreError.Code()
 		detail = coreError.Error()
+		status = coreError.Code().Status()
 
 		for key, value := range coreError.Fields() {
 			opts = append(opts, problem.Custom(key, value))

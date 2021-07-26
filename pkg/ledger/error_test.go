@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,4 +38,26 @@ func (suite *ErrorTestSuite) Test_GIVEN_errorCode_WHEN_mappedToNumber_THEN_mappi
 	assert.Equal(suite.T(), uint64(1016), uint64(ErrAmountMismatchingCurrencies))
 	assert.Equal(suite.T(), uint64(1017), uint64(ErrAmountTotalOfEmptySet))
 	assert.Equal(suite.T(), uint64(1018), uint64(ErrRequestUnmarshallingFailed))
+}
+
+func (suite *ErrorTestSuite) Test_GIVEN_errorCode_WHEN_mappedToHttpStatus_THEN_mappingIsCorrect() {
+	assert.Equal(suite.T(), http.StatusInternalServerError, ErrUnknown.Status())
+	assert.Equal(suite.T(), http.StatusInternalServerError, ErrDatabaseConnectivity.Status())
+	assert.Equal(suite.T(), http.StatusInternalServerError, ErrDatabaseState.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrUserIdDuplicated.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrUserEmailInvalid.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrUserEmailDuplicated.Status())
+	assert.Equal(suite.T(), http.StatusNotFound, ErrUserNotFound.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrAccountValidation.Status())
+	assert.Equal(suite.T(), http.StatusNotFound, ErrAccountNotFound.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrAccountNameDuplicated.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrCurrencyInvalidCode.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrCategoryValidation.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrCategoryNameDuplicated.Status())
+	assert.Equal(suite.T(), http.StatusNotFound, ErrCategoriesNotFound.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrRecordValidation.Status())
+	assert.Equal(suite.T(), http.StatusInternalServerError, ErrAmountOverflow.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrAmountMismatchingCurrencies.Status())
+	assert.Equal(suite.T(), http.StatusInternalServerError, ErrAmountTotalOfEmptySet.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrRequestUnmarshallingFailed.Status())
 }

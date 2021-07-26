@@ -3,6 +3,7 @@ package ledger
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"sort"
 	"strings"
 
@@ -60,6 +61,53 @@ func (c ErrorCode) Name() string {
 		log.Fatalf("No name for error code %d", c)
 	}
 	return name
+}
+
+func (c ErrorCode) Status() int {
+	switch c {
+	case ErrUserIdDuplicated:
+		fallthrough
+	case ErrUserEmailInvalid:
+		fallthrough
+	case ErrUserEmailDuplicated:
+		fallthrough
+	case ErrAccountValidation:
+		fallthrough
+	case ErrAccountNameDuplicated:
+		fallthrough
+	case ErrCurrencyInvalidCode:
+		fallthrough
+	case ErrCategoryValidation:
+		fallthrough
+	case ErrCategoryNameDuplicated:
+		fallthrough
+	case ErrRecordValidation:
+		fallthrough
+	case ErrAmountMismatchingCurrencies:
+		fallthrough
+	case ErrRequestUnmarshallingFailed:
+		return http.StatusBadRequest
+
+	case ErrUserNotFound:
+		fallthrough
+	case ErrAccountNotFound:
+		fallthrough
+	case ErrCategoriesNotFound:
+		return http.StatusNotFound
+
+	case ErrDatabaseConnectivity:
+		fallthrough
+	case ErrDatabaseState:
+		fallthrough
+	case ErrAmountTotalOfEmptySet:
+		fallthrough
+	case ErrAmountOverflow:
+		fallthrough
+	case ErrUnknown:
+		fallthrough
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
 type Error interface {
