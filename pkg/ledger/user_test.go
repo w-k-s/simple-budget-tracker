@@ -25,7 +25,7 @@ func (suite *UserTestSuite) Test_GIVEN_invalidUserEmail_WHEN_userIsCreated_THEN_
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), User{}, user)
-	assert.Equal(suite.T(), uint64(1004), uint64(err.(Error).Code()))
+	assert.Equal(suite.T(), ErrUserEmailInvalid, err.(Error).Code())
 	assert.Equal(suite.T(), "mail: missing '@' or angle-addr", err.(Error).Error())
 }
 
