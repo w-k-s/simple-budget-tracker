@@ -5,11 +5,56 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/lib/pq"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
+
+type categoryRecord struct {
+	id         ledger.CategoryId
+	name       string
+	createdBy  ledger.UserId
+	createdAt  time.Time
+	modifiedBy sql.NullInt64
+	modifiedAt sql.NullTime
+	version    ledger.Version
+}
+
+func (cr categoryRecord) Id() ledger.CategoryId {
+	return cr.id
+}
+
+func (cr categoryRecord) Name() string {
+	return cr.name
+}
+
+func (cr categoryRecord) CreatedBy() ledger.UserId {
+	return cr.createdBy
+}
+
+func (cr categoryRecord) CreatedAtUTC() time.Time {
+	return cr.createdAt
+}
+
+func (cr categoryRecord) ModifiedBy() ledger.UserId {
+	if cr.modifiedBy.Valid {
+		return ledger.UserId(cr.modifiedBy.Int64)
+	}
+	return ledger.UserId(0)
+}
+
+func (cr categoryRecord) ModifiedAtUTC() time.Time {
+	if cr.modifiedAt.Valid {
+		return cr.modifiedAt.Time
+	}
+	return time.Time{}
+}
+
+func (cr categoryRecord) Version() ledger.Version {
+	return cr.version
+}
 
 type DefaultCategoryDao struct {
 	*RootDao
@@ -54,13 +99,29 @@ func (d *DefaultCategoryDao) SaveTx(userId ledger.UserId, c ledger.Categories, t
 		return nil
 	}
 
-	stmt, err := tx.Prepare(pq.CopyInSchema("budget", "category", "id", "name", "user_id"))
+	stmt, err := tx.Prepare(pq.CopyInSchema("budget", "category", "id", "name", "user_id", "created_by", "created_at", "last_modified_by", "last_modified_at", "version"))
 	if err = checkError(err); err != nil {
 		return err
 	}
 
+	epoch := time.Time{}
 	for _, category := range c {
-		_, err = stmt.Exec(category.Id(), category.Name(), userId)
+		_, err = stmt.Exec(
+			category.Id(),
+			category.Name(),
+			userId,
+			category.CreatedBy(),
+			category.CreatedAtUTC(),
+			sql.NullInt64{
+				Int64: int64(category.ModifiedBy()),
+				Valid: category.ModifiedBy() != 0,
+			},
+			sql.NullTime{
+				Time:  category.ModifiedAtUTC(),
+				Valid: epoch != category.ModifiedAtUTC(),
+			},
+			category.Version(),
+		)
 		if err != nil {
 			log.Printf("Failed to save category %q for user id %d. Reason: %q", category.Name(), userId, err)
 		}
@@ -81,25 +142,41 @@ func (d *DefaultCategoryDao) SaveTx(userId ledger.UserId, c ledger.Categories, t
 
 func (d *DefaultCategoryDao) GetCategoriesForUser(userId ledger.UserId) (ledger.Categories, error) {
 
-	rows, err := d.db.Query("SELECT c.id, c.name FROM budget.category c LEFT JOIN budget.user u ON c.user_id = u.id WHERE u.id = $1", userId)
+	rows, err := d.db.Query(
+		`SELECT 
+			c.id, 
+			c.name,
+			c.created_by,
+			c.created_at,
+			c.last_modified_by,
+			c.last_modified_at,
+			c.version
+		FROM 
+			budget.category c 
+		LEFT 
+			JOIN budget.user u 
+		ON 
+			c.user_id = u.id 
+		WHERE 
+			u.id = $1`, userId,
+	)
 	if err != nil {
 		return nil, ledger.NewError(ledger.ErrCategoriesNotFound, fmt.Sprintf("Categories for user id %d not found", userId), err)
 	}
 	defer rows.Close()
 
-	entities := make([]*ledger.Category, 0)
+	entities := make([]ledger.Category, 0)
 	for rows.Next() {
-		var id ledger.CategoryId
-		var name string
+		var cr categoryRecord
 
-		if err := rows.Scan(&id, &name); err != nil {
+		if err := rows.Scan(&cr.id, &cr.name, &cr.createdBy, &cr.createdAt, &cr.modifiedBy, &cr.modifiedAt, &cr.version); err != nil {
 			log.Printf("Error processign categories for user %d. Reason: %s", userId, err)
 			continue
 		}
 
-		var category *ledger.Category
-		if category, err = ledger.NewCategory(id, name); err != nil {
-			log.Printf("Error loading category with id: %d,  name: %q from database. Reason: %s", id, name, err)
+		var category ledger.Category
+		if category, err = ledger.NewCategoryFromRecord(cr); err != nil {
+			log.Printf("Error loading category with id: %d,  name: %q from database. Reason: %s", cr.id, cr.name, err)
 			continue
 		}
 

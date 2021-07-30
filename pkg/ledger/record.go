@@ -21,16 +21,65 @@ const (
 
 type RecordId uint64
 type Record struct {
+	AuditInfo
 	id            RecordId
 	note          string
-	category      *Category
+	category      Category
 	amount        Money
 	date          time.Time
 	recordType    RecordType
 	beneficiaryId AccountId
 }
 
-func NewRecord(id RecordId, note string, category *Category, amount Money, dateUTC time.Time, recordType RecordType, beneficiaryId AccountId) (*Record, error) {
+// I did not thing the naming through :(
+type RecordRecord interface {
+	Id() RecordId
+	Note() string
+	Category() Category
+	Amount() Money
+	DateUTC() time.Time
+	RecordType() RecordType
+	BeneficiaryId() AccountId
+	CreatedBy() UserId
+	CreatedAtUTC() time.Time
+	ModifiedBy() UserId
+	ModifiedAtUTC() time.Time
+	Version() Version
+}
+
+func NewRecord(id RecordId, userId UserId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, beneficiaryId AccountId) (Record, error) {
+	var (
+		auditInfo AuditInfo
+		err       error
+	)
+
+	if auditInfo, err = MakeAuditForCreation(userId); err != nil {
+		return Record{}, err
+	}
+
+	return newRecord(id, userId, note, category, amount, dateUTC, recordType, beneficiaryId, auditInfo)
+}
+
+func NewRecordFromRecord(rr RecordRecord) (Record, error) {
+	var (
+		auditInfo AuditInfo
+		err       error
+	)
+
+	if auditInfo, err = MakeAuditForModification(
+		rr.CreatedBy(),
+		rr.CreatedAtUTC(),
+		rr.ModifiedBy(),
+		rr.ModifiedAtUTC(),
+		rr.Version(),
+	); err != nil {
+		return Record{}, err
+	}
+
+	return newRecord(rr.Id(), rr.CreatedBy(), rr.Note(), rr.Category(), rr.Amount(), rr.DateUTC(), rr.RecordType(), rr.BeneficiaryId(), auditInfo)
+}
+
+func newRecord(id RecordId, userId UserId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, beneficiaryId AccountId, auditInfo AuditInfo) (Record, error) {
 	errors := validate.Validate(
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
 		&validators.StringLengthInRange{Name: "Note", Field: note, Min: 0, Max: 50, Message: "Note can not be longer than 50 characters"},
@@ -50,22 +99,23 @@ func NewRecord(id RecordId, note string, category *Category, amount Money, dateU
 
 	var err error
 	if err = makeCoreValidationError(ErrRecordValidation, errors); err != nil {
-		return nil, err
+		return Record{}, err
 	}
 
 	var actualAmount Money
 
 	if actualAmount, err = amount.Negate(); err != nil {
-		return nil, err
+		return Record{}, err
 	}
 
 	if recordType == Income {
 		if actualAmount, err = amount.Abs(); err != nil {
-			return nil, err
+			return Record{}, err
 		}
 	}
 
-	record := &Record{
+	record := Record{
+		AuditInfo:     auditInfo,
 		id:            id,
 		note:          note,
 		category:      category,
@@ -86,7 +136,7 @@ func (r Record) Note() string {
 	return r.note
 }
 
-func (r Record) Category() *Category {
+func (r Record) Category() Category {
 	return r.category
 }
 
@@ -131,11 +181,12 @@ func (v *beneficiaryIdValidator) IsValid(errors *validate.Errors) {
 
 type categoryValidator struct {
 	Field string
-	Value *Category
+	Value Category
 }
 
 func (v *categoryValidator) IsValid(errors *validate.Errors) {
-	if v.Value == nil {
+	var c Category
+	if v.Value == c {
 		errors.Add(strings.ToLower(v.Field), fmt.Sprintf("%s is required", v.Field))
 	}
 }
@@ -155,7 +206,7 @@ func (v *amountValidator) IsValid(errors *validate.Errors) {
 	}
 }
 
-type Records []*Record
+type Records []Record
 
 func (rs Records) Total() (Money, error) {
 	if rs.Len() == 0 {

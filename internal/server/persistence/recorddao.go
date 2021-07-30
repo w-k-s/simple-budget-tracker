@@ -13,6 +13,93 @@ import (
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
 
+type recordRecord struct {
+	id               ledger.RecordId
+	note             string
+	category         categoryRecord
+	currency         string
+	amountMinorUnits int64
+	date             time.Time
+	recordType       ledger.RecordType
+	beneficiaryId    sql.NullInt64
+	createdBy        ledger.UserId
+	createdAt        time.Time
+	modifiedBy       sql.NullInt64
+	modifiedAt       sql.NullTime
+	version          ledger.Version
+}
+
+func (rr recordRecord) Id() ledger.RecordId {
+	return rr.id
+}
+
+func (rr recordRecord) Note() string {
+	return rr.note
+}
+
+func (rr recordRecord) Category() ledger.Category {
+	var (
+		category ledger.Category
+		err      error
+	)
+	if category, err = ledger.NewCategoryFromRecord(rr.category); err != nil {
+		log.Fatalf("Failed to parse category from database for record id %d. Reason: %s", rr.id, err)
+	}
+	return category
+}
+
+func (rr recordRecord) Amount() ledger.Money {
+	var (
+		amount ledger.Money
+		err    error
+	)
+	if amount, err = ledger.NewMoney(rr.currency, rr.amountMinorUnits); err != nil {
+		log.Fatalf("Failed to parse amount from database for record id %d. Reason: %s", rr.id, err)
+	}
+	return amount
+}
+
+func (rr recordRecord) DateUTC() time.Time {
+	return rr.date
+}
+
+func (rr recordRecord) RecordType() ledger.RecordType {
+	return rr.recordType
+}
+
+func (rr recordRecord) BeneficiaryId() ledger.AccountId {
+	if rr.beneficiaryId.Valid {
+		return ledger.AccountId(rr.beneficiaryId.Int64)
+	}
+	return ledger.AccountId(0)
+}
+
+func (rr recordRecord) CreatedBy() ledger.UserId {
+	return rr.createdBy
+}
+
+func (rr recordRecord) CreatedAtUTC() time.Time {
+	return rr.createdAt
+}
+
+func (rr recordRecord) ModifiedBy() ledger.UserId {
+	if rr.modifiedBy.Valid {
+		return ledger.UserId(rr.modifiedBy.Int64)
+	}
+	return ledger.UserId(0)
+}
+
+func (rr recordRecord) ModifiedAtUTC() time.Time {
+	if rr.modifiedAt.Valid {
+		return rr.modifiedAt.Time
+	}
+	return time.Time{}
+}
+
+func (rr recordRecord) Version() ledger.Version {
+	return rr.version
+}
+
 type DefaultRecordDao struct {
 	db *sql.DB
 }
@@ -55,8 +142,13 @@ func (d *DefaultRecordDao) Save(accountId ledger.AccountId, r *ledger.Record) er
 }
 
 func (d *DefaultRecordDao) SaveTx(accountId ledger.AccountId, r *ledger.Record, tx *sql.Tx) error {
+	epoch := time.Time{}
 	amountMinorUnits, _ := r.Amount().MinorUnits()
-	_, err := tx.Exec("INSERT INTO budget.record (id, account_id, category_id, note, currency, amount_minor_units, date, type, beneficiary_id) VALUES ($1, $2, $3, $4, (SELECT currency FROM budget.account WHERE id = $5), $6, $7, $8, $9)",
+	_, err := tx.Exec(
+		`INSERT INTO budget.record 
+		(id, account_id, category_id, note, currency, amount_minor_units, date, type, beneficiary_id, created_by, created_at, last_modified_by, last_modified_at, version) 
+		VALUES 
+		($1, $2, $3, $4, (SELECT currency FROM budget.account WHERE id = $5), $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
 		r.Id(),
 		accountId,
 		r.Category().Id(),
@@ -69,6 +161,17 @@ func (d *DefaultRecordDao) SaveTx(accountId ledger.AccountId, r *ledger.Record, 
 			Int64: int64(r.BeneficiaryId()),
 			Valid: r.BeneficiaryId() != 0,
 		},
+		r.CreatedBy(),
+		r.CreatedAtUTC(),
+		sql.NullInt64{
+			Int64: int64(r.ModifiedBy()),
+			Valid: r.ModifiedBy() != 0,
+		},
+		sql.NullTime{
+			Time:  r.ModifiedAtUTC(),
+			Valid: epoch != r.ModifiedAtUTC(),
+		},
+		r.Version(),
 	)
 	if err != nil {
 		log.Printf("Failed to save record %v. Reason: %s", r, err)
@@ -87,7 +190,7 @@ func (d *DefaultRecordDao) Search(accountId ledger.AccountId, search dao.RecordS
 	}
 
 	if search.FromDate == nil {
-		defaultFromDate := startOfCurrentMonth()
+		defaultFromDate := ledger.CurrentCalendarMonth().FirstDay()
 		search.FromDate = &defaultFromDate
 	}
 
@@ -101,12 +204,22 @@ func (d *DefaultRecordDao) Search(accountId ledger.AccountId, search dao.RecordS
 		"r.id",
 		"r.category_id",
 		"c.name",
+		"c.created_by",
+		"c.created_at",
+		"c.last_modified_by",
+		"c.last_modified_at",
+		"c.version",
 		"r.note",
 		"r.currency",
 		"r.amount_minor_units",
 		"r.date",
 		"r.type",
 		"r.beneficiary_id",
+		"r.created_by",
+		"r.created_at",
+		"r.last_modified_by",
+		"r.last_modified_at",
+		"r.version",
 	).
 		From("budget.record r").
 		LeftJoin("budget.category c ON c.id = r.category_id").
@@ -155,49 +268,40 @@ func (d *DefaultRecordDao) Search(accountId ledger.AccountId, search dao.RecordS
 
 	defer rows.Close()
 
-	entities := make([]*ledger.Record, 0)
+	entities := make([]ledger.Record, 0)
 	for rows.Next() {
 
 		var (
-			recordId            ledger.RecordId
-			categoryId          ledger.CategoryId
-			categoryName        string
-			note                string
-			currency            string
-			amountMinorUnits    int64
-			date                time.Time
-			recordType          ledger.RecordType
-			beneficiaryIdOrNull sql.NullInt64
-			beneficiaryId       ledger.AccountId
+			rr     recordRecord
+			record ledger.Record
 		)
-
-		if err = rows.Scan(&recordId, &categoryId, &categoryName, &note, &currency, &amountMinorUnits, &date, &recordType, &beneficiaryIdOrNull); err != nil {
+		if err = rows.Scan(
+			&rr.id,
+			&rr.category.id,
+			&rr.category.name,
+			&rr.category.createdBy,
+			&rr.category.createdAt,
+			&rr.category.modifiedBy,
+			&rr.category.modifiedAt,
+			&rr.category.version,
+			&rr.note,
+			&rr.currency,
+			&rr.amountMinorUnits,
+			&rr.date,
+			&rr.recordType,
+			&rr.beneficiaryId,
+			&rr.createdBy,
+			&rr.createdAt,
+			&rr.modifiedBy,
+			&rr.modifiedAt,
+			&rr.version,
+		); err != nil {
 			log.Printf("Error processing records for account %d. Reason: %s", accountId, err)
 			continue
 		}
 
-		if beneficiaryIdOrNull.Valid {
-			beneficiaryId = ledger.AccountId(beneficiaryIdOrNull.Int64)
-		}
-
-		var (
-			amount   ledger.Money
-			category *ledger.Category
-			record   *ledger.Record
-		)
-
-		if amount, err = ledger.NewMoney(currency, amountMinorUnits); err != nil {
-			log.Printf("Error loading record id: %d for account id %d, currency: %q, amount (minor units): %d from database. Reason: %s", recordId, accountId, currency, amountMinorUnits, err)
-			continue
-		}
-
-		if category, err = ledger.NewCategory(categoryId, categoryName); err != nil {
-			log.Printf("Error loading record id: %d for account id %d, category id: %d, category name: %s from database. Reason: %s", recordId, accountId, categoryId, categoryName, err)
-			continue
-		}
-
-		if record, err = ledger.NewRecord(recordId, note, category, amount, date, recordType, beneficiaryId); err != nil {
-			log.Printf("Error loading account with id: %d from database. Reason: %s", recordId, err)
+		if record, err = ledger.NewRecordFromRecord(rr); err != nil {
+			log.Printf("Error loading account with id: %d from database. Reason: %s", rr.id, err)
 			continue
 		}
 
@@ -239,7 +343,43 @@ func (d *DefaultRecordDao) GetRecordsForLastPeriod(accountId ledger.AccountId) (
 func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month ledger.CalendarMonth) (ledger.Records, error) {
 	fromDate := month.FirstDay()
 	toDate := month.LastDay()
-	rows, err := d.db.Query("SELECT r.id, r.category_id, c.name, r.note, r.currency, r.amount_minor_units, r.date, r.type, r.beneficiary_id FROM budget.record r LEFT JOIN budget.account a ON r.account_id = a.id LEFT JOIN budget.category c ON r.category_id = c.id WHERE a.id = $1 AND r.date >= $2 AND r.date <= $3 ORDER BY r.date DESC",
+	rows, err := d.db.Query(`
+		SELECT 
+			r.id, 
+			r.category_id, 
+			c.name,
+			c.created_by,
+			c.created_at,
+			c.last_modified_by,
+			c.last_modified_at,
+			c.version,
+			r.note, 
+			r.currency, 
+			r.amount_minor_units, 
+			r.date, 
+			r.type, 
+			r.beneficiary_id,
+			r.created_by,
+			r.created_at,
+			r.last_modified_by,
+			r.last_modified_at,
+			r.version
+		FROM 
+			budget.record r 
+		LEFT JOIN 
+			budget.account a 
+		ON 
+			r.account_id = a.id 
+		LEFT JOIN 
+			budget.category c 
+		ON 
+			r.category_id = c.id 
+		WHERE 
+			a.id = $1 
+			AND r.date >= $2 
+			AND r.date <= $3 
+		ORDER 
+			BY r.date DESC`,
 		queryId,
 		fromDate.Format("2006-01-02"),
 		toDate.Format("2006-01-02"),
@@ -252,49 +392,41 @@ func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month le
 	}
 	defer rows.Close()
 
-	entities := make([]*ledger.Record, 0)
+	entities := make([]ledger.Record, 0)
 	for rows.Next() {
 
 		var (
-			recordId            ledger.RecordId
-			categoryId          ledger.CategoryId
-			categoryName        string
-			note                string
-			currency            string
-			amountMinorUnits    int64
-			date                time.Time
-			recordType          ledger.RecordType
-			beneficiaryIdOrNull sql.NullInt64
-			beneficiaryId       ledger.AccountId
+			rr     recordRecord
+			record ledger.Record
 		)
 
-		if err = rows.Scan(&recordId, &categoryId, &categoryName, &note, &currency, &amountMinorUnits, &date, &recordType, &beneficiaryIdOrNull); err != nil {
+		if err = rows.Scan(
+			&rr.id,
+			&rr.category.id,
+			&rr.category.name,
+			&rr.category.createdBy,
+			&rr.category.createdAt,
+			&rr.category.modifiedBy,
+			&rr.category.modifiedAt,
+			&rr.category.version,
+			&rr.note,
+			&rr.currency,
+			&rr.amountMinorUnits,
+			&rr.date,
+			&rr.recordType,
+			&rr.beneficiaryId,
+			&rr.createdBy,
+			&rr.createdAt,
+			&rr.modifiedBy,
+			&rr.modifiedAt,
+			&rr.version,
+		); err != nil {
 			log.Printf("Error processing records for account %d. Reason: %s", queryId, err)
 			continue
 		}
 
-		if beneficiaryIdOrNull.Valid {
-			beneficiaryId = ledger.AccountId(beneficiaryIdOrNull.Int64)
-		}
-
-		var (
-			amount   ledger.Money
-			category *ledger.Category
-			record   *ledger.Record
-		)
-
-		if amount, err = ledger.NewMoney(currency, amountMinorUnits); err != nil {
-			log.Printf("Error loading record id: %d for account id %d, currency: %q, amount (minor units): %d from database. Reason: %s", recordId, queryId, currency, amountMinorUnits, err)
-			continue
-		}
-
-		if category, err = ledger.NewCategory(categoryId, categoryName); err != nil {
-			log.Printf("Error loading record id: %d for account id %d, category id: %d, category name: %s from database. Reason: %s", recordId, queryId, categoryId, categoryName, err)
-			continue
-		}
-
-		if record, err = ledger.NewRecord(recordId, note, category, amount, date, recordType, beneficiaryId); err != nil {
-			log.Printf("Error loading account with id: %d from database. Reason: %s", recordId, err)
+		if record, err = ledger.NewRecordFromRecord(rr); err != nil {
+			log.Printf("Error loading account with id: %d from database. Reason: %s", rr.id, err)
 			continue
 		}
 
@@ -305,8 +437,4 @@ func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month le
 	sort.Sort(records)
 
 	return records, nil
-}
-
-func startOfCurrentMonth() time.Time {
-	return time.Now().UTC().AddDate(0, -1, time.Now().UTC().Day()+1)
 }

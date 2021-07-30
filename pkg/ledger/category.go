@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
@@ -12,27 +13,65 @@ import (
 type CategoryId uint64
 
 type Category struct {
+	AuditInfo
 	id   CategoryId
 	name string
 }
 
-func NewCategory(id CategoryId, name string) (*Category, error) {
-	category := &Category{
-		id:   id,
-		name: name,
-	}
+type CategoryRecord interface {
+	Id() CategoryId
+	Name() string
+	CreatedBy() UserId
+	CreatedAtUTC() time.Time
+	ModifiedBy() UserId
+	ModifiedAtUTC() time.Time
+	Version() Version
+}
 
+func NewCategory(id CategoryId, userId UserId, name string) (Category, error) {
+	var (
+		auditInfo AuditInfo
+		err       error
+	)
+	if auditInfo, err = MakeAuditForCreation(userId); err != nil {
+		return Category{}, err
+	}
+	return newCategory(id, name, auditInfo)
+}
+
+func NewCategoryFromRecord(cr CategoryRecord) (Category, error) {
+	var (
+		auditInfo AuditInfo
+		err       error
+	)
+	if auditInfo, err = MakeAuditForModification(
+		cr.CreatedBy(),
+		cr.CreatedAtUTC(),
+		cr.ModifiedBy(),
+		cr.ModifiedAtUTC(),
+		cr.Version(),
+	); err != nil {
+		return Category{}, err
+	}
+	return newCategory(cr.Id(), cr.Name(), auditInfo)
+}
+
+func newCategory(id CategoryId, name string, auditInfo AuditInfo) (Category, error) {
 	errors := validate.Validate(
-		&validators.IntIsGreaterThan{Name: "Id", Field: int(category.id), Compared: 0, Message: "Id must be greater than 0"},
-		&validators.StringLengthInRange{Name: "Name", Field: category.name, Min: 1, Max: 25, Message: "Name must be 1 and 25 characters long"},
+		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
+		&validators.StringLengthInRange{Name: "Name", Field: name, Min: 1, Max: 25, Message: "Name must be 1 and 25 characters long"},
 	)
 
 	var err error
 	if err = makeCoreValidationError(ErrCategoryValidation, errors); err != nil {
-		return nil, err
+		return Category{}, err
 	}
 
-	return category, nil
+	return Category{
+		AuditInfo: auditInfo,
+		id:        id,
+		name:      name,
+	}, nil
 }
 
 func (c Category) Id() CategoryId {
@@ -47,7 +86,7 @@ func (c Category) String() string {
 	return fmt.Sprintf("Category{id: %d, name: %s}", c.id, c.name)
 }
 
-type Categories []*Category
+type Categories []Category
 
 func (cs Categories) Names() []string {
 	names := make([]string, 0, len(cs))

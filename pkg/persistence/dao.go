@@ -33,8 +33,8 @@ type AccountDao interface {
 	Save(id ledger.UserId, a *ledger.Account) error
 	SaveTx(id ledger.UserId, a *ledger.Account, tx *sql.Tx) error
 
-	GetAccountById(id ledger.AccountId) (*ledger.Account, error)
-	GetAccountsByUserId(id ledger.UserId) ([]*ledger.Account, error)
+	GetAccountById(id ledger.AccountId) (ledger.Account, error)
+	GetAccountsByUserId(id ledger.UserId) ([]ledger.Account, error)
 }
 
 type CategoryDao interface {

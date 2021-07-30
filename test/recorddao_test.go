@@ -27,9 +27,9 @@ func TestRecordDaoTestSuite(t *testing.T) {
 // -- SETUP
 
 var (
-	testSalaryCategory  *ledger.Category
-	testBillsCategory   *ledger.Category
-	testSavingsCategory *ledger.Category
+	testSalaryCategory  ledger.Category
+	testBillsCategory   ledger.Category
+	testSavingsCategory ledger.Category
 )
 
 func (suite *RecordDaoTestSuite) SetupTest() {
@@ -43,19 +43,19 @@ func (suite *RecordDaoTestSuite) SetupTest() {
 		log.Fatalf("RecordDaoTestSuite: Test setup failed: %s", err)
 	}
 
-	currentAccount, _ := ledger.NewAccount(testCurrentAccountId, testCurrentAccountName, testCurrentAccountCurrency)
-	if err := suite.accountDao.Save(testUserId, currentAccount); err != nil {
+	currentAccount, _ := ledger.NewAccount(testCurrentAccountId, testUserId, testCurrentAccountName, testCurrentAccountCurrency)
+	if err := suite.accountDao.Save(testUserId, &currentAccount); err != nil {
 		log.Fatalf("RecordDaoTestSuite: Test setup failed: %s", err)
 	}
 
-	savingsAccount, _ := ledger.NewAccount(testSavingsAccountId, testSavingsAccountName, testSavingsAccountCurrency)
-	if err := suite.accountDao.Save(testUserId, savingsAccount); err != nil {
+	savingsAccount, _ := ledger.NewAccount(testSavingsAccountId, testUserId, testSavingsAccountName, testSavingsAccountCurrency)
+	if err := suite.accountDao.Save(testUserId, &savingsAccount); err != nil {
 		log.Fatalf("RecordDaoTestSuite: Test setup failed: %s", err)
 	}
 
-	testSalaryCategory, _ = ledger.NewCategory(testSalaryCategoryId, testSalaryCategoryName)
-	testBillsCategory, _ = ledger.NewCategory(testBillsCategoryId, testBillsCategoryName)
-	testSavingsCategory, _ = ledger.NewCategory(testSavingsCategoryId, testSavingsCategoryName)
+	testSalaryCategory, _ = ledger.NewCategory(testSalaryCategoryId, testUserId, testSalaryCategoryName)
+	testBillsCategory, _ = ledger.NewCategory(testBillsCategoryId, testUserId, testBillsCategoryName)
+	testSavingsCategory, _ = ledger.NewCategory(testSavingsCategoryId, testUserId, testSavingsCategoryName)
 	if err := suite.categoryDao.Save(testUserId, ledger.Categories{testSalaryCategory, testBillsCategory, testSavingsCategory}); err != nil {
 		log.Fatalf("RecordDaoTestSuite: Test setup failed: %s", err)
 	}
@@ -80,10 +80,10 @@ func (suite *RecordDaoTestSuite) Test_WHEN_NewRecordIdIsCalled_THEN_recordIdIsRe
 
 func (suite *RecordDaoTestSuite) Test_Given_anIncomeRecord_WHEN_theRecordIsSaved_THEN_recordCanBeRetrievedInMonthRange() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Salary", testSalaryCategory, quickMoney("AED", 100000), testRecordDate, ledger.Income, 0)
+	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), testUserId, "Salary", testSalaryCategory, quickMoney("AED", 100000), testRecordDate, ledger.Income, 0)
 
 	// WHEN
-	_ = suite.recordDao.Save(testCurrentAccountId, aRecord)
+	_ = suite.recordDao.Save(testCurrentAccountId, &aRecord)
 	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, ledger.MakeCalendarMonthFromDate(testRecordDate))
 
 	// THEN
@@ -100,10 +100,10 @@ func (suite *RecordDaoTestSuite) Test_Given_anIncomeRecord_WHEN_theRecordIsSaved
 
 func (suite *RecordDaoTestSuite) Test_Given_anExpenseRecord_WHEN_theRecordIsSaved_THEN_recordCanBeRetrievedInMonthRange() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Electricity Bill", testBillsCategory, quickMoney("AED", 20000), testRecordDate, ledger.Expense, 0)
+	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), testUserId, "Electricity Bill", testBillsCategory, quickMoney("AED", 20000), testRecordDate, ledger.Expense, 0)
 
 	// WHEN
-	_ = suite.recordDao.Save(testCurrentAccountId, aRecord)
+	_ = suite.recordDao.Save(testCurrentAccountId, &aRecord)
 	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, ledger.MakeCalendarMonthFromDate(testRecordDate))
 
 	// THEN
@@ -120,10 +120,10 @@ func (suite *RecordDaoTestSuite) Test_Given_anExpenseRecord_WHEN_theRecordIsSave
 
 func (suite *RecordDaoTestSuite) Test_Given_aTransferRecord_WHEN_theRecordIsSaved_THEN_recordCanBeRetrievedInMonthRange() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", testSavingsCategory, quickMoney("AED", 50000), testRecordDate, ledger.Transfer, testSavingsAccountId)
+	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), testUserId, "Savings", testSavingsCategory, quickMoney("AED", 50000), testRecordDate, ledger.Transfer, testSavingsAccountId)
 
 	// WHEN
-	_ = suite.recordDao.Save(testCurrentAccountId, aRecord)
+	_ = suite.recordDao.Save(testCurrentAccountId, &aRecord)
 	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, ledger.MakeCalendarMonthFromDate(testRecordDate))
 
 	// THEN
@@ -140,16 +140,16 @@ func (suite *RecordDaoTestSuite) Test_Given_aTransferRecord_WHEN_theRecordIsSave
 
 func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_loadingRecordsForLastPeriod_THEN_recordsForMonthOfLatestRecordReturned() {
 	// GIVEN
-	beforeLastMonthIncome, _ := ledger.NewRecord(ledger.RecordId(1), "Salary", testSalaryCategory, quickMoney("AED", 100000), time.Date(2021, time.May, 6, 18, 30, 0, 0, time.UTC), ledger.Income, 0)
-	beforeLastMonthExpense, _ := ledger.NewRecord(ledger.RecordId(2), "Bills", testBillsCategory, quickMoney("AED", 50000), time.Date(2021, time.May, 6, 18, 30, 1, 0, time.UTC), ledger.Expense, 0)
-	lastMonthIncome, _ := ledger.NewRecord(ledger.RecordId(3), "Salary", testSalaryCategory, quickMoney("AED", 100000), time.Date(2021, time.July, 6, 18, 30, 0, 0, time.UTC), ledger.Income, 0)
-	lastMonthExpense, _ := ledger.NewRecord(ledger.RecordId(4), "Bills", testBillsCategory, quickMoney("AED", 50000), time.Date(2021, time.July, 6, 18, 30, 1, 0, time.UTC), ledger.Expense, 0)
+	beforeLastMonthIncome, _ := ledger.NewRecord(ledger.RecordId(1), testUserId, "Salary", testSalaryCategory, quickMoney("AED", 100000), time.Date(2021, time.May, 6, 18, 30, 0, 0, time.UTC), ledger.Income, 0)
+	beforeLastMonthExpense, _ := ledger.NewRecord(ledger.RecordId(2), testUserId, "Bills", testBillsCategory, quickMoney("AED", 50000), time.Date(2021, time.May, 6, 18, 30, 1, 0, time.UTC), ledger.Expense, 0)
+	lastMonthIncome, _ := ledger.NewRecord(ledger.RecordId(3), testUserId, "Salary", testSalaryCategory, quickMoney("AED", 100000), time.Date(2021, time.July, 6, 18, 30, 0, 0, time.UTC), ledger.Income, 0)
+	lastMonthExpense, _ := ledger.NewRecord(ledger.RecordId(4), testUserId, "Bills", testBillsCategory, quickMoney("AED", 50000), time.Date(2021, time.July, 6, 18, 30, 1, 0, time.UTC), ledger.Expense, 0)
 
 	// WHEN
-	_ = suite.recordDao.Save(testCurrentAccountId, lastMonthExpense)
-	_ = suite.recordDao.Save(testCurrentAccountId, lastMonthIncome)
-	_ = suite.recordDao.Save(testCurrentAccountId, beforeLastMonthExpense)
-	_ = suite.recordDao.Save(testCurrentAccountId, beforeLastMonthIncome)
+	_ = suite.recordDao.Save(testCurrentAccountId, &lastMonthExpense)
+	_ = suite.recordDao.Save(testCurrentAccountId, &lastMonthIncome)
+	_ = suite.recordDao.Save(testCurrentAccountId, &beforeLastMonthExpense)
+	_ = suite.recordDao.Save(testCurrentAccountId, &beforeLastMonthIncome)
 
 	records, err := suite.recordDao.GetRecordsForLastPeriod(testCurrentAccountId)
 
@@ -195,10 +195,10 @@ func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_searchingBySearchTerm_T
 
 func (suite *RecordDaoTestSuite) Test_Given_aRecordWithAmountInDifferentCurrencyThanAccount_WHEN_recordIsSaved_THEN_currencyIsSetToAccountsCurrency() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", testSavingsCategory, quickMoney("USD", 50000), testRecordDate, ledger.Transfer, testSavingsAccountId)
+	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), testUserId, "Savings", testSavingsCategory, quickMoney("USD", 50000), testRecordDate, ledger.Transfer, testSavingsAccountId)
 
 	// WHEN
-	err := suite.recordDao.Save(testCurrentAccountId, aRecord)
+	err := suite.recordDao.Save(testCurrentAccountId, &aRecord)
 	records, _ := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, ledger.MakeCalendarMonthFromDate(testRecordDate))
 
 	// THEN

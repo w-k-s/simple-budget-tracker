@@ -21,6 +21,14 @@ func MakeCalendarMonthFromDate(date time.Time) CalendarMonth {
 	return MakeCalendarMonth(uint(date.Year()), date.Month())
 }
 
+func CurrentCalendarMonth() CalendarMonth {
+	current := time.Now().UTC().AddDate(0, -1, time.Now().UTC().Day()+1)
+	return CalendarMonth{
+		year:  uint(current.Year()),
+		month: current.Month(),
+	}
+}
+
 func (cm CalendarMonth) Month() time.Month {
 	return cm.month
 }

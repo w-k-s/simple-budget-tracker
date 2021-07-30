@@ -3,6 +3,7 @@ package ledger
 import (
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -23,11 +24,11 @@ func (suite *CategoryTestSuite) Test_GIVEN_invalidCategoryId_WHEN_CategoryIsCrea
 	categoryId := CategoryId(0)
 
 	// WHEN
-	category, err := NewCategory(categoryId, "Shopping")
+	category, err := NewCategory(categoryId, UserId(1), "Shopping")
 
 	// THEN
-	assert.Nil(suite.T(), category)
 	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Category{}, category)
 	assert.Equal(suite.T(), ErrCategoryValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "Id must be greater than 0", err.(Error).Error())
 	assert.Equal(suite.T(), "Id must be greater than 0", err.(Error).Fields()["id"])
@@ -36,11 +37,11 @@ func (suite *CategoryTestSuite) Test_GIVEN_invalidCategoryId_WHEN_CategoryIsCrea
 func (suite *CategoryTestSuite) Test_GIVEN_emptyCategoryName_WHEN_CategoryIsCreated_THEN_errorIsReturned() {
 
 	// WHEN
-	category, err := NewCategory(2, "")
+	category, err := NewCategory(2, UserId(1), "")
 
 	// THEN
-	assert.Nil(suite.T(), category)
 	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Category{}, category)
 	assert.Equal(suite.T(), ErrCategoryValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.(Error).Error())
 	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.(Error).Fields()["name"])
@@ -49,19 +50,22 @@ func (suite *CategoryTestSuite) Test_GIVEN_emptyCategoryName_WHEN_CategoryIsCrea
 func (suite *CategoryTestSuite) Test_GIVEN_validParameters_WHEN_CategoryIsCreated_THEN_noErrorsAreReturned() {
 
 	// WHEN
-	category, err := NewCategory(2, "Shopping")
+	category, err := NewCategory(2, UserId(1), "Shopping")
 
 	// THEN
 	assert.Nil(suite.T(), err)
 	assert.NotNil(suite.T(), category)
 	assert.Equal(suite.T(), CategoryId(2), category.Id())
 	assert.Equal(suite.T(), "Shopping", category.Name())
+	assert.Equal(suite.T(), UserId(1), category.CreatedBy())
+	assert.Equal(suite.T(), Version(1), category.Version())
+	assert.True(suite.T(), time.Now().UTC().Sub(category.CreatedAtUTC()) < time.Duration(1)*time.Second)
 }
 
 func (suite *CategoryTestSuite) Test_GIVEN_aCategory_WHEN_stringIsCalled_THEN_stringIsReadable() {
 
 	// WHEN
-	category, _ := NewCategory(2, "Shopping")
+	category, _ := NewCategory(2, UserId(1), "Shopping")
 
 	// THEN
 	assert.Equal(suite.T(), "Category{id: 2, name: Shopping}", category.String())
@@ -70,10 +74,10 @@ func (suite *CategoryTestSuite) Test_GIVEN_aCategory_WHEN_stringIsCalled_THEN_st
 func (suite *CategoryTestSuite) Test_GIVEN_categories_WHEN_namesIsCalled_THEN_sliceOfSortedCategoryNamesIsReturned() {
 
 	// WHEN
-	category1, _ := NewCategory(1, "Health")
-	category2, _ := NewCategory(1, "Entertainment")
+	category1, _ := NewCategory(1, UserId(1), "Health")
+	category2, _ := NewCategory(1, UserId(1), "Entertainment")
 
-	categories := Categories([]*Category{
+	categories := Categories([]Category{
 		category1,
 		category2,
 	})
@@ -85,10 +89,10 @@ func (suite *CategoryTestSuite) Test_GIVEN_categories_WHEN_namesIsCalled_THEN_sl
 func (suite *CategoryTestSuite) Test_GIVEN_categories_WHEN_sortIsCalled_THEN_categoriesAreSortedInPlace() {
 
 	// WHEN
-	category1, _ := NewCategory(1, "Health")
-	category2, _ := NewCategory(1, "Entertainment")
+	category1, _ := NewCategory(1, UserId(1), "Health")
+	category2, _ := NewCategory(1, UserId(1), "Entertainment")
 
-	categories := Categories([]*Category{
+	categories := Categories([]Category{
 		category1,
 		category2,
 	})
@@ -102,10 +106,10 @@ func (suite *CategoryTestSuite) Test_GIVEN_categories_WHEN_sortIsCalled_THEN_cat
 func (suite *CategoryTestSuite) Test_GIVEN_categories_WHEN_stringIsCalled_THEN_stringOfEachCategoryIsPrintedInAlphabeticalOrder() {
 
 	// WHEN
-	category1, _ := NewCategory(1, "Health")
-	category2, _ := NewCategory(2, "Entertainment")
+	category1, _ := NewCategory(1, UserId(1), "Health")
+	category2, _ := NewCategory(2, UserId(1), "Entertainment")
 
-	categories := Categories([]*Category{
+	categories := Categories([]Category{
 		category1,
 		category2,
 	})

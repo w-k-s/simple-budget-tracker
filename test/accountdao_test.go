@@ -52,10 +52,10 @@ func (suite *AccountDaoTestSuite) Test_WHEN_NewAccountIdIsCalled_THEN_accountIdI
 
 func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedById() {
 	// GIVEN
-	anAccount, _ := ledger.NewAccount(ledger.AccountId(1), "Current", "AED")
+	anAccount, _ := ledger.NewAccount(ledger.AccountId(1), testUserId, "Current", "AED")
 
 	// WHEN
-	_ = suite.accountDao.Save(testUserId, anAccount)
+	_ = suite.accountDao.Save(testUserId, &anAccount)
 	theAccount, err := suite.accountDao.GetAccountById(ledger.AccountId(1))
 
 	// THEN
@@ -67,12 +67,12 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_TH
 
 func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedByUserId() {
 	// GIVEN
-	currentAccount, _ := ledger.NewAccount(1, "Current", "AED")
-	lifeSavingsAccount, _ := ledger.NewAccount(2, "Life Savings", "EUR")
+	currentAccount, _ := ledger.NewAccount(1, testUserId, "Current", "AED")
+	lifeSavingsAccount, _ := ledger.NewAccount(2, testUserId, "Life Savings", "EUR")
 
 	// WHEN
-	_ = suite.accountDao.Save(testUserId, currentAccount)
-	_ = suite.accountDao.Save(testUserId, lifeSavingsAccount)
+	_ = suite.accountDao.Save(testUserId, &currentAccount)
+	_ = suite.accountDao.Save(testUserId, &lifeSavingsAccount)
 	allAccounts, err := suite.accountDao.GetAccountsByUserId(testUserId)
 
 	// THEN
@@ -96,7 +96,7 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccountId_WHEN_noAccountWithThatI
 	theAccount, err := suite.accountDao.GetAccountById(accountId)
 
 	// THEN
-	assert.Nil(suite.T(), theAccount)
+	assert.Equal(suite.T(), ledger.Account{}, theAccount)
 
 	coreError := err.(ledger.Error)
 	assert.EqualValues(suite.T(), ledger.ErrAccountNotFound, uint64(coreError.Code()))
@@ -105,12 +105,12 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccountId_WHEN_noAccountWithThatI
 
 func (suite *AccountDaoTestSuite) Test_Given_twoAccounts_WHEN_theAccountsHaveTheSameName_THEN_onlyOneAccountIsSaved() {
 	// GIVEN
-	account1, _ := ledger.NewAccount(1, "Current", "AED")
-	account2, _ := ledger.NewAccount(2, "Current", "AED")
+	account1, _ := ledger.NewAccount(1, testUserId, "Current", "AED")
+	account2, _ := ledger.NewAccount(2, testUserId, "Current", "AED")
 
 	// WHEN
-	err1 := suite.accountDao.Save(testUserId, account1)
-	err2 := suite.accountDao.Save(testUserId, account2)
+	err1 := suite.accountDao.Save(testUserId, &account1)
+	err2 := suite.accountDao.Save(testUserId, &account2)
 
 	// THEN
 	assert.Nil(suite.T(), err1)

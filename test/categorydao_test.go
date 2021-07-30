@@ -56,8 +56,8 @@ func (suite *CategoryDaoTestSuite) Test_WHEN_NewCategoryIdIsCalled_THEN_category
 
 func (suite *CategoryDaoTestSuite) Test_Given_categories_WHEN_theCategoriesAreSaved_THEN_categoriesCanBeRetrievedByUserId() {
 	// GIVEN
-	salaryCategory, _ := ledger.NewCategory(1, "Salary")
-	rentCategory, _ := ledger.NewCategory(2, "Rent")
+	salaryCategory, _ := ledger.NewCategory(1, testUserId, "Salary")
+	rentCategory, _ := ledger.NewCategory(2, testUserId, "Rent")
 
 	// WHEN
 	_ = suite.categoryDao.Save(testUserId, ledger.Categories{salaryCategory, rentCategory})
@@ -90,11 +90,11 @@ func (suite *CategoryDaoTestSuite) Test_Given_twoCategoriesPerUsers_WHEN_oneUser
 		log.Fatalf("CategoryDaoTestSuite: Failed to test duplicate category name scenario: %s", err)
 	}
 
-	category1ForUser1, _ := ledger.NewCategory(1, "Rent")
-	category2ForUser1, _ := ledger.NewCategory(2, "Savings")
+	category1ForUser1, _ := ledger.NewCategory(1, testUserId, "Rent")
+	category2ForUser1, _ := ledger.NewCategory(2, testUserId, "Savings")
 
-	category1ForUser2, _ := ledger.NewCategory(3, "Shopping")
-	category2ForUser2, _ := ledger.NewCategory(4, "Shopping")
+	category1ForUser2, _ := ledger.NewCategory(3, testUserId, "Shopping")
+	category2ForUser2, _ := ledger.NewCategory(4, testUserId, "Shopping")
 
 	// WHEN
 	err1 := suite.categoryDao.Save(testUserId, ledger.Categories{category1ForUser1, category2ForUser1})

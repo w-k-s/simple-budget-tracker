@@ -22,15 +22,15 @@ func TestRecordTestSuite(t *testing.T) {
 func (suite *RecordTestSuite) Test_GIVEN_invalidRecordId_WHEN_RecordIsCreated_THEN_errorIsReturned() {
 	// GIVEN
 	recordId := RecordId(0)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, amount, time.Now(), Expense, 0)
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, time.Now(), Expense, 0)
 
 	// THEN
-	assert.Nil(suite.T(), record)
 	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "Id must be greater than 0", err.(Error).Error())
 	assert.Equal(suite.T(), "Id must be greater than 0", err.(Error).Fields()["id"])
@@ -40,11 +40,11 @@ func (suite *RecordTestSuite) Test_GIVEN_emptyNote_WHEN_RecordIsCreated_THEN_rec
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "", category, amount, time.Now(), Expense, 0)
+	record, err := NewRecord(recordId, UserId(1), "", category, amount, time.Now(), Expense, 0)
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -52,21 +52,24 @@ func (suite *RecordTestSuite) Test_GIVEN_emptyNote_WHEN_RecordIsCreated_THEN_rec
 	assert.Equal(suite.T(), "", record.Note())
 	assert.Equal(suite.T(), "AED -200.00", record.Amount().String())
 	assert.Equal(suite.T(), "Bills", record.Category().Name())
+	assert.Equal(suite.T(), UserId(1), record.CreatedBy())
+	assert.Equal(suite.T(), Version(1), record.Version())
+	assert.True(suite.T(), time.Now().UTC().Sub(record.CreatedAtUTC()) < time.Duration(1)*time.Second)
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_noteExceeds50Characters_WHEN_RecordIsCreated_THEN_errorIsReturned() {
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "123456789012345678901234567890123456789012345678901", category, amount, time.Now(), Expense, 0)
+	record, err := NewRecord(recordId, UserId(1), "123456789012345678901234567890123456789012345678901", category, amount, time.Now(), Expense, 0)
 
 	// THEN
-	assert.Nil(suite.T(), record)
 	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "Note can not be longer than 50 characters", err.(Error).Error())
 	assert.Equal(suite.T(), "Note can not be longer than 50 characters", err.(Error).Fields()["note"])
@@ -79,11 +82,11 @@ func (suite *RecordTestSuite) Test_GIVEN_nilCategory_WHEN_RecordIsCreated_THEN_e
 	amount, _ := NewMoney("AED", 20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", nil, amount, time.Now(), Expense, 0)
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", Category{}, amount, time.Now(), Expense, 0)
 
 	// THEN
-	assert.Nil(suite.T(), record)
 	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "Category is required", err.(Error).Error())
 	assert.Equal(suite.T(), "Category is required", err.(Error).Fields()["category"])
@@ -93,15 +96,15 @@ func (suite *RecordTestSuite) Test_GIVEN_nilTime_WHEN_RecordIsCreated_THEN_error
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, amount, time.Time{}, Expense, 0)
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, time.Time{}, Expense, 0)
 
 	// THEN
-	assert.Nil(suite.T(), record)
 	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "Invalid date", err.(Error).Error())
 	assert.Equal(suite.T(), "Invalid date", err.(Error).Fields()["date"])
@@ -111,14 +114,14 @@ func (suite *RecordTestSuite) Test_GIVEN_nilAmount_WHEN_RecordIsCreated_THEN_err
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, nil, time.Now(), Expense, 0)
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, nil, time.Now(), Expense, 0)
 
 	// THEN
-	assert.Nil(suite.T(), record)
 	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "Amount is required", err.(Error).Error())
 	assert.Equal(suite.T(), "Amount is required", err.(Error).Fields()["amount"])
@@ -128,15 +131,15 @@ func (suite *RecordTestSuite) Test_GIVEN_invalidExpenseType_WHEN_RecordIsCreated
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, amount, time.Now().UTC(), "nil", 0)
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, time.Now().UTC(), "nil", 0)
 
 	// THEN
-	assert.Nil(suite.T(), record)
 	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "recordType must be INCOME,EXPENSE or TRANSFER. Invalid: \"nil\"", err.(Error).Error())
 	assert.Equal(suite.T(), "recordType must be INCOME,EXPENSE or TRANSFER. Invalid: \"nil\"", err.(Error).Fields()["record_type"])
@@ -146,15 +149,15 @@ func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutBeneficiaryId_
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, amount, time.Now().UTC(), Transfer, 0)
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, time.Now().UTC(), Transfer, 0)
 
 	// THEN
-	assert.Nil(suite.T(), record)
 	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "beneficiaryId can not be <= 0 when record type is TRANSFER", err.(Error).Error())
 	assert.Equal(suite.T(), "beneficiaryId can not be <= 0 when record type is TRANSFER", err.(Error).Fields()["beneficiary_id"])
@@ -164,11 +167,11 @@ func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithBeneficiaryId_WHE
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, amount, time.Now().UTC(), Transfer, AccountId(2))
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, time.Now().UTC(), Transfer, AccountId(2))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -185,15 +188,15 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithBeneficiaryId_WHEN
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, amount, time.Now().UTC(), Expense, AccountId(2))
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, time.Now().UTC(), Expense, AccountId(2))
 
 	// THEN
-	assert.Nil(suite.T(), record)
 	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "beneficiaryId must be 0 when record type is \"EXPENSE\"", err.(Error).Error())
 	assert.Equal(suite.T(), "beneficiaryId must be 0 when record type is \"EXPENSE\"", err.(Error).Fields()["beneficiary_id"])
@@ -203,15 +206,15 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithZeroAmount_WHEN_Re
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 0)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, amount, time.Now().UTC(), Expense, 0)
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, time.Now().UTC(), Expense, 0)
 
 	// THEN
-	assert.Nil(suite.T(), record)
 	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "amount must not be zero", err.(Error).Error())
 	assert.Equal(suite.T(), "amount must not be zero", err.(Error).Fields()["amount"])
@@ -221,11 +224,11 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithPositiveAmount_WHE
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, amount, time.Now().UTC(), Expense, 0)
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, time.Now().UTC(), Expense, 0)
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -237,11 +240,11 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithNegativeAmount_WHE
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", -20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, amount, time.Now().UTC(), Expense, 0)
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, time.Now().UTC(), Expense, 0)
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -257,11 +260,11 @@ func (suite *RecordTestSuite) Test_GIVEN_incomeRecordTypeWithNegativeAmount_WHEN
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", -20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, amount, time.Now().UTC(), Income, 0)
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, time.Now().UTC(), Income, 0)
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -277,11 +280,11 @@ func (suite *RecordTestSuite) Test_GIVEN_incomeRecordTypeWithPositiveAmount_WHEN
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 20000)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", category, amount, time.Now().UTC(), Income, 0)
+	record, err := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, time.Now().UTC(), Income, 0)
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -297,12 +300,12 @@ func (suite *RecordTestSuite) Test_GIVEN_aRecord_WHEN_stringIsCalled_THEN_string
 
 	// GIVEN
 	recordId := RecordId(1)
-	category, _ := NewCategory(CategoryId(1), "Bills")
+	category, _ := NewCategory(CategoryId(1), UserId(1), "Bills")
 	amount, _ := NewMoney("AED", 20000)
 	date := time.Date(2021, time.July, 2, 21, 10, 0, 0, time.UTC)
 
 	// WHEN
-	record, _ := NewRecord(recordId, "Telephone Bill", category, amount, date, Expense, 0)
+	record, _ := NewRecord(recordId, UserId(1), "Telephone Bill", category, amount, date, Expense, 0)
 
 	// THEN
 	assert.Equal(suite.T(), "Record{id: 1, type: EXPENSE, amount: AED -200.00, category: Category{id: 1, name: Bills}, date: 2021-07-02T21:10:00+0000, beneficiaryId: 0}", record.String())
@@ -310,16 +313,16 @@ func (suite *RecordTestSuite) Test_GIVEN_aRecord_WHEN_stringIsCalled_THEN_string
 
 func (suite *RecordTestSuite) Test_GIVEN_records_WHEN_stringIsCalled_THEN_recordsArePrintedInSortedOrder() {
 	// GIVEN
-	salaryCategory, _ := NewCategory(CategoryId(1), "Salary")
+	salaryCategory, _ := NewCategory(CategoryId(1), UserId(1), "Salary")
 	salaryAmount, _ := NewMoney("AED", 100000)
 	salaryDate := time.Date(2021, time.July, 1, 12, 0, 0, 0, time.UTC)
 
-	billsCategory, _ := NewCategory(CategoryId(2), "Bills")
+	billsCategory, _ := NewCategory(CategoryId(2), UserId(1), "Bills")
 	billAmount, _ := NewMoney("AED", 5000)
 	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
 
-	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
-	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
+	record1, _ := NewRecord(RecordId(1), UserId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
+	record2, _ := NewRecord(RecordId(2), UserId(1), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
 
 	// WHEN
 	records := Records{record1, record2}
@@ -330,16 +333,16 @@ func (suite *RecordTestSuite) Test_GIVEN_records_WHEN_stringIsCalled_THEN_record
 
 func (suite *RecordTestSuite) Test_GIVEN_records_WHEN_recordsAreSorted_THEN_recordsAreSortedByDate() {
 	// GIVEN
-	salaryCategory, _ := NewCategory(CategoryId(1), "Salary")
+	salaryCategory, _ := NewCategory(CategoryId(1), UserId(1), "Salary")
 	salaryAmount, _ := NewMoney("AED", 100000)
 	salaryDate := time.Date(2021, time.July, 1, 12, 0, 0, 0, time.UTC)
 
-	billsCategory, _ := NewCategory(CategoryId(2), "Bills")
+	billsCategory, _ := NewCategory(CategoryId(2), UserId(1), "Bills")
 	billAmount, _ := NewMoney("AED", 5000)
 	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
 
-	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
-	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
+	record1, _ := NewRecord(RecordId(1), UserId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
+	record2, _ := NewRecord(RecordId(2), UserId(1), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
 
 	// WHEN
 	records := Records{record1, record2}
@@ -353,16 +356,16 @@ func (suite *RecordTestSuite) Test_GIVEN_records_WHEN_recordsAreSorted_THEN_reco
 
 func (suite *RecordTestSuite) Test_GIVEN_recordsOfSameCurrency_WHEN_recordsAreTotaled_THEN_totalIsCorrect() {
 	// GIVEN
-	salaryCategory, _ := NewCategory(CategoryId(1), "Salary")
+	salaryCategory, _ := NewCategory(CategoryId(1), UserId(1), "Salary")
 	salaryAmount, _ := NewMoney("AED", 100000)
 	salaryDate := time.Date(2021, time.July, 1, 12, 0, 0, 0, time.UTC)
 
-	billsCategory, _ := NewCategory(CategoryId(2), "Bills")
+	billsCategory, _ := NewCategory(CategoryId(2), UserId(1), "Bills")
 	billAmount, _ := NewMoney("AED", 5000)
 	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
 
-	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
-	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
+	record1, _ := NewRecord(RecordId(1), UserId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
+	record2, _ := NewRecord(RecordId(2), UserId(1), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
 
 	// WHEN
 	records := Records{record1, record2}
@@ -376,16 +379,16 @@ func (suite *RecordTestSuite) Test_GIVEN_recordsOfSameCurrency_WHEN_recordsAreTo
 
 func (suite *RecordTestSuite) Test_GIVEN_recordsOfDifferentCurrency_WHEN_recordsAreTotaled_THEN_errorIsReturned() {
 	// GIVEN
-	salaryCategory, _ := NewCategory(CategoryId(1), "Salary")
+	salaryCategory, _ := NewCategory(CategoryId(1), UserId(1), "Salary")
 	salaryAmount, _ := NewMoney("AED", 100000)
 	salaryDate := time.Date(2021, time.July, 1, 12, 0, 0, 0, time.UTC)
 
-	billsCategory, _ := NewCategory(CategoryId(2), "Bills")
+	billsCategory, _ := NewCategory(CategoryId(2), UserId(1), "Bills")
 	billAmount, _ := NewMoney("KWD", 5000)
 	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
 
-	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
-	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
+	record1, _ := NewRecord(RecordId(1), UserId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0)
+	record2, _ := NewRecord(RecordId(2), UserId(1), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0)
 
 	// WHEN
 	total, err := Records{record1, record2}.Total()
