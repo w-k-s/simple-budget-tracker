@@ -22,9 +22,9 @@ type recordRecord struct {
 	date             time.Time
 	recordType       ledger.RecordType
 	beneficiaryId    sql.NullInt64
-	createdBy        ledger.UserId
+	createdBy        string
 	createdAt        time.Time
-	modifiedBy       sql.NullInt64
+	modifiedBy       sql.NullString
 	modifiedAt       sql.NullTime
 	version          ledger.Version
 }
@@ -74,19 +74,33 @@ func (rr recordRecord) BeneficiaryId() ledger.AccountId {
 	return ledger.AccountId(0)
 }
 
-func (rr recordRecord) CreatedBy() ledger.UserId {
-	return rr.createdBy
+func (rr recordRecord) CreatedBy() ledger.UpdatedBy {
+	var (
+		updatedBy ledger.UpdatedBy
+		err       error
+	)
+	if updatedBy, err = ledger.ParseUpdatedBy(rr.createdBy); err != nil {
+		log.Fatalf("Invalid createdBy persisted for record %d: %s", rr.id, rr.createdBy)
+	}
+	return updatedBy
 }
 
 func (rr recordRecord) CreatedAtUTC() time.Time {
 	return rr.createdAt
 }
 
-func (rr recordRecord) ModifiedBy() ledger.UserId {
-	if rr.modifiedBy.Valid {
-		return ledger.UserId(rr.modifiedBy.Int64)
+func (rr recordRecord) ModifiedBy() ledger.UpdatedBy {
+	if !rr.modifiedBy.Valid {
+		return ledger.UpdatedBy{}
 	}
-	return ledger.UserId(0)
+	var (
+		updatedBy ledger.UpdatedBy
+		err       error
+	)
+	if updatedBy, err = ledger.ParseUpdatedBy(rr.modifiedBy.String); err != nil {
+		log.Fatalf("Invalid modifiedBy persisted for record %d: %s", rr.id, rr.ModifiedBy())
+	}
+	return updatedBy
 }
 
 func (rr recordRecord) ModifiedAtUTC() time.Time {
@@ -161,11 +175,11 @@ func (d *DefaultRecordDao) SaveTx(accountId ledger.AccountId, r *ledger.Record, 
 			Int64: int64(r.BeneficiaryId()),
 			Valid: r.BeneficiaryId() != 0,
 		},
-		r.CreatedBy(),
+		r.CreatedBy().String(),
 		r.CreatedAtUTC(),
-		sql.NullInt64{
-			Int64: int64(r.ModifiedBy()),
-			Valid: r.ModifiedBy() != 0,
+		sql.NullString{
+			String: r.ModifiedBy().String(),
+			Valid:  r.ModifiedBy() != ledger.UpdatedBy{},
 		},
 		sql.NullTime{
 			Time:  r.ModifiedAtUTC(),

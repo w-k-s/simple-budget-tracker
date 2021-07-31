@@ -52,7 +52,7 @@ func (suite *AccountDaoTestSuite) Test_WHEN_NewAccountIdIsCalled_THEN_accountIdI
 
 func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedById() {
 	// GIVEN
-	anAccount, _ := ledger.NewAccount(ledger.AccountId(1), testUserId, "Current", "AED")
+	anAccount, _ := ledger.NewAccount(ledger.AccountId(1), "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
 	_ = suite.accountDao.Save(testUserId, &anAccount)
@@ -67,8 +67,8 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_TH
 
 func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedByUserId() {
 	// GIVEN
-	currentAccount, _ := ledger.NewAccount(1, testUserId, "Current", "AED")
-	lifeSavingsAccount, _ := ledger.NewAccount(2, testUserId, "Life Savings", "EUR")
+	currentAccount, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
+	lifeSavingsAccount, _ := ledger.NewAccount(2, "Life Savings", "EUR", ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
 	_ = suite.accountDao.Save(testUserId, &currentAccount)
@@ -105,8 +105,8 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccountId_WHEN_noAccountWithThatI
 
 func (suite *AccountDaoTestSuite) Test_Given_twoAccounts_WHEN_theAccountsHaveTheSameName_THEN_onlyOneAccountIsSaved() {
 	// GIVEN
-	account1, _ := ledger.NewAccount(1, testUserId, "Current", "AED")
-	account2, _ := ledger.NewAccount(2, testUserId, "Current", "AED")
+	account1, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
+	account2, _ := ledger.NewAccount(2, "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
 	err1 := suite.accountDao.Save(testUserId, &account1)

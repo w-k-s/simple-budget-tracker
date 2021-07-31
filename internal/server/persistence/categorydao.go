@@ -15,9 +15,9 @@ import (
 type categoryRecord struct {
 	id         ledger.CategoryId
 	name       string
-	createdBy  ledger.UserId
+	createdBy  string
 	createdAt  time.Time
-	modifiedBy sql.NullInt64
+	modifiedBy sql.NullString
 	modifiedAt sql.NullTime
 	version    ledger.Version
 }
@@ -30,19 +30,33 @@ func (cr categoryRecord) Name() string {
 	return cr.name
 }
 
-func (cr categoryRecord) CreatedBy() ledger.UserId {
-	return cr.createdBy
+func (cr categoryRecord) CreatedBy() ledger.UpdatedBy {
+	var (
+		updatedBy ledger.UpdatedBy
+		err       error
+	)
+	if updatedBy, err = ledger.ParseUpdatedBy(cr.createdBy); err != nil {
+		log.Fatalf("Invalid createdBy persisted for record %d: %s", cr.id, cr.createdBy)
+	}
+	return updatedBy
 }
 
 func (cr categoryRecord) CreatedAtUTC() time.Time {
 	return cr.createdAt
 }
 
-func (cr categoryRecord) ModifiedBy() ledger.UserId {
-	if cr.modifiedBy.Valid {
-		return ledger.UserId(cr.modifiedBy.Int64)
+func (cr categoryRecord) ModifiedBy() ledger.UpdatedBy {
+	if !cr.modifiedBy.Valid {
+		return ledger.UpdatedBy{}
 	}
-	return ledger.UserId(0)
+	var (
+		updatedBy ledger.UpdatedBy
+		err       error
+	)
+	if updatedBy, err = ledger.ParseUpdatedBy(cr.modifiedBy.String); err != nil {
+		log.Fatalf("Invalid modifiedBy persisted for record %d: %s", cr.id, cr.ModifiedBy())
+	}
+	return updatedBy
 }
 
 func (cr categoryRecord) ModifiedAtUTC() time.Time {
@@ -110,11 +124,11 @@ func (d *DefaultCategoryDao) SaveTx(userId ledger.UserId, c ledger.Categories, t
 			category.Id(),
 			category.Name(),
 			userId,
-			category.CreatedBy(),
+			category.CreatedBy().String(),
 			category.CreatedAtUTC(),
-			sql.NullInt64{
-				Int64: int64(category.ModifiedBy()),
-				Valid: category.ModifiedBy() != 0,
+			sql.NullString{
+				String: category.ModifiedBy().String(),
+				Valid:  category.ModifiedBy() != ledger.UpdatedBy{},
 			},
 			sql.NullTime{
 				Time:  category.ModifiedAtUTC(),

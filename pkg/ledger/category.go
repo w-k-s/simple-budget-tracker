@@ -13,7 +13,7 @@ import (
 type CategoryId uint64
 
 type Category struct {
-	AuditInfo
+	auditInfo
 	id   CategoryId
 	name string
 }
@@ -21,19 +21,19 @@ type Category struct {
 type CategoryRecord interface {
 	Id() CategoryId
 	Name() string
-	CreatedBy() UserId
+	CreatedBy() UpdatedBy
 	CreatedAtUTC() time.Time
-	ModifiedBy() UserId
+	ModifiedBy() UpdatedBy
 	ModifiedAtUTC() time.Time
 	Version() Version
 }
 
-func NewCategory(id CategoryId, userId UserId, name string) (Category, error) {
+func NewCategory(id CategoryId, name string, updatedBy UpdatedBy) (Category, error) {
 	var (
-		auditInfo AuditInfo
+		auditInfo auditInfo
 		err       error
 	)
-	if auditInfo, err = MakeAuditForCreation(userId); err != nil {
+	if auditInfo, err = makeAuditForCreation(updatedBy); err != nil {
 		return Category{}, err
 	}
 	return newCategory(id, name, auditInfo)
@@ -41,10 +41,10 @@ func NewCategory(id CategoryId, userId UserId, name string) (Category, error) {
 
 func NewCategoryFromRecord(cr CategoryRecord) (Category, error) {
 	var (
-		auditInfo AuditInfo
+		auditInfo auditInfo
 		err       error
 	)
-	if auditInfo, err = MakeAuditForModification(
+	if auditInfo, err = makeAuditForModification(
 		cr.CreatedBy(),
 		cr.CreatedAtUTC(),
 		cr.ModifiedBy(),
@@ -56,7 +56,7 @@ func NewCategoryFromRecord(cr CategoryRecord) (Category, error) {
 	return newCategory(cr.Id(), cr.Name(), auditInfo)
 }
 
-func newCategory(id CategoryId, name string, auditInfo AuditInfo) (Category, error) {
+func newCategory(id CategoryId, name string, auditInfo auditInfo) (Category, error) {
 	errors := validate.Validate(
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
 		&validators.StringLengthInRange{Name: "Name", Field: name, Min: 1, Max: 25, Message: "Name must be 1 and 25 characters long"},
@@ -68,7 +68,7 @@ func newCategory(id CategoryId, name string, auditInfo AuditInfo) (Category, err
 	}
 
 	return Category{
-		AuditInfo: auditInfo,
+		auditInfo: auditInfo,
 		id:        id,
 		name:      name,
 	}, nil

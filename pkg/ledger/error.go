@@ -32,6 +32,7 @@ const (
 	ErrAmountMismatchingCurrencies
 	ErrAmountTotalOfEmptySet
 	ErrAuditValidation
+	ErrAuditUpdatedByBadFormat
 	ErrRequestUnmarshallingFailed
 )
 
@@ -53,6 +54,7 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrAmountMismatchingCurrencies: "AMOUNT_MISMATCHING_CURRENCIES",
 	ErrAmountTotalOfEmptySet:       "AMOUNT_TOTAL_OF_EMPTY_SET",
 	ErrAuditValidation:             "AUDIT_VALIDATION_FAILED",
+	ErrAuditUpdatedByBadFormat:     "AUDIT_UPDATED_BY_BAD_FORMAT",
 	ErrRequestUnmarshallingFailed:  "REQUEST_UNMARSHALLING_FAILED",
 }
 
@@ -88,6 +90,8 @@ func (c ErrorCode) Status() int {
 	case ErrAmountMismatchingCurrencies:
 		fallthrough
 	case ErrAuditValidation:
+		fallthrough
+	case ErrAuditUpdatedByBadFormat:
 		fallthrough
 	case ErrRequestUnmarshallingFailed:
 		return http.StatusBadRequest

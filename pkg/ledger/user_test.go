@@ -54,6 +54,6 @@ func (suite *UserTestSuite) Test_GIVEN_validUserEmail_WHEN_userIsCreated_THEN_us
 	assert.Nil(suite.T(), err)
 	assert.Equal(suite.T(), userId, user.Id())
 	assert.Equal(suite.T(), "john@example.com", user.Email().Address)
-	assert.Equal(suite.T(), userId, user.CreatedBy())
+	assert.Equal(suite.T(), "UserId: 1", user.CreatedBy().String())
 	assert.True(suite.T(), time.Now().In(time.UTC).Sub(user.createdAtUTC) < time.Duration(1)*time.Second)
 }

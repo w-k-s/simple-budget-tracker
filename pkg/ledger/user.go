@@ -8,7 +8,7 @@ import (
 
 type UserId uint64
 type User struct {
-	AuditInfo
+	auditInfo
 	id    UserId
 	email *mail.Address
 }
@@ -16,19 +16,23 @@ type User struct {
 type UserRecord interface {
 	Id() UserId
 	Email() *mail.Address
-	CreatedBy() UserId
+	CreatedBy() UpdatedBy
 	CreatedAtUTC() time.Time
-	ModifiedBy() UserId
+	ModifiedBy() UpdatedBy
 	ModifiedAtUTC() time.Time
 	Version() Version
 }
 
 func NewUser(id UserId, email *mail.Address) (User, error) {
 	var (
-		audit AuditInfo
-		err   error
+		updatedBy UpdatedBy
+		audit     auditInfo
+		err       error
 	)
-	if audit, err = MakeAuditForCreation(id); err != nil {
+	if updatedBy, err = MakeUpdatedByUserId(id); err != nil {
+		return User{}, nil
+	}
+	if audit, err = makeAuditForCreation(updatedBy); err != nil {
 		return User{}, nil
 	}
 
@@ -45,11 +49,11 @@ func NewUserWithEmailString(id UserId, emailString string) (User, error) {
 
 func NewUserFromRecord(record UserRecord) (User, error) {
 	var (
-		auditInfo AuditInfo
+		auditInfo auditInfo
 		err       error
 	)
 
-	if auditInfo, err = MakeAuditForModification(
+	if auditInfo, err = makeAuditForModification(
 		record.CreatedBy(),
 		record.CreatedAtUTC(),
 		record.ModifiedBy(),
@@ -59,12 +63,12 @@ func NewUserFromRecord(record UserRecord) (User, error) {
 		return User{}, err
 	}
 
-	return newUser(record.CreatedBy(), record.Email(), auditInfo), nil
+	return newUser(record.Id(), record.Email(), auditInfo), nil
 }
 
-func newUser(id UserId, email *mail.Address, auditInfo AuditInfo) User {
+func newUser(id UserId, email *mail.Address, auditInfo auditInfo) User {
 	return User{
-		AuditInfo: auditInfo,
+		auditInfo: auditInfo,
 		id:        id,
 		email:     email,
 	}

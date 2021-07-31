@@ -14,9 +14,9 @@ import (
 type userRecord struct {
 	id         ledger.UserId
 	email      string
-	createdBy  ledger.UserId
+	createdBy  string
 	createdAt  time.Time
-	modifiedBy sql.NullInt64
+	modifiedBy sql.NullString
 	modifiedAt sql.NullTime
 	version    ledger.Version
 }
@@ -36,19 +36,33 @@ func (ur userRecord) Email() *mail.Address {
 	return email
 }
 
-func (ur userRecord) CreatedBy() ledger.UserId {
-	return ur.createdBy
+func (ur userRecord) CreatedBy() ledger.UpdatedBy {
+	var (
+		updatedBy ledger.UpdatedBy
+		err       error
+	)
+	if updatedBy, err = ledger.ParseUpdatedBy(ur.createdBy); err != nil {
+		log.Fatalf("Invalid createdBy persisted for record %d: %s", ur.id, ur.createdBy)
+	}
+	return updatedBy
 }
 
 func (ur userRecord) CreatedAtUTC() time.Time {
 	return ur.createdAt
 }
 
-func (ur userRecord) ModifiedBy() ledger.UserId {
-	if ur.modifiedBy.Valid {
-		return ledger.UserId(ur.modifiedBy.Int64)
+func (ur userRecord) ModifiedBy() ledger.UpdatedBy {
+	if !ur.modifiedBy.Valid {
+		return ledger.UpdatedBy{}
 	}
-	return ledger.UserId(0)
+	var (
+		updatedBy ledger.UpdatedBy
+		err       error
+	)
+	if updatedBy, err = ledger.ParseUpdatedBy(ur.modifiedBy.String); err != nil {
+		log.Fatalf("Invalid modifiedBy persisted for record %d: %s", ur.id, ur.ModifiedBy())
+	}
+	return updatedBy
 }
 
 func (ur userRecord) ModifiedAtUTC() time.Time {
@@ -97,11 +111,11 @@ func (d *DefaultUserDao) SaveTx(u ledger.User, tx *sql.Tx) error {
 		"INSERT INTO budget.user (id, email, created_by, created_at, last_modified_by, last_modified_at, version) VALUES ($1, $2, $3, $4, $5, $6, $7)",
 		u.Id(),
 		u.Email().Address,
-		u.CreatedBy(),
+		u.CreatedBy().String(),
 		u.CreatedAtUTC(),
-		sql.NullInt64{
-			Int64: int64(u.ModifiedBy()),
-			Valid: u.ModifiedBy() != 0,
+		sql.NullString{
+			String: u.ModifiedBy().String(),
+			Valid:  u.ModifiedBy() != ledger.UpdatedBy{},
 		},
 		sql.NullTime{
 			Time:  u.ModifiedAtUTC(),

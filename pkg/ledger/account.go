@@ -10,7 +10,7 @@ import (
 
 type AccountId uint64
 type Account struct {
-	AuditInfo
+	auditInfo
 	id       AccountId
 	name     string
 	currency string
@@ -20,33 +20,33 @@ type AccountRecord interface {
 	Id() AccountId
 	Name() string
 	Currency() string
-	CreatedBy() UserId
+	CreatedBy() UpdatedBy
 	CreatedAtUTC() time.Time
-	ModifiedBy() UserId
+	ModifiedBy() UpdatedBy
 	ModifiedAtUTC() time.Time
 	Version() Version
 }
 
-func NewAccount(id AccountId, userId UserId, name string, currency string) (Account, error) {
+func NewAccount(id AccountId, name string, currency string, createdBy UpdatedBy) (Account, error) {
 	var (
-		auditInfo AuditInfo
+		auditInfo auditInfo
 		err       error
 	)
 
-	if auditInfo, err = MakeAuditForCreation(userId); err != nil {
+	if auditInfo, err = makeAuditForCreation(createdBy); err != nil {
 		return Account{}, err
 	}
 
-	return newAccount(id, userId, name, currency, auditInfo)
+	return newAccount(id, name, currency, auditInfo)
 }
 
 func NewAccountFromRecord(record AccountRecord) (Account, error) {
 	var (
-		auditInfo AuditInfo
+		auditInfo auditInfo
 		err       error
 	)
 
-	if auditInfo, err = MakeAuditForModification(
+	if auditInfo, err = makeAuditForModification(
 		record.CreatedBy(),
 		record.CreatedAtUTC(),
 		record.ModifiedBy(),
@@ -56,10 +56,10 @@ func NewAccountFromRecord(record AccountRecord) (Account, error) {
 		return Account{}, err
 	}
 
-	return newAccount(record.Id(), record.CreatedBy(), record.Name(), record.Currency(), auditInfo)
+	return newAccount(record.Id(), record.Name(), record.Currency(), auditInfo)
 }
 
-func newAccount(id AccountId, userId UserId, name string, currency string, auditInfo AuditInfo) (Account, error) {
+func newAccount(id AccountId, name string, currency string, auditInfo auditInfo) (Account, error) {
 
 	errors := validate.Validate(
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
@@ -73,7 +73,7 @@ func newAccount(id AccountId, userId UserId, name string, currency string, audit
 	}
 
 	return Account{
-		AuditInfo: auditInfo,
+		auditInfo: auditInfo,
 		id:        id,
 		name:      name,
 		currency:  currency,

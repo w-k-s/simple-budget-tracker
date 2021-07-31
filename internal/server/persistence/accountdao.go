@@ -15,9 +15,9 @@ type accountRecord struct {
 	id         ledger.AccountId
 	name       string
 	currency   string
-	createdBy  ledger.UserId
+	createdBy  string
 	createdAt  time.Time
-	modifiedBy sql.NullInt64
+	modifiedBy sql.NullString
 	modifiedAt sql.NullTime
 	version    ledger.Version
 }
@@ -34,19 +34,33 @@ func (ar accountRecord) Currency() string {
 	return ar.currency
 }
 
-func (ar accountRecord) CreatedBy() ledger.UserId {
-	return ar.createdBy
+func (ar accountRecord) CreatedBy() ledger.UpdatedBy {
+	var (
+		updatedBy ledger.UpdatedBy
+		err       error
+	)
+	if updatedBy, err = ledger.ParseUpdatedBy(ar.createdBy); err != nil {
+		log.Fatalf("Invalid createdBy persisted for record %d: %s", ar.id, ar.createdBy)
+	}
+	return updatedBy
 }
 
 func (ar accountRecord) CreatedAtUTC() time.Time {
 	return ar.createdAt
 }
 
-func (ar accountRecord) ModifiedBy() ledger.UserId {
-	if ar.modifiedBy.Valid {
-		return ledger.UserId(ar.modifiedBy.Int64)
+func (ar accountRecord) ModifiedBy() ledger.UpdatedBy {
+	if !ar.modifiedBy.Valid {
+		return ledger.UpdatedBy{}
 	}
-	return ledger.UserId(0)
+	var (
+		updatedBy ledger.UpdatedBy
+		err       error
+	)
+	if updatedBy, err = ledger.ParseUpdatedBy(ar.modifiedBy.String); err != nil {
+		log.Fatalf("Invalid modifiedBy persisted for record %d: %s", ar.id, ar.ModifiedBy())
+	}
+	return updatedBy
 }
 
 func (ar accountRecord) ModifiedAtUTC() time.Time {
@@ -98,11 +112,11 @@ func (d *DefaultAccountDao) SaveTx(userId ledger.UserId, a *ledger.Account, tx *
 		userId,
 		a.Name(),
 		a.Currency(),
-		a.CreatedBy(),
+		a.CreatedBy().String(),
 		a.CreatedAtUTC(),
-		sql.NullInt64{
-			Int64: int64(a.ModifiedBy()),
-			Valid: a.ModifiedBy() != 0,
+		sql.NullString{
+			String: a.ModifiedBy().String(),
+			Valid:  a.ModifiedBy() != ledger.UpdatedBy{},
 		},
 		sql.NullTime{
 			Time:  a.ModifiedAtUTC(),

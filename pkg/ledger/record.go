@@ -21,7 +21,7 @@ const (
 
 type RecordId uint64
 type Record struct {
-	AuditInfo
+	auditInfo
 	id            RecordId
 	note          string
 	category      Category
@@ -40,33 +40,33 @@ type RecordRecord interface {
 	DateUTC() time.Time
 	RecordType() RecordType
 	BeneficiaryId() AccountId
-	CreatedBy() UserId
+	CreatedBy() UpdatedBy
 	CreatedAtUTC() time.Time
-	ModifiedBy() UserId
+	ModifiedBy() UpdatedBy
 	ModifiedAtUTC() time.Time
 	Version() Version
 }
 
-func NewRecord(id RecordId, userId UserId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, beneficiaryId AccountId) (Record, error) {
+func NewRecord(id RecordId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, beneficiaryId AccountId, updatedBy UpdatedBy) (Record, error) {
 	var (
-		auditInfo AuditInfo
+		auditInfo auditInfo
 		err       error
 	)
 
-	if auditInfo, err = MakeAuditForCreation(userId); err != nil {
+	if auditInfo, err = makeAuditForCreation(updatedBy); err != nil {
 		return Record{}, err
 	}
 
-	return newRecord(id, userId, note, category, amount, dateUTC, recordType, beneficiaryId, auditInfo)
+	return newRecord(id, note, category, amount, dateUTC, recordType, beneficiaryId, auditInfo)
 }
 
 func NewRecordFromRecord(rr RecordRecord) (Record, error) {
 	var (
-		auditInfo AuditInfo
+		auditInfo auditInfo
 		err       error
 	)
 
-	if auditInfo, err = MakeAuditForModification(
+	if auditInfo, err = makeAuditForModification(
 		rr.CreatedBy(),
 		rr.CreatedAtUTC(),
 		rr.ModifiedBy(),
@@ -76,10 +76,10 @@ func NewRecordFromRecord(rr RecordRecord) (Record, error) {
 		return Record{}, err
 	}
 
-	return newRecord(rr.Id(), rr.CreatedBy(), rr.Note(), rr.Category(), rr.Amount(), rr.DateUTC(), rr.RecordType(), rr.BeneficiaryId(), auditInfo)
+	return newRecord(rr.Id(), rr.Note(), rr.Category(), rr.Amount(), rr.DateUTC(), rr.RecordType(), rr.BeneficiaryId(), auditInfo)
 }
 
-func newRecord(id RecordId, userId UserId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, beneficiaryId AccountId, auditInfo AuditInfo) (Record, error) {
+func newRecord(id RecordId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, beneficiaryId AccountId, auditInfo auditInfo) (Record, error) {
 	errors := validate.Validate(
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
 		&validators.StringLengthInRange{Name: "Note", Field: note, Min: 0, Max: 50, Message: "Note can not be longer than 50 characters"},
@@ -115,7 +115,7 @@ func newRecord(id RecordId, userId UserId, note string, category Category, amoun
 	}
 
 	record := Record{
-		AuditInfo:     auditInfo,
+		auditInfo:     auditInfo,
 		id:            id,
 		note:          note,
 		category:      category,

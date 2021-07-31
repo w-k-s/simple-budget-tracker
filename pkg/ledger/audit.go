@@ -1,77 +1,132 @@
 package ledger
 
 import (
+	"fmt"
+	"log"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
 )
 
+type UpdatedBy struct {
+	value string
+}
+
+func ParseUpdatedBy(updatedBy string) (UpdatedBy, error) {
+	parts := strings.Split(updatedBy, ";")
+	for _, pairs := range parts {
+		pair := strings.Split(pairs, ":")
+		if len(pair) != 2 {
+			return UpdatedBy{}, NewError(ErrAuditUpdatedByBadFormat, fmt.Sprintf("Invalid createdBy/modifiedBy provided: %q", updatedBy), nil)
+		}
+		key := strings.TrimSpace(pair[0])
+		value := strings.TrimSpace(pair[1])
+		if key == "UserId" {
+			var (
+				userId int
+				err    error
+			)
+			if userId, err = strconv.Atoi(value); err != nil {
+				return UpdatedBy{}, NewError(ErrAuditUpdatedByBadFormat, fmt.Sprintf("Invalid createdBy/modifiedBy provided: %q", updatedBy), err)
+			}
+			return MakeUpdatedByUserId(UserId(userId))
+		}
+	}
+	return UpdatedBy{}, NewError(ErrAuditUpdatedByBadFormat, fmt.Sprintf("Unknown createdBy/modifiedBy provided: %q", updatedBy), nil)
+}
+
+func (u UpdatedBy) String() string {
+	return u.value
+}
+
+func MakeUpdatedByUserId(userId UserId) (UpdatedBy, error) {
+	if userId <= 0 {
+		return UpdatedBy{}, NewError(ErrAuditValidation, "userId must be greater than 0", nil)
+	}
+	return UpdatedBy{fmt.Sprintf("UserId: %d", userId)}, nil
+}
+
+func MustMakeUpdatedByUserId(userId UserId) UpdatedBy {
+	var (
+		updatedBy UpdatedBy
+		err       error
+	)
+	if updatedBy, err = MakeUpdatedByUserId(userId); err != nil {
+		log.Fatalf("Invalid userId provided for createdBy/modifiedBy. Reason: %s", err)
+	}
+	return updatedBy
+}
+
+// TODO: MakeEditedByTask -> "CronTask: taskName"
+// TODO: MakeEditedByImport -> "Import: fileName"
+
 type Version uint64
 
 type Auditable interface {
-	CreatedBy() UserId
+	CreatedBy() UpdatedBy
 	CreatedAtUTC() time.Time
-	ModifiedBy() UserId
+	ModifiedBy() UpdatedBy
 	ModifiedAtUTC() time.Time
 	Version() Version
 }
 
-type AuditInfo struct {
-	createdBy     UserId
+type auditInfo struct {
+	createdBy     UpdatedBy
 	createdAtUTC  time.Time
-	modifiedBy    UserId
+	modifiedBy    UpdatedBy
 	modifiedAtUTC time.Time
 	version       Version
 }
 
-func (ai AuditInfo) CreatedBy() UserId {
+func (ai auditInfo) CreatedBy() UpdatedBy {
 	return ai.createdBy
 }
 
-func (ai AuditInfo) CreatedAtUTC() time.Time {
+func (ai auditInfo) CreatedAtUTC() time.Time {
 	return ai.createdAtUTC
 }
 
-func (ai AuditInfo) ModifiedBy() UserId {
+func (ai auditInfo) ModifiedBy() UpdatedBy {
 	return ai.modifiedBy
 }
 
-func (ai AuditInfo) ModifiedAtUTC() time.Time {
+func (ai auditInfo) ModifiedAtUTC() time.Time {
 	return ai.modifiedAtUTC
 }
 
-func (ai AuditInfo) Version() Version {
+func (ai auditInfo) Version() Version {
 	return ai.version
 }
 
-func MakeAuditForCreation(userId UserId) (AuditInfo, error) {
-	return MakeAuditForModification(
-		userId,
+func makeAuditForCreation(updatedBy UpdatedBy) (auditInfo, error) {
+	return makeAuditForModification(
+		updatedBy,
 		time.Now().UTC(),
-		0,
+		UpdatedBy{},
 		time.Time{},
 		1,
 	)
 }
 
-func MakeAuditForModification(
-	createdBy UserId,
+func makeAuditForModification(
+	createdBy UpdatedBy,
 	createdAt time.Time,
-	modifiedBy UserId,
+	modifiedBy UpdatedBy,
 	modifiedAt time.Time,
 	version Version,
-) (AuditInfo, error) {
+) (auditInfo, error) {
 
 	errors := validate.Validate(
-		&validators.IntIsGreaterThan{Name: "CreatedBy", Field: int(createdBy), Compared: 0, Message: "CreatedBy must be greater than 0"},
 		&validators.IntIsGreaterThan{Name: "Version", Field: int(version), Compared: 0, Message: "Version must be greater than 0"},
 		&validators.TimeIsPresent{Name: "CreatedAt", Field: createdAt, Message: "CreatedAt is required"},
 	)
 
 	var err error
 	if err = makeCoreValidationError(ErrAuditValidation, errors); err != nil {
-		return AuditInfo{}, err
+		return auditInfo{}, err
 	}
 
 	var modifiedAtUTC time.Time
@@ -81,7 +136,7 @@ func MakeAuditForModification(
 		modifiedAtUTC = modifiedAt.In(time.UTC)
 	}
 
-	return AuditInfo{
+	return auditInfo{
 		createdBy:     createdBy,
 		createdAtUTC:  createdAt.In(time.UTC),
 		modifiedBy:    modifiedBy,
