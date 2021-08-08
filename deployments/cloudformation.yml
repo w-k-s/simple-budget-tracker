@@ -29,347 +29,13 @@ Parameters:
     Description: The health check path starting with / e.g. /health
   HostedZoneName:
     Type: String
-    Description: Domain name for your website (example.com)
+    Description: Domain name for your website (example.com.). Note it must end in a .
   HostedZoneID:
-    Type: AWS::Route53::HostedZone::Id
-    Description: Hosted zone id
-  KeyName:
-    Type: AWS::EC2::KeyPair::KeyName
-    Description: The EC2 Key Pair to allow SSH access to the instances
-  InstanceType:
-    Description: WebServer EC2 instance type
     Type: String
-    Default: t2.micro
-    AllowedValues:
-    - t1.micro
-    - t2.nano
-    - t2.micro
-    - t2.small
-    - t2.medium
-    - t2.large
-    - m1.small
-    - m1.medium
-    - m1.large
-    - m1.xlarge
-    - m2.xlarge
-    - m2.2xlarge
-    - m2.4xlarge
-    - m3.medium
-    - m3.large
-    - m3.xlarge
-    - m3.2xlarge
-    - m4.large
-    - m4.xlarge
-    - m4.2xlarge
-    - m4.4xlarge
-    - m4.10xlarge
-    - c1.medium
-    - c1.xlarge
-    - c3.large
-    - c3.xlarge
-    - c3.2xlarge
-    - c3.4xlarge
-    - c3.8xlarge
-    - c4.large
-    - c4.xlarge
-    - c4.2xlarge
-    - c4.4xlarge
-    - c4.8xlarge
-    - g2.2xlarge
-    - g2.8xlarge
-    - r3.large
-    - r3.xlarge
-    - r3.2xlarge
-    - r3.4xlarge
-    - r3.8xlarge
-    - i2.xlarge
-    - i2.2xlarge
-    - i2.4xlarge
-    - i2.8xlarge
-    - d2.xlarge
-    - d2.2xlarge
-    - d2.4xlarge
-    - d2.8xlarge
-    - hi1.4xlarge
-    - hs1.8xlarge
-    - cr1.8xlarge
-    - cc2.8xlarge
-    - cg1.4xlarge
-
-Mappings:
-  AWSInstanceType2Arch:
-    t1.micro:
-      Arch: HVM64
-    t2.nano:
-      Arch: HVM64
-    t2.micro:
-      Arch: HVM64
-    t2.small:
-      Arch: HVM64
-    t2.medium:
-      Arch: HVM64
-    t2.large:
-      Arch: HVM64
-    m1.small:
-      Arch: HVM64
-    m1.medium:
-      Arch: HVM64
-    m1.large:
-      Arch: HVM64
-    m1.xlarge:
-      Arch: HVM64
-    m2.xlarge:
-      Arch: HVM64
-    m2.2xlarge:
-      Arch: HVM64
-    m2.4xlarge:
-      Arch: HVM64
-    m3.medium:
-      Arch: HVM64
-    m3.large:
-      Arch: HVM64
-    m3.xlarge:
-      Arch: HVM64
-    m3.2xlarge:
-      Arch: HVM64
-    m4.large:
-      Arch: HVM64
-    m4.xlarge:
-      Arch: HVM64
-    m4.2xlarge:
-      Arch: HVM64
-    m4.4xlarge:
-      Arch: HVM64
-    m4.10xlarge:
-      Arch: HVM64
-    c1.medium:
-      Arch: HVM64
-    c1.xlarge:
-      Arch: HVM64
-    c3.large:
-      Arch: HVM64
-    c3.xlarge:
-      Arch: HVM64
-    c3.2xlarge:
-      Arch: HVM64
-    c3.4xlarge:
-      Arch: HVM64
-    c3.8xlarge:
-      Arch: HVM64
-    c4.large:
-      Arch: HVM64
-    c4.xlarge:
-      Arch: HVM64
-    c4.2xlarge:
-      Arch: HVM64
-    c4.4xlarge:
-      Arch: HVM64
-    c4.8xlarge:
-      Arch: HVM64
-    g2.2xlarge:
-      Arch: HVMG2
-    g2.8xlarge:
-      Arch: HVMG2
-    r3.large:
-      Arch: HVM64
-    r3.xlarge:
-      Arch: HVM64
-    r3.2xlarge:
-      Arch: HVM64
-    r3.4xlarge:
-      Arch: HVM64
-    r3.8xlarge:
-      Arch: HVM64
-    i2.xlarge:
-      Arch: HVM64
-    i2.2xlarge:
-      Arch: HVM64
-    i2.4xlarge:
-      Arch: HVM64
-    i2.8xlarge:
-      Arch: HVM64
-    d2.xlarge:
-      Arch: HVM64
-    d2.2xlarge:
-      Arch: HVM64
-    d2.4xlarge:
-      Arch: HVM64
-    d2.8xlarge:
-      Arch: HVM64
-    hi1.4xlarge:
-      Arch: HVM64
-    hs1.8xlarge:
-      Arch: HVM64
-    cr1.8xlarge:
-      Arch: HVM64
-    cc2.8xlarge:
-      Arch: HVM64
-  AWSInstanceType2NATArch:
-    t1.micro:
-      Arch: NATHVM64
-    t2.nano:
-      Arch: NATHVM64
-    t2.micro:
-      Arch: NATHVM64
-    t2.small:
-      Arch: NATHVM64
-    t2.medium:
-      Arch: NATHVM64
-    t2.large:
-      Arch: NATHVM64
-    m1.small:
-      Arch: NATHVM64
-    m1.medium:
-      Arch: NATHVM64
-    m1.large:
-      Arch: NATHVM64
-    m1.xlarge:
-      Arch: NATHVM64
-    m2.xlarge:
-      Arch: NATHVM64
-    m2.2xlarge:
-      Arch: NATHVM64
-    m2.4xlarge:
-      Arch: NATHVM64
-    m3.medium:
-      Arch: NATHVM64
-    m3.large:
-      Arch: NATHVM64
-    m3.xlarge:
-      Arch: NATHVM64
-    m3.2xlarge:
-      Arch: NATHVM64
-    m4.large:
-      Arch: NATHVM64
-    m4.xlarge:
-      Arch: NATHVM64
-    m4.2xlarge:
-      Arch: NATHVM64
-    m4.4xlarge:
-      Arch: NATHVM64
-    m4.10xlarge:
-      Arch: NATHVM64
-    c1.medium:
-      Arch: NATHVM64
-    c1.xlarge:
-      Arch: NATHVM64
-    c3.large:
-      Arch: NATHVM64
-    c3.xlarge:
-      Arch: NATHVM64
-    c3.2xlarge:
-      Arch: NATHVM64
-    c3.4xlarge:
-      Arch: NATHVM64
-    c3.8xlarge:
-      Arch: NATHVM64
-    c4.large:
-      Arch: NATHVM64
-    c4.xlarge:
-      Arch: NATHVM64
-    c4.2xlarge:
-      Arch: NATHVM64
-    c4.4xlarge:
-      Arch: NATHVM64
-    c4.8xlarge:
-      Arch: NATHVM64
-    g2.2xlarge:
-      Arch: NATHVMG2
-    g2.8xlarge:
-      Arch: NATHVMG2
-    r3.large:
-      Arch: NATHVM64
-    r3.xlarge:
-      Arch: NATHVM64
-    r3.2xlarge:
-      Arch: NATHVM64
-    r3.4xlarge:
-      Arch: NATHVM64
-    r3.8xlarge:
-      Arch: NATHVM64
-    i2.xlarge:
-      Arch: NATHVM64
-    i2.2xlarge:
-      Arch: NATHVM64
-    i2.4xlarge:
-      Arch: NATHVM64
-    i2.8xlarge:
-      Arch: NATHVM64
-    d2.xlarge:
-      Arch: NATHVM64
-    d2.2xlarge:
-      Arch: NATHVM64
-    d2.4xlarge:
-      Arch: NATHVM64
-    d2.8xlarge:
-      Arch: NATHVM64
-    hi1.4xlarge:
-      Arch: NATHVM64
-    hs1.8xlarge:
-      Arch: NATHVM64
-    cr1.8xlarge:
-      Arch: NATHVM64
-    cc2.8xlarge:
-      Arch: NATHVM64
-  AWSRegionArch2AMI:
-    us-east-1:
-      HVM64: ami-0ff8a91507f77f867
-      HVMG2: ami-0a584ac55a7631c0c
-    us-west-2:
-      HVM64: ami-a0cfeed8
-      HVMG2: ami-0e09505bc235aa82d
-    us-west-1:
-      HVM64: ami-0bdb828fd58c52235
-      HVMG2: ami-066ee5fd4a9ef77f1
-    eu-west-1:
-      HVM64: ami-047bb4163c506cd98
-      HVMG2: ami-0a7c483d527806435
-    eu-west-2:
-      HVM64: ami-f976839e
-      HVMG2: NOT_SUPPORTED
-    eu-west-3:
-      HVM64: ami-0ebc281c20e89ba4b
-      HVMG2: NOT_SUPPORTED
-    eu-central-1:
-      HVM64: ami-0233214e13e500f77
-      HVMG2: ami-06223d46a6d0661c7
-    ap-northeast-1:
-      HVM64: ami-06cd52961ce9f0d85
-      HVMG2: ami-053cdd503598e4a9d
-    ap-northeast-2:
-      HVM64: ami-0a10b2721688ce9d2
-      HVMG2: NOT_SUPPORTED
-    ap-northeast-3:
-      HVM64: ami-0d98120a9fb693f07
-      HVMG2: NOT_SUPPORTED
-    ap-southeast-1:
-      HVM64: ami-08569b978cc4dfa10
-      HVMG2: ami-0be9df32ae9f92309
-    ap-southeast-2:
-      HVM64: ami-09b42976632b27e9b
-      HVMG2: ami-0a9ce9fecc3d1daf8
-    ap-south-1:
-      HVM64: ami-0912f71e06545ad88
-      HVMG2: ami-097b15e89dbdcfcf4
-    us-east-2:
-      HVM64: ami-0b59bfac6be064b78
-      HVMG2: NOT_SUPPORTED
-    ca-central-1:
-      HVM64: ami-0b18956f
-      HVMG2: NOT_SUPPORTED
-    sa-east-1:
-      HVM64: ami-07b14488da8ea02a0
-      HVMG2: NOT_SUPPORTED
-    cn-north-1:
-      HVM64: ami-0a4eaf6c4454eda75
-      HVMG2: NOT_SUPPORTED
-    cn-northwest-1:
-      HVM64: ami-6b6a7d09
-      HVMG2: NOT_SUPPORTED
+    Description: Hosted Zone Id
 
 Resources:
   # Workloads
-
   # Similar to a pod template in kubernetes
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -377,13 +43,13 @@ Resources:
     DependsOn: [LogGroup]
     Properties:
       # Name of the task definition. Subsequent versions of the task definition are grouped together under this name.
-      Family: !Join ["", [!Ref "AWS::StackName", -ecs-app]]
+      Family: !Join ["", [!Ref "AWS::StackName", TaskDefinition]]
       # awsvpc is required for Fargate
       NetworkMode: awsvpc
       RequiresCompatibilities:
-        - EC2
+        - FARGATE
       Cpu: 512
-      Memory: 300
+      Memory: 1GB
       # A role needed by ECS e.g. to pull images, sends logs to cloudwatch e.t.c
       # "The ARN of the task execution role that containers in this task can assume. All containers in this task are granted the permissions that are specified in this role."
       # "There is an optional task execution IAM role that you can specify with Fargate to allow your Fargate tasks to make API calls to Amazon ECR."
@@ -432,86 +98,88 @@ Resources:
       DesiredCount: 1
       # Grace period to wait before trying to poll health check url
       HealthCheckGracePeriodSeconds: 30
-      LaunchType: EC2
+      LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
           # change to DISABLED if you're using private subnets that have access to a NAT gateway
           AssignPublicIp: ENABLED
-          # Should be private but I'd need to setup a NAT gateway to downloa the image.
-          # Setting up a NAT gateway would be too expensive.
           Subnets: !Ref PublicSubnets
           SecurityGroups:
             - !Ref ContainerSecurityGroup
       LoadBalancers:
         - ContainerName: !Ref AWS::StackName
           ContainerPort: !Ref ContainerPort
-          LoadBalancerName: !GetAtt LoadBalancer.LoadBalancerName
+          TargetGroupArn: !Ref TargetGroup
 
   # API Load Balancer
 
-  LoadBalancer:
-    Type: AWS::ElasticLoadBalancing::LoadBalancer
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      ConnectionDrainingPolicy:
-        Enabled: true
-        Timeout: 60
-      ConnectionSettings:
-        IdleTimeout: 60
-      HealthCheck:
-        HealthyThreshold: 2
-        Interval: 10
-        Target: !Join ["HTTP:", [!Ref "ContainerPort", !Ref "HealthCheckPath"]]
-        Timeout: 2
-        UnhealthyThreshold: 2
-      LoadBalancerName: !Join ["", [!Ref "AWS::StackName", "-", "LoadBalancer"]]
+      HealthCheckIntervalSeconds: 30
+      # will look for a 200 status code by default unless specified otherwise
+      HealthCheckPath: !Ref HealthCheckPath
+      HealthCheckTimeoutSeconds: 10
+      UnhealthyThresholdCount: 2
+      HealthyThresholdCount: 2
+      Name: !Join ["", [!Ref AWS::StackName, "-", "TrgtGrp"]]
+      Port: !Ref ContainerPort
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 60 # default is 300
+      TargetType: ip
+      VpcId: !Ref VPC
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      LoadBalancerAttributes:
+        # this is the default, but is specified here in case it needs to be changed
+        - Key: idle_timeout.timeout_seconds
+          Value: 60
+      Name: !Join ["", [!Ref AWS::StackName, "-", "ELB"]]
+      # "internal" is also an option
       Scheme: internet-facing
-      SecurityGroups:
+      SecurityGroups: 
         - !Ref LoadBalancerSecurityGroup
       Subnets: !Ref PublicSubnets
-      Listeners:
-        - !Ref ListenerHTTPS
 
   ListenerHTTPS:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
-      InstancePort: 80
-      InstanceProtocol: HTTPS
-      LoadBalancerPort: !Ref "LoadBalancerPort"
-      ProtocoL: HTTPS
-      SSLCertificateId: !Ref IamCertificateArn
-
-  WebServerGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    Properties:
-      AvailabilityZones: !GetAZs !Ref "AWS::Region"
-      MinSize: 1
-      MaxSize: 1
-      LoadBalancerNames:
-        - !Ref LoadBalancer
-      LaunchConfigurationName: !Ref LaunchConfiguration
-
-  LaunchConfiguration:
-    Type: AWS::AutoScaling::LaunchConfiguration
-    Properties:
-      KeyName: !Ref KeyName
-      ImageId: !FindInMap [ "AWSRegionArch2AMI", !Ref "AWS::Region", !FindInMap [ "AWSInstanceType2Arch", !Ref "InstanceType", "Arch" ] ]
-      InstanceType: !Ref "InstanceType"
-      SecurityGroup: 
-        # Is this required? Can I remove this in favour of the configuration provided in AwsVpcConfiguration?
-        - !Ref ContainerSecurityGroup
+      DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      # The Amazon Resource Name (ARN) of the load balancer
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: !Ref LoadBalancerPort
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref IamCertificateArn
 
   # DNS
   # Hosted zone needs to exist before hand
+  # TODO only create a record set: https://stackoverflow.com/a/41289915/821110
   RecordSetGroup:
     Type: AWS::Route53::RecordSetGroup
     Properties:
-      HostedZoneName: !Join ["", [!Ref HostedZoneName, .]]
+      HostedZoneName: !Ref HostedZoneName
       RecordSets:
-        - Name: !Join ["budget", [!Ref HostedZoneName, .]]
+        - Name: !Join ["budget", [!Ref HostedZoneName]]
           Type: A
           AliasTarget:
-            HostedZoneId: !Ref HostedZoneID
+            HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
             DNSName: !GetAtt LoadBalancer.DNSName
+
+  # RecordSet:
+  #   Type: "AWS::Route53::RecordSet"
+  #   Properties:
+  #     Name: !Join [".", ["budget", !Ref HostedZoneName]]
+  #     HostedZoneId: !Ref HostedZoneID
+  #     TTL: 30
+  #     Type: A
+  #     ResourceRecords: [!GetAtt LoadBalancer.DNSName]
 
   # IAM Roles
 
@@ -526,6 +194,27 @@ Resources:
             Principal:
               Service: ecs-tasks.amazonaws.com
             Action: "sts:AssumeRole"  
+      Policies:
+        # https://stackoverflow.com/a/66802973/821110 
+        # Fargate 1.4.0 now require permission to ssm, kms to authenticate before
+      - PolicyDocument: {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "kms:Decrypt",
+                "secretsmanager:GetSecretValue"
+              ],
+              # Can this be replaced with the example shown here: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html#task-execution-private-auth
+              "Resource": [
+                {"Fn::Join": [":",["arn:aws:secretsmanager",{"Ref": "AWS::Region"},{"Ref": "AWS::AccountId"},"secret:secret_name"]]},
+                {"Fn::Join": [":",["arn:aws:kms",{"Ref": "AWS::Region"},{"Ref": "AWS::AccountId"},"key/key_id"]]}
+              ]
+            }
+          ]
+        }
+        PolicyName: !Join ["", [!Ref "AWS::StackName", "-", "AuthenticationToAccessECR"]]
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 
@@ -541,9 +230,9 @@ Resources:
               Service: ecs-tasks.amazonaws.com
             Action: "sts:AssumeRole"
       Policies:
-        PolicyDocument: {
-          "Version": "2012-10-17",
-          "Statement": [
+        - PolicyDocument: {
+            "Version": "2012-10-17",
+            "Statement": [
             {
               "Effect": "Allow",
               "Action": [
@@ -553,9 +242,30 @@ Resources:
                 "arn:aws:s3:::com.wks.budget/config.toml"
               ]
             }
-          ]
-        }
-        PolicyName: !Join ["", [!Ref "AWS::StackName", "-", "DownloadConfigFromS3Policy"]]
+            ]
+          }
+          PolicyName: !Join ["", [!Ref "AWS::StackName", "-", "DownloadConfigFromS3Policy"]]
+        - PolicyDocument: {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "kms:Decrypt",
+                  "secretsmanager:GetSecretValue"
+                ],
+                "Resource": [
+                  {"Fn::Join": [":",["arn:aws:secretsmanager",{"Ref": "AWS::Region"},{"Ref": "AWS::AccountId"},"secret:secret_name"]]},
+                  {"Fn::Join": [":",["arn:aws:kms",{"Ref": "AWS::Region"},{"Ref": "AWS::AccountId"},"key/key_id"]]}
+                ]
+              }
+            ]
+          }
+          # https://stackoverflow.com/a/66802973/821110 
+          # Fargate 1.4.0 now require permission to ssm, kms to authenticate before
+          PolicyName: !Join ["", [!Ref "AWS::StackName", "-", "AuthenticationToAccessECR"]]
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 
   # Logging
 
@@ -574,10 +284,19 @@ Resources:
       Tags:
         - Key: ProjectName
           Value: !Ref "AWS::StackName"
-      VpcId: !Ref Vpc
+      VpcId: !Ref VPC
 
   LoadBalancerInboundRuleHTTP:
     Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref LoadBalancerSecurityGroup
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 0.0.0.0/0
+  
+  LoadBalancerOutboundRuleHTTP:
+    Type: AWS::EC2::SecurityGroupEgress
     Properties:
       GroupId: !Ref LoadBalancerSecurityGroup
       IpProtocol: tcp
@@ -602,24 +321,6 @@ Resources:
       FromPort: 443
       ToPort: 443
       CidrIp: 0.0.0.0/0
-  
-  LoadBalancerInboundRuleHTTP:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      GroupId: !Ref LoadBalancerSecurityGroup
-      IpProtocol: tcp
-      FromPort: 80
-      ToPort: 80
-      SourceSecurityGroupId: 0.0.0.0/0
-  
-  LoadBalancerOutboundRuleHTTP:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !Ref LoadBalancerSecurityGroup
-      IpProtocol: tcp
-      FromPort: 80
-      ToPort: 80
-      DestinationSecurityGroupId: 0.0.0.0/0
   
   LoadBalancerInboundRuleContainer:
     Type: AWS::EC2::SecurityGroupIngress
@@ -666,24 +367,30 @@ Resources:
       FromPort: !Ref ContainerPort
       ToPort: !Ref ContainerPort
       DestinationSecurityGroupId: !GetAtt LoadBalancerSecurityGroup.GroupId
-
-  ContainerInboundRuleSSH:
-    Type: AWS::EC2::SecurityGroupIngress
-    Properties:
-      GroupId: !Ref ContainerSecurityGroup
-      IpProtocol: tcp
-      FromPort: 22
-      ToPort: 22
-      CidrIp: 0.0.0.0/0 # not good practice but i don't have a static ip
   
-  ContainerOutboundRuleSSH:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !Ref ContainerSecurityGroup
-      IpProtocol: tcp
-      FromPort: 22
-      ToPort: 22
-      CidrIp: 0.0.0.0/0 # not good practice but i don't have a static ip
+  # ContainerOutboundRuleECR:
+  #   # This is to allow the container to download the image
+  #   # This needs to be replaced with a private link: https://docs.aws.amazon.com/AmazonECR/latest/userguide/vpc-endpoints.html
+  #   # See: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcendpoint.html
+  #   Type: AWS::EC2::SecurityGroupEgress
+  #   Properties:
+  #     GroupId: !Ref ContainerSecurityGroup
+  #     IpProtocol: tcp
+  #     FromPort: 443
+  #     ToPort: 443
+  #     CidrIpv6: ::/0
+  
+  # ContainerInboundRuleECR:
+  #   # This is to allow the container to download the image
+  #   # This needs to be replaced with a private link: https://docs.aws.amazon.com/AmazonECR/latest/userguide/vpc-endpoints.html
+  #   # See: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcendpoint.html
+  #   Type: AWS::EC2::SecurityGroupIngress
+  #   Properties:
+  #     GroupId: !Ref ContainerSecurityGroup
+  #     IpProtocol: tcp
+  #     FromPort: 443
+  #     ToPort: 443
+  #     CidrIpv6: ::/0
 
   ContainerInboundRuleRDS:
     Type: AWS::EC2::SecurityGroupIngress
