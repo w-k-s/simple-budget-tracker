@@ -6,7 +6,7 @@ WORKDIR /go/src/github.com/w-k-s/simple-budget-tracker
 
 RUN go get ./...
 
-RUN GOOS=linux GOARCH=arm go build -o app github.com/w-k-s/simple-budget-tracker/cmd/server
+RUN GOOS=linux go build -o app github.com/w-k-s/simple-budget-tracker/cmd/server
 
 FROM alpine:latest
 
