@@ -26,10 +26,11 @@ func init() {
 		awsSecretKeyUsage = "AWS Secret key; used to download config file. Only required if config file is hosted on s3"
 		awsRegionUsage    = "AWS Region; used to download config file. Only required if config file is hosted on s3"
 	)
-	flag.StringVar(&configFilePath, "f", "", configFileUsage)
+	flag.StringVar(&configFilePath, "file", "", configFileUsage)
 	flag.StringVar(&awsAccessKey, "aws_access_key", "", awsAccessKeyUsage)
 	flag.StringVar(&awsSecretKey, "aws_secret_key", "", awsSecretKeyUsage)
 	flag.StringVar(&awsRegion, "aws_region", "", awsRegionUsage)
+	flag.Parse()
 }
 
 func main() {

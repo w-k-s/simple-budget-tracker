@@ -1,4 +1,7 @@
 # https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/example-templates-autoscaling.html
+# https://forums.aws.amazon.com/thread.jspa?threadID=339634&tstart=0
+# https://github.com/thomasstep/aws-cloudformation-reference/blob/98d23f0b5eef9db731e98b3c38cc8957c60ad8e3/fargate/ecs-cluster.yml
+# https://www.reddit.com/r/aws/comments/igevqx/need_help_with_ecs_taskdefinition_and_efs_at/
 
 Parameters:
   VPC:
@@ -35,30 +38,20 @@ Parameters:
     Description: Hosted Zone Id
 
 Resources:
-  # Workloads
-  # Similar to a pod template in kubernetes
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
-    # Makes sure the log group is created before it is used
-    DependsOn: [LogGroup]
+    DependsOn:
+      - LogGroup
+      - TaskExecutionRole
     Properties:
-      # Name of the task definition. Subsequent versions of the task definition are grouped together under this name.
       Family: !Join ["", [!Ref "AWS::StackName", TaskDefinition]]
-      # awsvpc is required for Fargate
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
       Cpu: 512
       Memory: 1GB
-      # A role needed by ECS e.g. to pull images, sends logs to cloudwatch e.t.c
-      # "The ARN of the task execution role that containers in this task can assume. All containers in this task are granted the permissions that are specified in this role."
-      # "There is an optional task execution IAM role that you can specify with Fargate to allow your Fargate tasks to make API calls to Amazon ECR."
-      # TODO
-      ExecutionRoleArn: !Ref ExecutionRole
-      # "The Amazon Resource Name (ARN) of an AWS Identity and Access Management (IAM) role that grants containers in the task permission to call AWS APIs on your behalf."
-      # In simpler words: permissions for the container e.g. upload a file to a bucket
-      # TODO
-      TaskRoleArn: !Ref TaskRole
+      ExecutionRoleArn: !Ref TaskExecutionRole
+      TaskRoleArn: !Ref TaskExecutionRole
       ContainerDefinitions:
         - Name: !Ref "AWS::StackName"
           Image: !Ref Image
@@ -69,9 +62,8 @@ Resources:
             Options:
               awslogs-region: !Ref AWS::Region
               awslogs-group: !Ref LogGroup
-              awslogs-stream-prefix:
-                !Join ["", [!Ref "AWS::StackName", -ecs-app]]
-          Command: ["./app -f s3://com.wks.budget/config.toml"]
+              awslogs-stream-prefix: !Join ["", [!Ref "AWS::StackName", -ecs-app]]
+          EntryPoint: ["./app", "-file=s3://com.wks.budget/config.toml"]
 
   Cluster:
     Type: AWS::ECS::Cluster
@@ -80,28 +72,20 @@ Resources:
 
   Service:
     Type: AWS::ECS::Service
-    # This dependency is needed so that the load balancer is setup correctly in time
     DependsOn:
       - ListenerHTTPS
     Properties:
       ServiceName: !Join ["", [!Ref "AWS::StackName", "-", "Service"]]
       Cluster: !Ref Cluster
       TaskDefinition: !Ref TaskDefinition
-      # Controls how many tasks run during the deployment and the ordering of stopping and starting tasks.
       DeploymentConfiguration:
-        # number of tasks in a service that must remain in the RUNNING state during a rolling update
-        # In this case, all tasks must remain in RUNNING state during deployment.
         MinimumHealthyPercent: 100
-        # upper limit on the number of tasks in a service that are allowed
         MaximumPercent: 200
-      # Task counts
       DesiredCount: 1
-      # Grace period to wait before trying to poll health check url
       HealthCheckGracePeriodSeconds: 30
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          # change to DISABLED if you're using private subnets that have access to a NAT gateway
           AssignPublicIp: ENABLED
           Subnets: !Ref PublicSubnets
           SecurityGroups:
@@ -117,7 +101,6 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckIntervalSeconds: 30
-      # will look for a 200 status code by default unless specified otherwise
       HealthCheckPath: !Ref HealthCheckPath
       HealthCheckTimeoutSeconds: 10
       UnhealthyThresholdCount: 2
@@ -135,13 +118,11 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       LoadBalancerAttributes:
-        # this is the default, but is specified here in case it needs to be changed
         - Key: idle_timeout.timeout_seconds
           Value: 60
       Name: !Join ["", [!Ref AWS::StackName, "-", "ELB"]]
-      # "internal" is also an option
       Scheme: internet-facing
-      SecurityGroups: 
+      SecurityGroups:
         - !Ref LoadBalancerSecurityGroup
       Subnets: !Ref PublicSubnets
 
@@ -151,7 +132,6 @@ Resources:
       DefaultActions:
         - TargetGroupArn: !Ref TargetGroup
           Type: forward
-      # The Amazon Resource Name (ARN) of the load balancer
       LoadBalancerArn: !Ref LoadBalancer
       Port: !Ref LoadBalancerPort
       Protocol: HTTPS
@@ -172,100 +152,50 @@ Resources:
             HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
             DNSName: !GetAtt LoadBalancer.DNSName
 
-  # RecordSet:
-  #   Type: "AWS::Route53::RecordSet"
-  #   Properties:
-  #     Name: !Join [".", ["budget", !Ref HostedZoneName]]
-  #     HostedZoneId: !Ref HostedZoneID
-  #     TTL: 30
-  #     Type: A
-  #     ResourceRecords: [!GetAtt LoadBalancer.DNSName]
-
   # IAM Roles
 
-  # Role needed by ECS to run a task
-  ExecutionRole:
-    Type: AWS::IAM::Role
+  TaskExecutionRole:
+    Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Join ["", [!Ref "AWS::StackName", "ExecutionRole"]]
       AssumeRolePolicyDocument:
+        Version: 2012-10-17
         Statement:
           - Effect: Allow
             Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: "sts:AssumeRole"  
-      Policies:
-        # https://stackoverflow.com/a/66802973/821110 
-        # Fargate 1.4.0 now require permission to ssm, kms to authenticate before
-      - PolicyDocument: {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Action": [
-                "kms:Decrypt",
-                "secretsmanager:GetSecretValue"
-              ],
-              # Can this be replaced with the example shown here: https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_execution_IAM_role.html#task-execution-private-auth
-              "Resource": [
-                {"Fn::Join": [":",["arn:aws:secretsmanager",{"Ref": "AWS::Region"},{"Ref": "AWS::AccountId"},"secret:secret_name"]]},
-                {"Fn::Join": [":",["arn:aws:kms",{"Ref": "AWS::Region"},{"Ref": "AWS::AccountId"},"key/key_id"]]}
-              ]
-            }
-          ]
-        }
-        PolicyName: !Join ["", [!Ref "AWS::StackName", "-", "AuthenticationToAccessECR"]]
-      ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-
-  # A role for the containers
-  TaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Join ["", [!Ref "AWS::StackName", TaskRole]]
-      AssumeRolePolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: ecs-tasks.amazonaws.com
-            Action: "sts:AssumeRole"
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
       Policies:
         - PolicyDocument: {
-            "Version": "2012-10-17",
-            "Statement": [
-            {
-              "Effect": "Allow",
-              "Action": [
-                "s3:GetObject"
-              ],
-              "Resource": [
-                "arn:aws:s3:::com.wks.budget/config.toml"
-              ]
+              "Version": "2012-10-17",
+              "Statement":
+                [
+                  {
+                    "Effect": "Allow",
+                    "Action": ["s3:GetObject"],
+                    "Resource": ["arn:aws:s3:::com.wks.budget/config.toml"],
+                  },
+                ],
             }
-            ]
-          }
           PolicyName: !Join ["", [!Ref "AWS::StackName", "-", "DownloadConfigFromS3Policy"]]
         - PolicyDocument: {
-            "Version": "2012-10-17",
-            "Statement": [
-              {
-                "Effect": "Allow",
-                "Action": [
-                  "kms:Decrypt",
-                  "secretsmanager:GetSecretValue"
+              "Version": "2012-10-17",
+              "Statement":
+                [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "secretsmanager:GetSecretValue", 
+                      "kms:Decrypt"
+                    ],
+                    "Resource": "*",
+                  },
                 ],
-                "Resource": [
-                  {"Fn::Join": [":",["arn:aws:secretsmanager",{"Ref": "AWS::Region"},{"Ref": "AWS::AccountId"},"secret:secret_name"]]},
-                  {"Fn::Join": [":",["arn:aws:kms",{"Ref": "AWS::Region"},{"Ref": "AWS::AccountId"},"key/key_id"]]}
-                ]
-              }
-            ]
-          }
-          # https://stackoverflow.com/a/66802973/821110 
-          # Fargate 1.4.0 now require permission to ssm, kms to authenticate before
-          PolicyName: !Join ["", [!Ref "AWS::StackName", "-", "AuthenticationToAccessECR"]]
+            }
+          PolicyName: !Join ["", [!Ref "AWS::StackName", "-", "PullImagePolicy"]]
       ManagedPolicyArns:
-        - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
 
   # Logging
 
@@ -273,6 +203,60 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Join ["", [/ecs/, !Ref "AWS::StackName"]]
+
+  # Private Links
+  # https://stackoverflow.com/a/61530223/821110
+  # https://docs.aws.amazon.com/AmazonECR/latest/userguide/vpc-endpoints.html
+
+  VPCEndpointECRAPI:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      SecurityGroupIds:
+        - !Ref PrivateLinkSecurityGroup
+      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ecr.api"]]
+      SubnetIds: !Ref PublicSubnets
+      VpcId: !Ref VPC
+
+  VPCEndpointECRDKR:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      SecurityGroupIds:
+        - !Ref PrivateLinkSecurityGroup
+      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ecr.dkr"]]
+      SubnetIds: !Ref PublicSubnets
+      VpcId: !Ref VPC
+
+  VPCEndpointLogs:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      SecurityGroupIds:
+        - !Ref PrivateLinkSecurityGroup
+      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".logs"]]
+      SubnetIds: !Ref PublicSubnets
+      VpcId: !Ref VPC
+
+  VPCEndpointS3:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      SecurityGroupIds:
+        - !Ref PrivateLinkSecurityGroup
+      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".s3"]]
+      SubnetIds: !Ref PublicSubnets
+      VpcId: !Ref VPC
+
+  VPCEndpointSSM:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      SecurityGroupIds:
+        - !Ref PrivateLinkSecurityGroup
+      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ssm"]]
+      SubnetIds: !Ref PublicSubnets
+      VpcId: !Ref VPC
 
   # Security Groups
 
@@ -294,7 +278,7 @@ Resources:
       FromPort: 80
       ToPort: 80
       CidrIp: 0.0.0.0/0
-  
+
   LoadBalancerOutboundRuleHTTP:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
@@ -303,7 +287,7 @@ Resources:
       FromPort: 80
       ToPort: 80
       CidrIp: 0.0.0.0/0
-  
+
   LoadBalancerInboundRuleHTTPS:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -312,7 +296,7 @@ Resources:
       FromPort: 443
       ToPort: 443
       CidrIp: 0.0.0.0/0
-  
+
   LoadBalancerOutboundRuleHTTPS:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
@@ -321,7 +305,7 @@ Resources:
       FromPort: 443
       ToPort: 443
       CidrIp: 0.0.0.0/0
-  
+
   LoadBalancerInboundRuleContainer:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -330,7 +314,7 @@ Resources:
       FromPort: !Ref ContainerPort
       ToPort: !Ref ContainerPort
       SourceSecurityGroupId: !GetAtt ContainerSecurityGroup.GroupId
-  
+
   LoadBalancerOutboundRuleContainer:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
@@ -349,7 +333,7 @@ Resources:
         - Key: ProjectName
           Value: !Ref "AWS::StackName"
       VpcId: !Ref VPC
-      
+
   ContainerInboundRuleHTTP:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -358,7 +342,7 @@ Resources:
       FromPort: !Ref ContainerPort
       ToPort: !Ref ContainerPort
       SourceSecurityGroupId: !GetAtt LoadBalancerSecurityGroup.GroupId
-  
+
   ContainerOutboundRuleHTTP:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
@@ -367,30 +351,6 @@ Resources:
       FromPort: !Ref ContainerPort
       ToPort: !Ref ContainerPort
       DestinationSecurityGroupId: !GetAtt LoadBalancerSecurityGroup.GroupId
-  
-  # ContainerOutboundRuleECR:
-  #   # This is to allow the container to download the image
-  #   # This needs to be replaced with a private link: https://docs.aws.amazon.com/AmazonECR/latest/userguide/vpc-endpoints.html
-  #   # See: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcendpoint.html
-  #   Type: AWS::EC2::SecurityGroupEgress
-  #   Properties:
-  #     GroupId: !Ref ContainerSecurityGroup
-  #     IpProtocol: tcp
-  #     FromPort: 443
-  #     ToPort: 443
-  #     CidrIpv6: ::/0
-  
-  # ContainerInboundRuleECR:
-  #   # This is to allow the container to download the image
-  #   # This needs to be replaced with a private link: https://docs.aws.amazon.com/AmazonECR/latest/userguide/vpc-endpoints.html
-  #   # See: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-ec2-vpcendpoint.html
-  #   Type: AWS::EC2::SecurityGroupIngress
-  #   Properties:
-  #     GroupId: !Ref ContainerSecurityGroup
-  #     IpProtocol: tcp
-  #     FromPort: 443
-  #     ToPort: 443
-  #     CidrIpv6: ::/0
 
   ContainerInboundRuleRDS:
     Type: AWS::EC2::SecurityGroupIngress
@@ -400,8 +360,8 @@ Resources:
       FromPort: 5432
       ToPort: 5432
       SourceSecurityGroupId: !Ref RDSSecurityGroupId
-    
-  ContainerInboundRuleRDS:
+
+  ContainerOutboundRuleRDS:
     Type: AWS::EC2::SecurityGroupEgress
     Properties:
       GroupId: !Ref ContainerSecurityGroup
@@ -409,3 +369,25 @@ Resources:
       FromPort: 5432
       ToPort: 5432
       DestinationSecurityGroupId: !Ref RDSSecurityGroupId
+
+  # Required by Task to authenticate and pull image from ECR
+  ContainerOutboundAll:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref ContainerSecurityGroup
+      IpProtocol: tcp
+      FromPort: 0
+      ToPort: 65535
+      CidrIp: 0.0.0.0/0
+
+  PrivateLinkSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: PrivateLink-SecurityGroup
+      GroupDescription: PrivateLink-SecurityGroup
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0 #should be cidrip of vpc
+      VpcId: !Ref VPC

@@ -15,5 +15,5 @@ WORKDIR /root/
 
 COPY --from=builder /go/src/github.com/w-k-s/simple-budget-tracker/app .
 
-CMD ["./app"]
+ENTRYPOINT ["./app", "-file=s3://com.wks.budget/config.toml"]
 
