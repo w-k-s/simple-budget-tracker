@@ -31,4 +31,4 @@ export_image_id;
 export_vpc_id;
 export_public_subnets;
 export_rds_security_group;
-export_hosted_zone;
+export_hosted_zone_id;

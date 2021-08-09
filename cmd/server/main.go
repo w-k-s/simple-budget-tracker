@@ -37,7 +37,7 @@ func main() {
 	// the init function is called in tests but the config file does not exist.
 	// This results in a panic.
 	flag.Parse()
-	
+
 	var err error
 	if err = cfg.ConfigureLogging(); err != nil {
 		log.Fatalf("failed to configure logging. Reason: %s", err)
