@@ -18,17 +18,36 @@ export_public_subnets(){
     export PUBLIC_SUBNETS=$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$VPC_ID Name=tag:Public,Values=1 --query 'Subnets[].{subnetId: SubnetId}[].subnetId' | jq -r '. | join(",")')
 }
 
+export_private_subnets(){
+    export PRIVATE_SUBNETS=$(aws ec2 describe-subnets --filters Name=vpc-id,Values=$VPC_ID Name=tag:Public,Values=0 --query 'Subnets[].{subnetId: SubnetId}[].subnetId' | jq -r '. | join(",")')
+}
+
 export_rds_security_group(){
     export RDS_SECURITY_GROUP=$(aws ec2 describe-security-groups --filters Name=vpc-id,Values=$VPC_ID Name=tag:ProjectName,Values=$PROJECT_NAME Name=tag:Resource,Values=RDS | jq -r '.SecurityGroups[0].GroupId')
 }
 
-export_hosted_zone_id(){
-    export HOSTED_ZONE_ID=$(aws route53 list-hosted-zones | jq -r '.HostedZones[] | select(.Name == "$DOMAIN_NAME") | .Id') | sed -e "s/^\/hostedzone\///"
+update_record_set(){
+    if [[ -z "${HOSTED_ZONE_NAME}" ]]; then 
+        echo 'Expected an environment variable named "HOSTED_ZONE_NAME" with a value like "example.com." (Note: the dot at the end)';
+        exit 1;
+    fi
+
+    if [[ -z "${RECORD_SET_DOMAIN_NAME}" ]]; then
+        echo "Expected an environent variable named 'RECORD_SET_DOMAIN_NAME' with a value like 'budget.example.com'";
+        exit 1;
+    fi
+
+    export HOSTED_ZONE_ID=$(aws route53 list-hosted-zones | jq -r '.HostedZones[] | select(.Name == "$HOSTED_ZONE_NAME") | .Id') | sed -e "s/^\/hostedzone\///"
+    export RECORD_SET_TYPE="CNAME"
+    export RECORD_SET_VALUE="$(aws cloudformation describe-stacks --stack-name $PROJECT_NAME --query "Stacks[?StackName=='$PROJECT_NAME'].Outputs[?OutputKey=='DNSName'].OutputValue" --output text )"
+    
+    envsubst < .change-resource-record-set.tmpl > change-resource-record-sets.json
+    aws route53 change-resource-record-sets --hosted-zone-id "$HOSTED_ZONE_ID" --change-batch file://change-resource-record-sets.json
 }
 
 export_repo_name;
 export_image_id;
 export_vpc_id;
 export_public_subnets;
+export_private_subnets;
 export_rds_security_group;
-export_hosted_zone_id;

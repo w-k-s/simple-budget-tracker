@@ -13,7 +13,8 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
+RUN mkdir -p /root/.budget/migrations.d
 COPY --from=builder /go/src/github.com/w-k-s/simple-budget-tracker/app .
+COPY --from=builder /go/src/github.com/w-k-s/simple-budget-tracker/migrations .budget/migrations.d
 
 ENTRYPOINT ["./app", "-file=s3://com.wks.budget/config.toml"]
-

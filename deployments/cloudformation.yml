@@ -8,7 +8,10 @@ Parameters:
     Type: AWS::EC2::VPC::Id
     Description: VPC Id. VPC's private subnets must have a NAT Gateway to download container image.
   PublicSubnets:
-    Description: Choose which public subnets the Load Balancer and ECS Service should be deployed to
+    Description: Choose which public subnets the Load Balancer
+    Type: List<AWS::EC2::Subnet::Id>
+  PrivateSubnets:
+    Description: Choose which private subnets the ECS Service should be deployed to
     Type: List<AWS::EC2::Subnet::Id>
   IamCertificateArn:
     Type: String
@@ -19,7 +22,7 @@ Parameters:
   ContainerPort:
     Type: Number
     Description: Port on which the application listens within the docker container
-    Default: 80
+    Default: 8080
   LoadBalancerPort:
     Type: Number
     Default: 443
@@ -87,7 +90,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          Subnets: !Ref PublicSubnets
+          Subnets: !Ref PrivateSubnets
           SecurityGroups:
             - !Ref ContainerSecurityGroup
       LoadBalancers:
@@ -137,20 +140,6 @@ Resources:
       Protocol: HTTPS
       Certificates:
         - CertificateArn: !Ref IamCertificateArn
-
-  # DNS
-  # Hosted zone needs to exist before hand
-  # TODO only create a record set: https://stackoverflow.com/a/41289915/821110
-  RecordSetGroup:
-    Type: AWS::Route53::RecordSetGroup
-    Properties:
-      HostedZoneName: !Ref HostedZoneName
-      RecordSets:
-        - Name: !Join ["budget", [!Ref HostedZoneName]]
-          Type: A
-          AliasTarget:
-            HostedZoneId: !GetAtt LoadBalancer.CanonicalHostedZoneID
-            DNSName: !GetAtt LoadBalancer.DNSName
 
   # IAM Roles
 
@@ -215,7 +204,7 @@ Resources:
       SecurityGroupIds:
         - !Ref PrivateLinkSecurityGroup
       ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ecr.api"]]
-      SubnetIds: !Ref PublicSubnets
+      SubnetIds: !Ref PrivateSubnets
       VpcId: !Ref VPC
 
   VPCEndpointECRDKR:
@@ -225,7 +214,7 @@ Resources:
       SecurityGroupIds:
         - !Ref PrivateLinkSecurityGroup
       ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ecr.dkr"]]
-      SubnetIds: !Ref PublicSubnets
+      SubnetIds: !Ref PrivateSubnets
       VpcId: !Ref VPC
 
   VPCEndpointLogs:
@@ -235,7 +224,7 @@ Resources:
       SecurityGroupIds:
         - !Ref PrivateLinkSecurityGroup
       ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".logs"]]
-      SubnetIds: !Ref PublicSubnets
+      SubnetIds: !Ref PrivateSubnets
       VpcId: !Ref VPC
 
   VPCEndpointS3:
@@ -245,7 +234,7 @@ Resources:
       SecurityGroupIds:
         - !Ref PrivateLinkSecurityGroup
       ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".s3"]]
-      SubnetIds: !Ref PublicSubnets
+      SubnetIds: !Ref PrivateSubnets
       VpcId: !Ref VPC
 
   VPCEndpointSSM:
@@ -255,7 +244,7 @@ Resources:
       SecurityGroupIds:
         - !Ref PrivateLinkSecurityGroup
       ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ssm"]]
-      SubnetIds: !Ref PublicSubnets
+      SubnetIds: !Ref PrivateSubnets
       VpcId: !Ref VPC
 
   # Security Groups
@@ -391,3 +380,10 @@ Resources:
           ToPort: 443
           CidrIp: 0.0.0.0/0 #should be cidrip of vpc
       VpcId: !Ref VPC
+
+Outputs:
+  StackVPC:
+    Description: The DNS name of the provisioned application load balancer
+    Value: !GetAtt LoadBalancer.DNSName
+    Export:
+      Name: "DNSName"
