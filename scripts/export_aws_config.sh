@@ -37,11 +37,11 @@ update_record_set(){
         exit 1;
     fi
 
-    export HOSTED_ZONE_ID=$(aws route53 list-hosted-zones | jq -r '.HostedZones[] | select(.Name == "$HOSTED_ZONE_NAME") | .Id') | sed -e "s/^\/hostedzone\///"
+    export HOSTED_ZONE_ID=$(aws route53 list-hosted-zones --query "HostedZones[?Name=='$HOSTED_ZONE_NAME'].Id" | jq -r '.[0]' | sed -e "s/^\/hostedzone\///")
     export RECORD_SET_TYPE="CNAME"
-    export RECORD_SET_VALUE="$(aws cloudformation describe-stacks --stack-name $PROJECT_NAME --query "Stacks[?StackName=='$PROJECT_NAME'].Outputs[?OutputKey=='DNSName'].OutputValue" --output text )"
+    export RECORD_SET_VALUE=$(aws cloudformation describe-stacks --stack-name $PROJECT_NAME --query "Stacks[?StackName=='$PROJECT_NAME']" | jq -r '.[] | .Outputs[] | select(.ExportName == "DNSName") | .OutputValue')
     
-    envsubst < .change-resource-record-set.tmpl > change-resource-record-sets.json
+    envsubst < change-resource-record-set.tmpl > change-resource-record-sets.json
     aws route53 change-resource-record-sets --hosted-zone-id "$HOSTED_ZONE_ID" --change-batch file://change-resource-record-sets.json
 }
 

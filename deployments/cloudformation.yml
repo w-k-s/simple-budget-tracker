@@ -2,6 +2,8 @@
 # https://forums.aws.amazon.com/thread.jspa?threadID=339634&tstart=0
 # https://github.com/thomasstep/aws-cloudformation-reference/blob/98d23f0b5eef9db731e98b3c38cc8957c60ad8e3/fargate/ecs-cluster.yml
 # https://www.reddit.com/r/aws/comments/igevqx/need_help_with_ecs_taskdefinition_and_efs_at/
+# https://github.com/aws-samples/amazon-ecr-privatelink-blog/
+# https://aws.amazon.com/blogs/containers/aws-privatelink-ecr-cross-account-fargate-deployment/
 
 Parameters:
   VPC:
@@ -9,9 +11,6 @@ Parameters:
     Description: VPC Id. VPC's private subnets must have a NAT Gateway to download container image.
   PublicSubnets:
     Description: Choose which public subnets the Load Balancer
-    Type: List<AWS::EC2::Subnet::Id>
-  PrivateSubnets:
-    Description: Choose which private subnets the ECS Service should be deployed to
     Type: List<AWS::EC2::Subnet::Id>
   IamCertificateArn:
     Type: String
@@ -90,7 +89,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           AssignPublicIp: ENABLED
-          Subnets: !Ref PrivateSubnets
+          Subnets: !Ref PublicSubnets
           SecurityGroups:
             - !Ref ContainerSecurityGroup
       LoadBalancers:
@@ -192,60 +191,6 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Join ["", [/ecs/, !Ref "AWS::StackName"]]
-
-  # Private Links
-  # https://stackoverflow.com/a/61530223/821110
-  # https://docs.aws.amazon.com/AmazonECR/latest/userguide/vpc-endpoints.html
-
-  VPCEndpointECRAPI:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Interface
-      SecurityGroupIds:
-        - !Ref PrivateLinkSecurityGroup
-      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ecr.api"]]
-      SubnetIds: !Ref PrivateSubnets
-      VpcId: !Ref VPC
-
-  VPCEndpointECRDKR:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Interface
-      SecurityGroupIds:
-        - !Ref PrivateLinkSecurityGroup
-      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ecr.dkr"]]
-      SubnetIds: !Ref PrivateSubnets
-      VpcId: !Ref VPC
-
-  VPCEndpointLogs:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Interface
-      SecurityGroupIds:
-        - !Ref PrivateLinkSecurityGroup
-      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".logs"]]
-      SubnetIds: !Ref PrivateSubnets
-      VpcId: !Ref VPC
-
-  VPCEndpointS3:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Interface
-      SecurityGroupIds:
-        - !Ref PrivateLinkSecurityGroup
-      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".s3"]]
-      SubnetIds: !Ref PrivateSubnets
-      VpcId: !Ref VPC
-
-  VPCEndpointSSM:
-    Type: AWS::EC2::VPCEndpoint
-    Properties:
-      VpcEndpointType: Interface
-      SecurityGroupIds:
-        - !Ref PrivateLinkSecurityGroup
-      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ssm"]]
-      SubnetIds: !Ref PrivateSubnets
-      VpcId: !Ref VPC
 
   # Security Groups
 
