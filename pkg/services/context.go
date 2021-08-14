@@ -12,13 +12,13 @@ const (
 	CtxUserId ContextKey = "userId"
 )
 
-func RequireUserId(ctx context.Context) (ledger.UserId, error){
+func RequireUserId(ctx context.Context) (ledger.UserId, error) {
 	var (
 		userId ledger.UserId
-		ok bool
+		ok     bool
 	)
-	if userId, ok = ctx.Value(CtxUserId).(ledger.UserId); !ok{
+	if userId, ok = ctx.Value(CtxUserId).(ledger.UserId); !ok {
 		return 0, ledger.NewError(ledger.ErrServiceUserIdRequired, "User id is required", nil)
 	}
-	return userId,nil;
+	return userId, nil
 }

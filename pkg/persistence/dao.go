@@ -83,7 +83,7 @@ func Commit(tx *sql.Tx) error {
 	if tx == nil {
 		log.Fatal("Commit should not be passed a nil transaction")
 	}
-	if err := tx.Commit(); err != nil && err != sql.ErrTxDone{
+	if err := tx.Commit(); err != nil && err != sql.ErrTxDone {
 		return ledger.NewError(ledger.ErrDatabaseConnectivity, "Failed to save changes", err)
 	}
 	return nil

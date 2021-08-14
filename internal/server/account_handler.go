@@ -10,8 +10,8 @@ func (a *App) RegisterAccounts(w http.ResponseWriter, req *http.Request) {
 
 	var (
 		createAccountsRequest svc.CreateAccountsRequest
-		resp              svc.AccountsResponse
-		err               error
+		resp                  svc.AccountsResponse
+		err                   error
 	)
 
 	if ok := a.DecodeJsonOrSendBadRequest(w, req, &createAccountsRequest); !ok {
@@ -26,13 +26,13 @@ func (a *App) RegisterAccounts(w http.ResponseWriter, req *http.Request) {
 	a.MustEncodeJson(w, resp, http.StatusCreated)
 }
 
-func (a *App) GetAccounts(w http.ResponseWriter, req * http.Request) {
+func (a *App) GetAccounts(w http.ResponseWriter, req *http.Request) {
 	var (
-		resp              svc.AccountsResponse
-		err               error
+		resp svc.AccountsResponse
+		err  error
 	)
 
-	if resp, err = a.AccountService.GetAccounts(req.Context()); err != nil{
+	if resp, err = a.AccountService.GetAccounts(req.Context()); err != nil {
 		a.MustEncodeProblem(w, req, err)
 		return
 	}

@@ -46,8 +46,8 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrUserEmailDuplicated:         "DUPLICATE_USER_EMAIL",
 	ErrUserNotFound:                "USER_NOT_FOUND",
 	ErrAccountValidation:           "ACCOUNT_VALIDATION_FAILED",
-	ErrAccountNotFound:				"ACCOUNT_NOT_FOUND",
-	ErrAccountNameDuplicated: 		"ACCOUNT_NAME_DUPLICATED",
+	ErrAccountNotFound:             "ACCOUNT_NOT_FOUND",
+	ErrAccountNameDuplicated:       "ACCOUNT_NAME_DUPLICATED",
 	ErrCurrencyInvalidCode:         "INVALID_CURRENCY_CODE",
 	ErrCategoryValidation:          "CATEGORY_VALIDATION_FAILED",
 	ErrCategoryNameDuplicated:      "CATEGORY_NAME_DUPLICATED",
@@ -59,7 +59,7 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrAuditValidation:             "AUDIT_VALIDATION_FAILED",
 	ErrAuditUpdatedByBadFormat:     "AUDIT_UPDATED_BY_BAD_FORMAT",
 	ErrRequestUnmarshallingFailed:  "REQUEST_UNMARSHALLING_FAILED",
-	ErrServiceUserIdRequired: 		"SERVICE_REQUIRED_USER_ID",
+	ErrServiceUserIdRequired:       "SERVICE_REQUIRED_USER_ID",
 }
 
 func (c ErrorCode) Name() string {

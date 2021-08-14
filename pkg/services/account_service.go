@@ -9,20 +9,20 @@ import (
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
 
-type CreateAccountsRequest struct{
-	Accounts []struct{
-		Name string `json:"name"`
+type CreateAccountsRequest struct {
+	Accounts []struct {
+		Name     string `json:"name"`
 		Currency string `json:"currency"`
 	} `json:"accounts"`
 }
 
-type AccountResponse struct{
-	Id uint64 `json:"id"`
-	Name string `json:"name"`
+type AccountResponse struct {
+	Id       uint64 `json:"id"`
+	Name     string `json:"name"`
 	Currency string `json:"currency"`
 }
 
-type AccountsResponse struct{
+type AccountsResponse struct {
 	Accounts []AccountResponse `json:"accounts"`
 }
 
@@ -45,42 +45,42 @@ func NewAccountService(accountDao dao.AccountDao) (AccountService, error) {
 	}, nil
 }
 
-func (svc accountService) CreateAccounts(ctx context.Context, request CreateAccountsRequest) (AccountsResponse, error){
+func (svc accountService) CreateAccounts(ctx context.Context, request CreateAccountsRequest) (AccountsResponse, error) {
 	var (
 		userId ledger.UserId
-		tx *sql.Tx
-		err error
+		tx     *sql.Tx
+		err    error
 	)
 
-	if userId, err = RequireUserId(ctx); err != nil{
-		return AccountsResponse{},err.(ledger.Error)
+	if userId, err = RequireUserId(ctx); err != nil {
+		return AccountsResponse{}, err.(ledger.Error)
 	}
 
-	if tx, err = svc.accountDao.BeginTx(); err != nil{
-		return AccountsResponse{},err.(ledger.Error)
+	if tx, err = svc.accountDao.BeginTx(); err != nil {
+		return AccountsResponse{}, err.(ledger.Error)
 	}
 
 	defer dao.DeferRollback(tx, fmt.Sprintf("CreateAccounts: %d", userId))
 
 	// Create Account models
 	var accounts ledger.Accounts
-	for _, accountReq := range request.Accounts{
-		var(
+	for _, accountReq := range request.Accounts {
+		var (
 			accountId ledger.AccountId
-			account ledger.Account
-			err error
+			account   ledger.Account
+			err       error
 		)
 		// TODO: limit number of accounts that can be created
-		if accountId, err = svc.accountDao.NewAccountId(tx); err != nil{
-			return AccountsResponse{},err.(ledger.Error)
+		if accountId, err = svc.accountDao.NewAccountId(tx); err != nil {
+			return AccountsResponse{}, err.(ledger.Error)
 		}
 
 		if account, err = ledger.NewAccount(
-			accountId, 
-			accountReq.Name, 
-			accountReq.Currency, 
+			accountId,
+			accountReq.Name,
+			accountReq.Currency,
 			ledger.MustMakeUpdatedByUserId(userId),
-		); err != nil{
+		); err != nil {
 			return AccountsResponse{}, err.(ledger.Error)
 		}
 
@@ -88,20 +88,20 @@ func (svc accountService) CreateAccounts(ctx context.Context, request CreateAcco
 	}
 
 	// Save Accounts
-	if err = svc.accountDao.SaveTx(ctx, userId, accounts, tx); err != nil{
+	if err = svc.accountDao.SaveTx(ctx, userId, accounts, tx); err != nil {
 		return AccountsResponse{}, err.(ledger.Error)
 	}
 
-	if err = dao.Commit(tx); err != nil{
+	if err = dao.Commit(tx); err != nil {
 		return AccountsResponse{}, err.(ledger.Error)
 	}
 
 	// Return response
 	response := AccountsResponse{}
-	for _, account := range accounts{
+	for _, account := range accounts {
 		response.Accounts = append(response.Accounts, AccountResponse{
-			Id: uint64(account.Id()),
-			Name: account.Name(),
+			Id:       uint64(account.Id()),
+			Name:     account.Name(),
 			Currency: account.Currency(),
 		})
 	}
@@ -109,37 +109,37 @@ func (svc accountService) CreateAccounts(ctx context.Context, request CreateAcco
 	return response, nil
 }
 
-func (svc accountService) GetAccounts(ctx context.Context) (AccountsResponse, error){
+func (svc accountService) GetAccounts(ctx context.Context) (AccountsResponse, error) {
 	var (
-		userId ledger.UserId
-		tx *sql.Tx
+		userId   ledger.UserId
+		tx       *sql.Tx
 		accounts []ledger.Account
-		err error
+		err      error
 	)
 
-	if userId, err = RequireUserId(ctx); err != nil{
-		return AccountsResponse{},err.(ledger.Error)
+	if userId, err = RequireUserId(ctx); err != nil {
+		return AccountsResponse{}, err.(ledger.Error)
 	}
 
-	if tx, err = svc.accountDao.BeginTx(); err != nil{
-		return AccountsResponse{},err.(ledger.Error)
+	if tx, err = svc.accountDao.BeginTx(); err != nil {
+		return AccountsResponse{}, err.(ledger.Error)
 	}
 
 	defer dao.DeferRollback(tx, fmt.Sprintf("GetAccounts: %d", userId))
 
-	if accounts, err = svc.accountDao.GetAccountsByUserId(ctx, userId, tx); err != nil{
+	if accounts, err = svc.accountDao.GetAccountsByUserId(ctx, userId, tx); err != nil {
 		return AccountsResponse{}, err.(ledger.Error)
 	}
 
-	if err = dao.Commit(tx); err != nil{
+	if err = dao.Commit(tx); err != nil {
 		return AccountsResponse{}, err.(ledger.Error)
 	}
 
 	response := AccountsResponse{}
-	for _, account := range accounts{
+	for _, account := range accounts {
 		response.Accounts = append(response.Accounts, AccountResponse{
-			Id: uint64(account.Id()),
-			Name: account.Name(),
+			Id:       uint64(account.Id()),
+			Name:     account.Name(),
 			Currency: account.Currency(),
 		})
 	}

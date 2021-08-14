@@ -60,7 +60,7 @@ func (suite *AccountHandlerTestSuite) Test_GIVEN_validCreateAccountsRequest_WHEN
 	assert.Equal(suite.T(), "Current", createResponse.Accounts[0].Name)
 	assert.Equal(suite.T(), "AED", createResponse.Accounts[0].Currency)
 
-	// --- 
+	// ---
 
 	r, _ = http.NewRequest("GET", "/api/v1/accounts", nil)
 	AddAuthorizationHeader(r, testUserId)

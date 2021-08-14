@@ -119,7 +119,7 @@ func (d *DefaultAccountDao) SaveTx(ctx context.Context, userId ledger.UserId, a 
 		return nil
 	}
 
-	stmt, err := tx.Prepare(pq.CopyInSchema("budget", "account", "id", "user_id","name", "currency", "created_by", "created_at", "last_modified_by", "last_modified_at", "version"))
+	stmt, err := tx.Prepare(pq.CopyInSchema("budget", "account", "id", "user_id", "name", "currency", "created_by", "created_at", "last_modified_by", "last_modified_at", "version"))
 	if err = checkError(err); err != nil {
 		return err
 	}

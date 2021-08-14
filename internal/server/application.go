@@ -19,8 +19,8 @@ import (
 )
 
 type App struct {
-	config      *cfg.Config
-	UserService svc.UserService
+	config         *cfg.Config
+	UserService    svc.UserService
 	AccountService svc.AccountService
 }
 
@@ -34,9 +34,9 @@ func Init(config *cfg.Config) (*App, error) {
 	}
 
 	var (
-		userService svc.UserService
+		userService    svc.UserService
 		accountService svc.AccountService
-		err         error
+		err            error
 	)
 
 	if userService, err = svc.NewUserService(dao.MustOpenUserDao(
@@ -55,8 +55,8 @@ func Init(config *cfg.Config) (*App, error) {
 
 	log.Printf("--- Application Initialized ---")
 	return &App{
-		config:      config,
-		UserService: userService,
+		config:         config,
+		UserService:    userService,
 		AccountService: accountService,
 	}, nil
 }
@@ -74,9 +74,9 @@ func (app *App) Router() *mux.Router {
 
 	accounts := r.PathPrefix("/api/v1/accounts").Subrouter()
 	accounts.HandleFunc("", app.RegisterAccounts).
-			Methods("POST")
+		Methods("POST")
 	accounts.HandleFunc("", app.GetAccounts).
-			Methods("GET")
+		Methods("GET")
 
 	statikFS, err := fs.New()
 	if err != nil {
@@ -141,16 +141,16 @@ func (app *App) MustEncodeProblem(w http.ResponseWriter, req *http.Request, err 
 }
 
 func (a *App) AuthenticationMiddleware(h http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		
-		if authorization := r.Header.Get("Authorization"); len(authorization) != 0{
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		if authorization := r.Header.Get("Authorization"); len(authorization) != 0 {
 			userId, err := strconv.ParseUint(authorization, 10, 64)
-			if err != nil{
+			if err != nil {
 				log.Printf("Failed to parse userId %q in authorization header", authorization)
 			}
 			r = r.WithContext(context.WithValue(r.Context(), svc.CtxUserId, ledger.UserId(userId)))
 		}
 
-        h.ServeHTTP(w, r)
-    })
+		h.ServeHTTP(w, r)
+	})
 }
