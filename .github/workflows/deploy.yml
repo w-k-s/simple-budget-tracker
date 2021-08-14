@@ -62,5 +62,5 @@ jobs:
           HOSTED_ZONE_NAME: ${{ secrets.HOSTED_ZONE_NAME }}
           RECORD_SET_DOMAIN_NAME: ${{ secrets.RECORD_SET_DOMAIN_NAME }}
         run: |
-          source scripts/export_aws_config.sh
+          source export_aws_config.sh
           update_record_set
