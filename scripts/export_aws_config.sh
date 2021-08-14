@@ -1,6 +1,7 @@
 #!/bin/bash
 
 PROJECT_NAME=simple-budget-tracker
+IAM_CERTIFICATE_NAME=BudgetCertificate1
 
 export_repo_name(){
     export ECR_REPOSITORY_URI=$(aws ecr describe-repositories --repository-names $PROJECT_NAME | jq -r '.repositories[0].repositoryUri');
@@ -24,6 +25,10 @@ export_private_subnets(){
 
 export_rds_security_group(){
     export RDS_SECURITY_GROUP=$(aws ec2 describe-security-groups --filters Name=vpc-id,Values=$VPC_ID Name=tag:ProjectName,Values=$PROJECT_NAME Name=tag:Resource,Values=RDS | jq -r '.SecurityGroups[0].GroupId')
+}
+
+export_iam_certificate(){
+    export IAM_CERTIFICATE_ARN=$(aws iam get-server-certificate --server-certificate-name $IAM_CERTIFICATE_NAME | jq -r '.ServerCertificate.ServerCertificateMetadata.Arn')
 }
 
 update_record_set(){
@@ -51,3 +56,4 @@ export_vpc_id;
 export_public_subnets;
 export_private_subnets;
 export_rds_security_group;
+export_iam_certificate;

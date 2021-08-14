@@ -1,0 +1,66 @@
+name: Deploy
+on:
+  workflow_run:
+    workflows: ["Publish"]
+    branches: [main]
+    types:
+      - completed
+
+jobs:
+  publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Export AWS Env Vars
+        run: |
+          source scripts/export_aws_config.sh
+          echo "ECR_REPOSITORY_URI=$ECR_REPOSITORY_URI" >> $GITHUB_ENV
+          echo "IMAGE_ID=$IMAGE_ID" >> $GITHUB_ENV
+          echo "VPC_ID=$VPC_ID" >> $GITHUB_ENV
+          echo "PUBLIC_SUBNETS=$PUBLIC_SUBNETS" >> $GITHUB_ENV
+          echo "PRIVATE_SUBNETS=$PRIVATE_SUBNETS" >> $GITHUB_ENV
+          echo "RDS_SECURITY_GROUP=$RDS_SECURITY_GROUP" >> $GITHUB_ENV
+          echo "IAM_CERTIFICATE_ARN=$IAM_CERTIFICATE_ARN" >> $GITHUB_ENV
+
+      - name: Deploy
+        env:
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          HOSTED_ZONE_NAME: ${{ secrets.HOSTED_ZONE_NAME }}
+          HEALTH_CHECK_PATH: ${{ secrets.HEALTH_CHECK_PATH }}
+        run: |
+          aws cloudformation deploy --stack-name simple-budget-tracker \
+            --template-file deployments/cloudformation.yml \
+            --parameter-overrides \
+            VPC=$VPC_ID \
+            PublicSubnets=$PUBLIC_SUBNETS \
+            PrivateSubnets=$PRIVATE_SUBNETS \
+            IamCertificateArn=$IAM_CERTIFICATE_ARN \
+            Image=$ECR_REPOSITORY_URI:$IMAGE_ID \
+            RDSSecurityGroupId=$RDS_SECURITY_GROUP \
+            HealthCheckPath=$HEALTH_CHECK_PATH \
+            HostedZoneName=$HOSTED_ZONE_NAME \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --region $AWS_DEFAULT_REGION
+      
+      - name: Update Record Set
+        working-directory: ./scripts
+        env:
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+          HOSTED_ZONE_NAME: ${{ secrets.HOSTED_ZONE_NAME }}
+          RECORD_SET_DOMAIN_NAME: ${{ secrets.RECORD_SET_DOMAIN_NAME }}
+        run: |
+          source scripts/export_aws_config.sh
+          update_record_set
