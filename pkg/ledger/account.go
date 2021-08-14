@@ -2,6 +2,8 @@ package ledger
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/gobuffalo/validate"
@@ -65,7 +67,7 @@ func newAccount(id AccountId, name string, currency string, auditInfo auditInfo)
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
 		&validators.StringLengthInRange{Name: "Name", Field: name, Min: 1, Max: 25, Message: "Name must be 1 and 25 characters long"},
 		&validators.StringLengthInRange{Name: "Currency", Field: currency, Min: 3, Max: 4, Message: "Currency must be 3 characters long"},
-		&validators.FuncValidator{Name: "Currency", Field: currency, Message: "No such currency %q", Fn: func() bool { return IsValidCurrency(currency) }},
+		&validators.FuncValidator{Name: "Currency", Field: currency, Message: "No such currency '%s'", Fn: func() bool { return IsValidCurrency(currency) }},
 	)
 
 	if err := makeCoreValidationError(ErrAccountValidation, errors); err != nil {
@@ -95,3 +97,27 @@ func (a Account) Currency() string {
 func (a Account) String() string {
 	return fmt.Sprintf("Account{id: %d, name: %s, currency: %s}", a.id, a.name, a.currency)
 }
+
+type Accounts []Account
+
+func (as Accounts) Names() []string {
+	names := make([]string, 0, len(as))
+	for _, account := range as {
+		names = append(names, account.Name())
+	}
+	sort.Strings(names)
+	return names
+}
+
+func (as Accounts) String() string {
+	sort.Sort(as)
+	strs := make([]string, 0, len(as))
+	for _, category := range as {
+		strs = append(strs, category.String())
+	}
+	return fmt.Sprintf("Accounts{%s}", strings.Join(strs, ", "))
+}
+
+func (as Accounts) Len() int           { return len(as) }
+func (as Accounts) Swap(i, j int)      { as[i], as[j] = as[j], as[i] }
+func (as Accounts) Less(i, j int) bool { return as[i].Name() < as[j].Name() }

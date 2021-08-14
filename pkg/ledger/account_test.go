@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"sort"
 	"testing"
 	"time"
 
@@ -55,8 +56,8 @@ func (suite *AccountTestSuite) Test_GIVEN_noCurrency_WHEN_AccountIsCreated_THEN_
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Account{}, account)
 	assert.Equal(suite.T(), ErrAccountValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "No such currency \"\", Currency must be 3 characters long", err.(Error).Error())
-	assert.Equal(suite.T(), "No such currency \"\", Currency must be 3 characters long", err.(Error).Fields()["currency"])
+	assert.Equal(suite.T(), "No such currency '', Currency must be 3 characters long", err.(Error).Error())
+	assert.Equal(suite.T(), "No such currency '', Currency must be 3 characters long", err.(Error).Fields()["currency"])
 }
 
 func (suite *AccountTestSuite) Test_GIVEN_aNonExistantCurrency_WHEN_AccountIsCreated_THEN_errorIsReturned() {
@@ -68,8 +69,8 @@ func (suite *AccountTestSuite) Test_GIVEN_aNonExistantCurrency_WHEN_AccountIsCre
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Account{}, account)
 	assert.Equal(suite.T(), ErrAccountValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "No such currency \"XXX\"", err.(Error).Error())
-	assert.Equal(suite.T(), "No such currency \"XXX\"", err.(Error).Fields()["currency"])
+	assert.Equal(suite.T(), "No such currency 'XXX'", err.(Error).Error())
+	assert.Equal(suite.T(), "No such currency 'XXX'", err.(Error).Fields()["currency"])
 }
 
 func (suite *AccountTestSuite) Test_GIVEN_validParameters_WHEN_AccountIsCreated_THEN_noErrorsAreReturned() {
@@ -95,4 +96,51 @@ func (suite *AccountTestSuite) Test_GIVEN_anAccount_WHEN_stringIsCalled_THEN_str
 
 	// THEN
 	assert.Equal(suite.T(), "Account{id: 2, name: Main, currency: AED}", account.String())
+}
+
+func (suite *AccountTestSuite) Test_GIVEN_accounts_WHEN_namesIsCalled_THEN_sliceOfSortedAccountNamesIsReturned() {
+
+	// WHEN
+	account1, _ := NewAccount(1, "Current", "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account2, _ := NewAccount(1, "Savings", "AED", MustMakeUpdatedByUserId(UserId(1)))
+
+	accounts := Accounts{
+		account1,
+		account2,
+	}
+
+	// THEN
+	assert.Equal(suite.T(), []string{"Current", "Savings"}, accounts.Names())
+}
+
+func (suite *AccountTestSuite) Test_GIVEN_accounts_WHEN_sortIsCalled_THEN_accountsAreSortedInPlace() {
+
+	// WHEN
+	account1, _ := NewAccount(1, "Current", "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account2, _ := NewAccount(1, "Savings", "AED", MustMakeUpdatedByUserId(UserId(1)))
+
+	accounts := Accounts{
+		account2,
+		account1,
+	}
+	sort.Sort(accounts)
+
+	// THEN
+	assert.Equal(suite.T(), "Current", accounts[0].Name())
+	assert.Equal(suite.T(), "Savings", accounts[1].Name())
+}
+
+func (suite *AccountTestSuite) Test_GIVEN_accounts_WHEN_stringIsCalled_THEN_stringOfEachAccountIsPrintedInAlphabeticalOrder() {
+
+	// WHEN
+	account1, _ := NewAccount(1, "Current", "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account2, _ := NewAccount(2, "Savings", "AED", MustMakeUpdatedByUserId(UserId(1)))
+
+	accounts := Accounts{
+		account2,
+		account1,
+	}
+
+	// THEN
+	assert.Equal(suite.T(), "Accounts{Account{id: 1, name: Current, currency: AED}, Account{id: 2, name: Savings, currency: AED}}", accounts.String())
 }

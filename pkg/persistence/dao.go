@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"time"
@@ -27,14 +28,15 @@ type UserDao interface {
 }
 
 type AccountDao interface {
+	BeginTx() (*sql.Tx, error)
+	MustBeginTx() *sql.Tx
+
 	Close() error
-	NewAccountId() (ledger.AccountId, error)
+	NewAccountId(tx *sql.Tx) (ledger.AccountId, error)
 
-	Save(id ledger.UserId, a *ledger.Account) error
-	SaveTx(id ledger.UserId, a *ledger.Account, tx *sql.Tx) error
+	SaveTx(ctx context.Context, id ledger.UserId, as ledger.Accounts, tx *sql.Tx) error
 
-	GetAccountById(id ledger.AccountId) (ledger.Account, error)
-	GetAccountsByUserId(id ledger.UserId) ([]ledger.Account, error)
+	GetAccountsByUserId(ctx context.Context, id ledger.UserId, tx *sql.Tx) (ledger.Accounts, error)
 }
 
 type CategoryDao interface {
@@ -72,7 +74,7 @@ func DeferRollback(tx *sql.Tx, reference string) {
 	if tx == nil {
 		return
 	}
-	if err := tx.Rollback(); err != nil {
+	if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
 		log.Printf("failed to rollback transaction with reference %q. Reason: %s", reference, err)
 	}
 }
@@ -81,7 +83,7 @@ func Commit(tx *sql.Tx) error {
 	if tx == nil {
 		log.Fatal("Commit should not be passed a nil transaction")
 	}
-	if err := tx.Commit(); err != nil {
+	if err := tx.Commit(); err != nil && err != sql.ErrTxDone{
 		return ledger.NewError(ledger.ErrDatabaseConnectivity, "Failed to save changes", err)
 	}
 	return nil

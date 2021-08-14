@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -69,11 +70,7 @@ func simulateRecords(db *sql.DB, numberOfUsers int, startMonth ledger.CalendarMo
 			return nil, err
 		}
 
-		if err = AccountDao.SaveTx(userId, &currentAccount, tx); err != nil {
-			return nil, err
-		}
-
-		if err = AccountDao.SaveTx(userId, &savingsAccount, tx); err != nil {
+		if err = AccountDao.SaveTx(context.Background(), userId, ledger.Accounts{currentAccount, savingsAccount}, tx); err != nil {
 			return nil, err
 		}
 

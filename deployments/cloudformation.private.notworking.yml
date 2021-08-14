@@ -1,0 +1,408 @@
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/example-templates-autoscaling.html
+# https://forums.aws.amazon.com/thread.jspa?threadID=339634&tstart=0
+# https://github.com/thomasstep/aws-cloudformation-reference/blob/98d23f0b5eef9db731e98b3c38cc8957c60ad8e3/fargate/ecs-cluster.yml
+# https://www.reddit.com/r/aws/comments/igevqx/need_help_with_ecs_taskdefinition_and_efs_at/
+# https://github.com/aws-samples/amazon-ecr-privatelink-blog/
+# https://aws.amazon.com/blogs/containers/aws-privatelink-ecr-cross-account-fargate-deployment/
+
+Parameters:
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC Id. VPC's private subnets must have a NAT Gateway to download container image.
+  PublicSubnets:
+    Description: Choose which public subnets the Load Balancer
+    Type: List<AWS::EC2::Subnet::Id>
+  PrivateSubnets:
+    Description: Choose which private subnets the ECS Service should be deployed to
+    Type: List<AWS::EC2::Subnet::Id>
+  IamCertificateArn:
+    Type: String
+    Description: The IAM Certificate Arn, which must exist in the same region
+  Image:
+    Type: String
+    Description: Docker image. You can use images in the Docker Hub registry or specify other repositories (repository-url/image:tag).
+  ContainerPort:
+    Type: Number
+    Description: Port on which the application listens within the docker container
+    Default: 8080
+  LoadBalancerPort:
+    Type: Number
+    Default: 443
+  RDSSecurityGroupId:
+    # TODO: Check that the rds instance accepts connection from within the vpc cidr range.
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security Group of the RDS Instance
+  HealthCheckPath:
+    Type: String
+    Description: The health check path starting with / e.g. /health
+  HostedZoneName:
+    Type: String
+    Description: Domain name for your website (example.com.). Note it must end in a .
+  HostedZoneID:
+    Type: String
+    Description: Hosted Zone Id
+
+Resources:
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    DependsOn:
+      - LogGroup
+      - TaskExecutionRole
+    Properties:
+      Family: !Join ["", [!Ref "AWS::StackName", TaskDefinition]]
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 512
+      Memory: 1GB
+      ExecutionRoleArn: !Ref TaskExecutionRole
+      TaskRoleArn: !Ref TaskExecutionRole
+      ContainerDefinitions:
+        - Name: !Ref "AWS::StackName"
+          Image: !Ref Image
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Ref LogGroup
+              awslogs-stream-prefix: !Join ["", [!Ref "AWS::StackName", -ecs-app]]
+          EntryPoint: ["./app", "-file=s3://com.wks.budget/config.toml"]
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Join ["", [!Ref "AWS::StackName", "-", "Cluster"]]
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - ListenerHTTPS
+    Properties:
+      ServiceName: !Join ["", [!Ref "AWS::StackName", "-", "Service"]]
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref TaskDefinition
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 100
+        MaximumPercent: 200
+      DesiredCount: 1
+      HealthCheckGracePeriodSeconds: 30
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref PrivateSubnets
+          SecurityGroups:
+            - !Ref ContainerSecurityGroup
+      LoadBalancers:
+        - ContainerName: !Ref AWS::StackName
+          ContainerPort: !Ref ContainerPort
+          TargetGroupArn: !Ref TargetGroup
+
+  # API Load Balancer
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckPath: !Ref HealthCheckPath
+      HealthCheckTimeoutSeconds: 10
+      UnhealthyThresholdCount: 2
+      HealthyThresholdCount: 2
+      Name: !Join ["", [!Ref AWS::StackName, "-", "TrgtGrp"]]
+      Port: !Ref ContainerPort
+      Protocol: HTTP
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: 60 # default is 300
+      TargetType: ip
+      VpcId: !Ref VPC
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: 60
+      Name: !Join ["", [!Ref AWS::StackName, "-", "ELB"]]
+      Scheme: internet-facing
+      SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+      Subnets: !Ref PublicSubnets
+
+  ListenerHTTPS:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref TargetGroup
+          Type: forward
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: !Ref LoadBalancerPort
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref IamCertificateArn
+
+  # IAM Roles
+
+  TaskExecutionRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Policies:
+        - PolicyDocument: {
+              "Version": "2012-10-17",
+              "Statement":
+                [
+                  {
+                    "Effect": "Allow",
+                    "Action": ["s3:GetObject"],
+                    "Resource": ["arn:aws:s3:::com.wks.budget/config.toml"],
+                  },
+                ],
+            }
+          PolicyName: !Join ["", [!Ref "AWS::StackName", "-", "DownloadConfigFromS3Policy"]]
+        - PolicyDocument: {
+              "Version": "2012-10-17",
+              "Statement":
+                [
+                  {
+                    "Effect": "Allow",
+                    "Action": [
+                      "secretsmanager:GetSecretValue", 
+                      "kms:Decrypt"
+                    ],
+                    "Resource": "*",
+                  },
+                ],
+            }
+          PolicyName: !Join ["", [!Ref "AWS::StackName", "-", "PullImagePolicy"]]
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+
+  # Logging
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ["", [/ecs/, !Ref "AWS::StackName"]]
+
+  # Private Links
+  # https://stackoverflow.com/a/61530223/821110
+  # https://docs.aws.amazon.com/AmazonECR/latest/userguide/vpc-endpoints.html
+
+  VPCEndpointECRAPI:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      SecurityGroupIds:
+        - !Ref PrivateLinkSecurityGroup
+      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ecr.api"]]
+      SubnetIds: !Ref PublicSubnets
+      VpcId: !Ref VPC
+
+  VPCEndpointECRDKR:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      SecurityGroupIds:
+        - !Ref PrivateLinkSecurityGroup
+      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ecr.dkr"]]
+      SubnetIds: !Ref PublicSubnets
+      VpcId: !Ref VPC
+
+  VPCEndpointLogs:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      SecurityGroupIds:
+        - !Ref PrivateLinkSecurityGroup
+      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".logs"]]
+      SubnetIds: !Ref PublicSubnets
+      VpcId: !Ref VPC
+
+  VPCEndpointS3:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      SecurityGroupIds:
+        - !Ref PrivateLinkSecurityGroup
+      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".s3"]]
+      SubnetIds: !Ref PublicSubnets
+      VpcId: !Ref VPC
+
+  VPCEndpointSSM:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      SecurityGroupIds:
+        - !Ref PrivateLinkSecurityGroup
+      ServiceName: !Join ["", ["com.amazonaws.", !Ref "AWS::Region", ".ssm"]]
+      SubnetIds: !Ref PublicSubnets
+      VpcId: !Ref VPC
+
+  # Security Groups
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Load balancer security group
+      GroupName: !Join ["", [!Ref "AWS::StackName", "-", "LoadBalancerSecurityGroup"]]
+      Tags:
+        - Key: ProjectName
+          Value: !Ref "AWS::StackName"
+      VpcId: !Ref VPC
+
+  LoadBalancerInboundRuleHTTP:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref LoadBalancerSecurityGroup
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 0.0.0.0/0
+
+  LoadBalancerOutboundRuleHTTP:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref LoadBalancerSecurityGroup
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 0.0.0.0/0
+
+  LoadBalancerInboundRuleHTTPS:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref LoadBalancerSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
+
+  LoadBalancerOutboundRuleHTTPS:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref LoadBalancerSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIp: 0.0.0.0/0
+
+  LoadBalancerInboundRuleContainer:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref LoadBalancerSecurityGroup
+      IpProtocol: tcp
+      FromPort: !Ref ContainerPort
+      ToPort: !Ref ContainerPort
+      SourceSecurityGroupId: !GetAtt ContainerSecurityGroup.GroupId
+
+  LoadBalancerOutboundRuleContainer:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref LoadBalancerSecurityGroup
+      IpProtocol: tcp
+      FromPort: !Ref ContainerPort
+      ToPort: !Ref ContainerPort
+      DestinationSecurityGroupId: !GetAtt ContainerSecurityGroup.GroupId
+
+  ContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Accepts traffic from and to load balancer
+      GroupName: !Join ["", [!Ref "AWS::StackName", "-", "ContainerSecurityGroup"]]
+      Tags:
+        - Key: ProjectName
+          Value: !Ref "AWS::StackName"
+      VpcId: !Ref VPC
+
+  ContainerInboundRuleHTTP:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref ContainerSecurityGroup
+      IpProtocol: tcp
+      FromPort: !Ref ContainerPort
+      ToPort: !Ref ContainerPort
+      SourceSecurityGroupId: !GetAtt LoadBalancerSecurityGroup.GroupId
+
+  ContainerOutboundRuleHTTP:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref ContainerSecurityGroup
+      IpProtocol: tcp
+      FromPort: !Ref ContainerPort
+      ToPort: !Ref ContainerPort
+      DestinationSecurityGroupId: !GetAtt LoadBalancerSecurityGroup.GroupId
+
+  ContainerInboundRuleRDS:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref ContainerSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      SourceSecurityGroupId: !Ref RDSSecurityGroupId
+
+  ContainerOutboundRuleRDS:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref ContainerSecurityGroup
+      IpProtocol: tcp
+      FromPort: 5432
+      ToPort: 5432
+      DestinationSecurityGroupId: !Ref RDSSecurityGroupId
+
+  # Required by Task to authenticate and pull image from ECR
+  ContainerInboundPrivateLink:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref ContainerSecurityGroup
+      IpProtocol: -1
+      SourceSecurityGroupId: !Ref PrivateLinkSecurityGroup
+
+  ContainerOutboundPrivateLink:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref ContainerSecurityGroup
+      IpProtocol: -1
+      DestinationSecurityGroupId: !Ref PrivateLinkSecurityGroup
+
+  PrivateLinkSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Join ["", [!Ref "AWS::StackName", "-", "PrivateLinkSecurityGroup"]]
+      GroupDescription: PrivateLink-SecurityGroup
+      Tags:
+        - Key: ProjectName
+          Value: !Ref "AWS::StackName"
+      VpcId: !Ref VPC
+
+  PrivateLinkInboundRuleAll:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref PrivateLinkSecurityGroup
+      IpProtocol: -1
+      CidrIp: 0.0.0.0/0 # Should be VPN CIDR
+
+  PrivateLinkOutboundRuleAll:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref PrivateLinkSecurityGroup
+      IpProtocol: -1
+      CidrIp: 0.0.0.0/0
+
+Outputs:
+  StackVPC:
+    Description: The DNS name of the provisioned application load balancer
+    Value: !GetAtt LoadBalancer.DNSName
+    Export:
+      Name: "DNSName"

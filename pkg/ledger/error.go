@@ -34,6 +34,7 @@ const (
 	ErrAuditValidation
 	ErrAuditUpdatedByBadFormat
 	ErrRequestUnmarshallingFailed
+	ErrServiceUserIdRequired
 )
 
 var errorCodeNames = map[ErrorCode]string{
@@ -45,6 +46,8 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrUserEmailDuplicated:         "DUPLICATE_USER_EMAIL",
 	ErrUserNotFound:                "USER_NOT_FOUND",
 	ErrAccountValidation:           "ACCOUNT_VALIDATION_FAILED",
+	ErrAccountNotFound:				"ACCOUNT_NOT_FOUND",
+	ErrAccountNameDuplicated: 		"ACCOUNT_NAME_DUPLICATED",
 	ErrCurrencyInvalidCode:         "INVALID_CURRENCY_CODE",
 	ErrCategoryValidation:          "CATEGORY_VALIDATION_FAILED",
 	ErrCategoryNameDuplicated:      "CATEGORY_NAME_DUPLICATED",
@@ -56,13 +59,14 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrAuditValidation:             "AUDIT_VALIDATION_FAILED",
 	ErrAuditUpdatedByBadFormat:     "AUDIT_UPDATED_BY_BAD_FORMAT",
 	ErrRequestUnmarshallingFailed:  "REQUEST_UNMARSHALLING_FAILED",
+	ErrServiceUserIdRequired: 		"SERVICE_REQUIRED_USER_ID",
 }
 
 func (c ErrorCode) Name() string {
 	var name string
 	var ok bool
 	if name, ok = errorCodeNames[c]; !ok {
-		log.Fatalf("No name for error code %d", c)
+		log.Fatalf("FATAL: No name for error code %d", c)
 	}
 	return name
 }
@@ -95,6 +99,9 @@ func (c ErrorCode) Status() int {
 		fallthrough
 	case ErrRequestUnmarshallingFailed:
 		return http.StatusBadRequest
+
+	case ErrServiceUserIdRequired:
+		return http.StatusUnauthorized
 
 	case ErrUserNotFound:
 		fallthrough

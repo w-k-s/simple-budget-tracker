@@ -47,7 +47,7 @@ func (suite *UserHandlerTestSuite) Test_GIVEN_validCreateUserRequest_WHEN_create
 
 }
 
-func (suite *HealthHandlerTestSuite) Test_GIVEN_blankRequest_WHEN_createUserEndpointIsCalled_THEN_emailValidationFailsAnd400IsReturned() {
+func (suite *UserHandlerTestSuite) Test_GIVEN_blankRequest_WHEN_createUserEndpointIsCalled_THEN_emailValidationFailsAnd400IsReturned() {
 	// GIVEN
 	var request bytes.Buffer
 	request.WriteString("{}")
@@ -64,7 +64,7 @@ func (suite *HealthHandlerTestSuite) Test_GIVEN_blankRequest_WHEN_createUserEndp
 	assert.Equal(suite.T(), "{\"detail\":\"mail: no address\",\"instance\":\"/api/v1/user\",\"status\":400,\"title\":\"USER_EMAIL_INVALID\",\"type\":\"/api/v1/problems/1004\"}", p.Error())
 }
 
-func (suite *HealthHandlerTestSuite) Test_GIVEN_invalidEmail_WHEN_createUserEndpointIsCalled_THEN_emailValidationFailsAnd400IsReturned() {
+func (suite *UserHandlerTestSuite) Test_GIVEN_invalidEmail_WHEN_createUserEndpointIsCalled_THEN_emailValidationFailsAnd400IsReturned() {
 	// GIVEN
 	var request bytes.Buffer
 	request.WriteString("{\"email\":\"bob\"}")

@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"log"
 	"testing"
 
@@ -43,26 +44,13 @@ func (suite *AccountDaoTestSuite) TearDownTest() {
 
 func (suite *AccountDaoTestSuite) Test_WHEN_NewAccountIdIsCalled_THEN_accountIdIsReturnedFromDatabaseSequence() {
 	// WHEN
-	accountId, err := suite.accountDao.NewAccountId()
+	tx := suite.accountDao.MustBeginTx()
+	accountId, err := suite.accountDao.NewAccountId(tx)
+	_ = tx.Commit()
 
 	// THEN
 	assert.Nil(suite.T(), err)
 	assert.Positive(suite.T(), accountId)
-}
-
-func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedById() {
-	// GIVEN
-	anAccount, _ := ledger.NewAccount(ledger.AccountId(1), "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
-
-	// WHEN
-	_ = suite.accountDao.Save(testUserId, &anAccount)
-	theAccount, err := suite.accountDao.GetAccountById(ledger.AccountId(1))
-
-	// THEN
-	assert.Nil(suite.T(), err)
-	assert.EqualValues(suite.T(), ledger.AccountId(1), theAccount.Id())
-	assert.EqualValues(suite.T(), "Current", theAccount.Name())
-	assert.EqualValues(suite.T(), "AED", theAccount.Currency())
 }
 
 func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedByUserId() {
@@ -71,9 +59,13 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_TH
 	lifeSavingsAccount, _ := ledger.NewAccount(2, "Life Savings", "EUR", ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
-	_ = suite.accountDao.Save(testUserId, &currentAccount)
-	_ = suite.accountDao.Save(testUserId, &lifeSavingsAccount)
-	allAccounts, err := suite.accountDao.GetAccountsByUserId(testUserId)
+	tx := suite.accountDao.MustBeginTx()
+	_ = suite.accountDao.SaveTx(context.Background(), testUserId, ledger.Accounts{currentAccount, lifeSavingsAccount}, tx)
+	_ = tx.Commit()
+
+	tx = suite.accountDao.MustBeginTx()
+	allAccounts, err := suite.accountDao.GetAccountsByUserId(context.Background(), testUserId, tx)
+	_ = tx.Commit()
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -88,29 +80,19 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_TH
 	assert.EqualValues(suite.T(), "EUR", allAccounts[1].Currency())
 }
 
-func (suite *AccountDaoTestSuite) Test_Given_anAccountId_WHEN_noAccountWithThatIdExists_THEN_appropriateErrorIsReturned() {
-	// GIVEN
-	accountId := ledger.AccountId(1)
-
-	// WHEN
-	theAccount, err := suite.accountDao.GetAccountById(accountId)
-
-	// THEN
-	assert.Equal(suite.T(), ledger.Account{}, theAccount)
-
-	coreError := err.(ledger.Error)
-	assert.EqualValues(suite.T(), ledger.ErrAccountNotFound, uint64(coreError.Code()))
-	assert.EqualValues(suite.T(), "Account with id 1 not found", coreError.Error())
-}
-
 func (suite *AccountDaoTestSuite) Test_Given_twoAccounts_WHEN_theAccountsHaveTheSameName_THEN_onlyOneAccountIsSaved() {
 	// GIVEN
 	account1, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
 	account2, _ := ledger.NewAccount(2, "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
-	err1 := suite.accountDao.Save(testUserId, &account1)
-	err2 := suite.accountDao.Save(testUserId, &account2)
+	tx := suite.accountDao.MustBeginTx()
+	err1 := suite.accountDao.SaveTx(context.Background(), testUserId, ledger.Accounts{account1}, tx)
+	_ = tx.Commit()
+
+	tx = suite.accountDao.MustBeginTx()
+	err2 := suite.accountDao.SaveTx(context.Background(), testUserId, ledger.Accounts{account2}, tx)
+	_ = tx.Commit()
 
 	// THEN
 	assert.Nil(suite.T(), err1)
@@ -118,5 +100,5 @@ func (suite *AccountDaoTestSuite) Test_Given_twoAccounts_WHEN_theAccountsHaveThe
 
 	coreError := err2.(ledger.Error)
 	assert.Equal(suite.T(), ledger.ErrAccountNameDuplicated, coreError.Code())
-	assert.Equal(suite.T(), "Account name must be unique", coreError.Error())
+	assert.Equal(suite.T(), "Acccount named \"Current\" already exists", coreError.Error())
 }

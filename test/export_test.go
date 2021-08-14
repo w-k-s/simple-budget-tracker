@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"testing"
 
@@ -152,4 +153,8 @@ func quickMoney(currency string, amountMinorUnits int64) ledger.Money {
 		log.Fatalf("Failed to create money: %s", err)
 	}
 	return amount
+}
+
+func AddAuthorizationHeader(r *http.Request, userId ledger.UserId){
+	r.Header.Add("Authorization", fmt.Sprintf("%d", userId))
 }

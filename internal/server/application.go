@@ -1,10 +1,12 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
@@ -19,6 +21,7 @@ import (
 type App struct {
 	config      *cfg.Config
 	UserService svc.UserService
+	AccountService svc.AccountService
 }
 
 func (app *App) Config() *cfg.Config {
@@ -32,6 +35,7 @@ func Init(config *cfg.Config) (*App, error) {
 
 	var (
 		userService svc.UserService
+		accountService svc.AccountService
 		err         error
 	)
 
@@ -42,21 +46,37 @@ func Init(config *cfg.Config) (*App, error) {
 		return nil, fmt.Errorf("failed to initiaise user service. Reason: %w", err)
 	}
 
+	if accountService, err = svc.NewAccountService(dao.MustOpenAccountDao(
+		config.Database().DriverName(),
+		config.Database().ConnectionString(),
+	)); err != nil {
+		return nil, fmt.Errorf("failed to initiaise account service. Reason: %w", err)
+	}
+
 	log.Printf("--- Application Initialized ---")
 	return &App{
 		config:      config,
 		UserService: userService,
+		AccountService: accountService,
 	}, nil
 }
 
 func (app *App) Router() *mux.Router {
 	r := mux.NewRouter()
 
+	r.Use(app.AuthenticationMiddleware)
+
 	r.HandleFunc("/health", app.HealthHandler)
 
 	users := r.PathPrefix("/api/v1/user").Subrouter()
 	users.HandleFunc("", app.RegisterUser).
 		Methods("POST")
+
+	accounts := r.PathPrefix("/api/v1/accounts").Subrouter()
+	accounts.HandleFunc("", app.RegisterAccounts).
+			Methods("POST")
+	accounts.HandleFunc("", app.GetAccounts).
+			Methods("GET")
 
 	statikFS, err := fs.New()
 	if err != nil {
@@ -118,4 +138,19 @@ func (app *App) MustEncodeProblem(w http.ResponseWriter, req *http.Request, err 
 		WriteTo(w); problemError != nil {
 		log.Printf("Failed to encode problem '%v'. Reason: %s", err, problemError)
 	}
+}
+
+func (a *App) AuthenticationMiddleware(h http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		
+		if authorization := r.Header.Get("Authorization"); len(authorization) != 0{
+			userId, err := strconv.ParseUint(authorization, 10, 64)
+			if err != nil{
+				log.Printf("Failed to parse userId %q in authorization header", authorization)
+			}
+			r = r.WithContext(context.WithValue(r.Context(), svc.CtxUserId, ledger.UserId(userId)))
+		}
+
+        h.ServeHTTP(w, r)
+    })
 }

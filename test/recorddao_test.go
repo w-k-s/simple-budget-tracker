@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"log"
 	"testing"
 	"time"
@@ -43,15 +44,14 @@ func (suite *RecordDaoTestSuite) SetupTest() {
 		log.Fatalf("RecordDaoTestSuite: Test setup failed: %s", err)
 	}
 
+	tx := suite.userDao.MustBeginTx()
 	currentAccount, _ := ledger.NewAccount(testCurrentAccountId, testCurrentAccountName, testCurrentAccountCurrency, ledger.MustMakeUpdatedByUserId(testUserId))
-	if err := suite.accountDao.Save(testUserId, &currentAccount); err != nil {
-		log.Fatalf("RecordDaoTestSuite: Test setup failed: %s", err)
-	}
-
 	savingsAccount, _ := ledger.NewAccount(testSavingsAccountId, testSavingsAccountName, testSavingsAccountCurrency, ledger.MustMakeUpdatedByUserId(testUserId))
-	if err := suite.accountDao.Save(testUserId, &savingsAccount); err != nil {
+
+	if err := suite.accountDao.SaveTx(context.Background(), testUserId, ledger.Accounts{currentAccount, savingsAccount}, tx); err != nil {
 		log.Fatalf("RecordDaoTestSuite: Test setup failed: %s", err)
 	}
+	_ = tx.Commit()
 
 	testSalaryCategory, _ = ledger.NewCategory(testSalaryCategoryId, testSalaryCategoryName, ledger.MustMakeUpdatedByUserId(testUserId))
 	testBillsCategory, _ = ledger.NewCategory(testBillsCategoryId, testBillsCategoryName, ledger.MustMakeUpdatedByUserId(testUserId))

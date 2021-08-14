@@ -1,12 +1,14 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -91,7 +93,7 @@ func (d DefaultAccountDao) Close() error {
 	return d.db.Close()
 }
 
-func (d *DefaultAccountDao) NewAccountId() (ledger.AccountId, error) {
+func (d *DefaultAccountDao) NewAccountId(tx *sql.Tx) (ledger.AccountId, error) {
 	var accountId ledger.AccountId
 	err := d.db.QueryRow("SELECT nextval('budget.account_id')").Scan(&accountId)
 	if err != nil {
@@ -101,71 +103,68 @@ func (d *DefaultAccountDao) NewAccountId() (ledger.AccountId, error) {
 	return accountId, err
 }
 
-func (d *DefaultAccountDao) SaveTx(userId ledger.UserId, a *ledger.Account, tx *sql.Tx) error {
-	epoch := time.Time{}
-	_, err := tx.Exec(
-		`INSERT INTO budget.account 
-			(id, user_id, name, currency, created_by, created_at, last_modified_by, last_modified_at, version) 
-			VALUES 
-			($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		a.Id(),
-		userId,
-		a.Name(),
-		a.Currency(),
-		a.CreatedBy().String(),
-		a.CreatedAtUTC(),
-		sql.NullString{
-			String: a.ModifiedBy().String(),
-			Valid:  a.ModifiedBy() != ledger.UpdatedBy{},
-		},
-		sql.NullTime{
-			Time:  a.ModifiedAtUTC(),
-			Valid: epoch != a.ModifiedAtUTC(),
-		},
-		a.Version(),
-	)
-	if err != nil {
-		log.Printf("Failed to save account %v. Reason: %s", a, err)
-		if _, ok := d.isDuplicateKeyError(err); ok {
-			return ledger.NewError(ledger.ErrAccountNameDuplicated, "Account name must be unique", err)
+func (d *DefaultAccountDao) SaveTx(ctx context.Context, userId ledger.UserId, a ledger.Accounts, tx *sql.Tx) error {
+	checkError := func(err error) error {
+		if err != nil {
+			log.Printf("Failed to save accounts '%q' for user id %d. Reason: %q", a, userId, err)
+			if _, ok := d.isDuplicateKeyError(err); ok {
+				message := fmt.Sprintf("Acccount names must be unique. One of these is duplicated: %s", strings.Join(a.Names(), ", "))
+				if a.Len() == 1 {
+					message = fmt.Sprintf("Acccount named %q already exists", a.Names()[0])
+				}
+				return ledger.NewError(ledger.ErrAccountNameDuplicated, message, err)
+			}
+			return ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Failed to save accounts %q", a.Names()), err)
 		}
-		return ledger.NewError(ledger.ErrDatabaseState, "Failed to save account", err)
+		return nil
+	}
+
+	stmt, err := tx.Prepare(pq.CopyInSchema("budget", "account", "id", "user_id","name", "currency", "created_by", "created_at", "last_modified_by", "last_modified_at", "version"))
+	if err = checkError(err); err != nil {
+		return err
+	}
+
+	epoch := time.Time{}
+	for _, account := range a {
+		_, err = stmt.Exec(
+			account.Id(),
+			userId,
+			account.Name(),
+			account.Currency(),
+			account.CreatedBy().String(),
+			account.CreatedAtUTC(),
+			sql.NullString{
+				String: account.ModifiedBy().String(),
+				Valid:  account.ModifiedBy() != ledger.UpdatedBy{},
+			},
+			sql.NullTime{
+				Time:  account.ModifiedAtUTC(),
+				Valid: epoch != account.ModifiedAtUTC(),
+			},
+			account.Version(),
+		)
+		if err != nil {
+			log.Printf("Failed to save category %q for user id %d. Reason: %q", account.Name(), userId, err)
+		}
+
+	}
+
+	_, err = stmt.Exec()
+	if err = checkError(err); err != nil {
+		return err
+	}
+
+	err = stmt.Close()
+	if err = checkError(err); err != nil {
+		return err
 	}
 	return nil
 }
 
-func (d *DefaultAccountDao) GetAccountById(queryId ledger.AccountId) (ledger.Account, error) {
-	var ar accountRecord
+func (d *DefaultAccountDao) GetAccountsByUserId(ctx context.Context, queryId ledger.UserId, tx *sql.Tx) (ledger.Accounts, error) {
 
-	err := d.db.QueryRow(
-		`SELECT 
-			id, 
-			name, 
-			currency, 
-			created_by, 
-			created_at, 
-			last_modified_by, 
-			last_modified_at, 
-			version 
-		FROM 
-			budget.account 
-		WHERE id = $1`,
-		queryId,
-	).
-		Scan(&ar.id, &ar.name, &ar.currency, &ar.createdBy, &ar.createdAt, &ar.modifiedBy, &ar.modifiedAt, &ar.version)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return ledger.Account{}, ledger.NewError(ledger.ErrAccountNotFound, fmt.Sprintf("Account with id %d not found", queryId), err)
-		}
-		return ledger.Account{}, ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Account with id %d not found", queryId), err)
-	}
-
-	return ledger.NewAccountFromRecord(ar)
-}
-
-func (d *DefaultAccountDao) GetAccountsByUserId(queryId ledger.UserId) ([]ledger.Account, error) {
-
-	rows, err := d.db.Query(
+	rows, err := tx.QueryContext(
+		ctx,
 		`SELECT 
 			a.id, 
 			a.name, 
@@ -188,7 +187,7 @@ func (d *DefaultAccountDao) GetAccountsByUserId(queryId ledger.UserId) ([]ledger
 	}
 	defer rows.Close()
 
-	entities := make([]ledger.Account, 0)
+	entities := make(ledger.Accounts, 0)
 	for rows.Next() {
 		var ar accountRecord
 
@@ -209,14 +208,14 @@ func (d *DefaultAccountDao) GetAccountsByUserId(queryId ledger.UserId) ([]ledger
 	return entities, nil
 }
 
-func (d *DefaultAccountDao) Save(userId ledger.UserId, a *ledger.Account) error {
+func (d *DefaultAccountDao) Save(ctx context.Context, userId ledger.UserId, a []ledger.Account) error {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	err = d.SaveTx(userId, a, tx)
+	err = d.SaveTx(ctx, userId, a, tx)
 	if err == nil {
 		err = tx.Commit()
 	}
