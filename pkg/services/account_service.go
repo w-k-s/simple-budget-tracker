@@ -37,7 +37,7 @@ type accountService struct {
 
 func NewAccountService(accountDao dao.AccountDao) (AccountService, error) {
 	if accountDao == nil {
-		return nil, fmt.Errorf("can not create user service. accountDao is nil")
+		return nil, fmt.Errorf("can not create account service. accountDao is nil")
 	}
 
 	return &accountService{

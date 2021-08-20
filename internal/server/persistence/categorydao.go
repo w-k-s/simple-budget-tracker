@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -87,9 +88,9 @@ func (d DefaultCategoryDao) Close() error {
 	return d.db.Close()
 }
 
-func (d *DefaultCategoryDao) NewCategoryId() (ledger.CategoryId, error) {
+func (d *DefaultCategoryDao) NewCategoryId(tx *sql.Tx) (ledger.CategoryId, error) {
 	var categoryId ledger.CategoryId
-	err := d.db.QueryRow("SELECT nextval('budget.category_id')").Scan(&categoryId)
+	err := tx.QueryRow("SELECT nextval('budget.category_id')").Scan(&categoryId)
 	if err != nil {
 		log.Printf("Failed to assign category id. Reason; %s", err)
 		return 0, ledger.NewError(ledger.ErrDatabaseState, "Failed to assign category id", err)
@@ -97,7 +98,7 @@ func (d *DefaultCategoryDao) NewCategoryId() (ledger.CategoryId, error) {
 	return categoryId, err
 }
 
-func (d *DefaultCategoryDao) SaveTx(userId ledger.UserId, c ledger.Categories, tx *sql.Tx) error {
+func (d *DefaultCategoryDao) SaveTx(ctx context.Context, userId ledger.UserId, c ledger.Categories, tx *sql.Tx) error {
 	checkError := func(err error) error {
 		if err != nil {
 			log.Printf("Failed to save categories '%q' for user id %d. Reason: %q", c, userId, err)
@@ -113,14 +114,15 @@ func (d *DefaultCategoryDao) SaveTx(userId ledger.UserId, c ledger.Categories, t
 		return nil
 	}
 
-	stmt, err := tx.Prepare(pq.CopyInSchema("budget", "category", "id", "name", "user_id", "created_by", "created_at", "last_modified_by", "last_modified_at", "version"))
+	stmt, err := tx.PrepareContext(ctx, pq.CopyInSchema("budget", "category", "id", "name", "user_id", "created_by", "created_at", "last_modified_by", "last_modified_at", "version"))
 	if err = checkError(err); err != nil {
 		return err
 	}
 
 	epoch := time.Time{}
 	for _, category := range c {
-		_, err = stmt.Exec(
+		_, err = stmt.ExecContext(
+			ctx,
 			category.Id(),
 			category.Name(),
 			userId,
@@ -142,7 +144,7 @@ func (d *DefaultCategoryDao) SaveTx(userId ledger.UserId, c ledger.Categories, t
 
 	}
 
-	_, err = stmt.Exec()
+	_, err = stmt.ExecContext(ctx)
 	if err = checkError(err); err != nil {
 		return err
 	}
@@ -154,9 +156,10 @@ func (d *DefaultCategoryDao) SaveTx(userId ledger.UserId, c ledger.Categories, t
 	return nil
 }
 
-func (d *DefaultCategoryDao) GetCategoriesForUser(userId ledger.UserId) (ledger.Categories, error) {
+func (d *DefaultCategoryDao) GetCategoriesForUser(ctx context.Context, userId ledger.UserId, tx *sql.Tx) (ledger.Categories, error) {
 
-	rows, err := d.db.Query(
+	rows, err := tx.QueryContext(
+		ctx,
 		`SELECT 
 			c.id, 
 			c.name,
@@ -200,14 +203,14 @@ func (d *DefaultCategoryDao) GetCategoriesForUser(userId ledger.UserId) (ledger.
 	return entities, nil
 }
 
-func (d *DefaultCategoryDao) Save(userId ledger.UserId, c ledger.Categories) error {
+func (d *DefaultCategoryDao) Save(ctx context.Context, userId ledger.UserId, c ledger.Categories) error {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	err = d.SaveTx(userId, c, tx)
+	err = d.SaveTx(ctx, userId, c, tx)
 	if err == nil {
 		err = tx.Commit()
 	}

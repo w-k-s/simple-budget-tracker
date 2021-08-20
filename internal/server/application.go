@@ -19,9 +19,10 @@ import (
 )
 
 type App struct {
-	config         *cfg.Config
-	UserService    svc.UserService
-	AccountService svc.AccountService
+	config            *cfg.Config
+	UserService       svc.UserService
+	AccountService    svc.AccountService
+	CategoriesService svc.CategoriesService
 }
 
 func (app *App) Config() *cfg.Config {
@@ -34,9 +35,10 @@ func Init(config *cfg.Config) (*App, error) {
 	}
 
 	var (
-		userService    svc.UserService
-		accountService svc.AccountService
-		err            error
+		userService       svc.UserService
+		accountService    svc.AccountService
+		categoriesService svc.CategoriesService
+		err               error
 	)
 
 	if userService, err = svc.NewUserService(dao.MustOpenUserDao(
@@ -53,11 +55,19 @@ func Init(config *cfg.Config) (*App, error) {
 		return nil, fmt.Errorf("failed to initiaise account service. Reason: %w", err)
 	}
 
+	if categoriesService, err = svc.NewCategoriesService(dao.MustOpenCategoryDao(
+		config.Database().DriverName(),
+		config.Database().ConnectionString(),
+	)); err != nil {
+		return nil, fmt.Errorf("failed to initiaise categories service. Reason: %w", err)
+	}
+
 	log.Printf("--- Application Initialized ---")
 	return &App{
-		config:         config,
-		UserService:    userService,
-		AccountService: accountService,
+		config:            config,
+		UserService:       userService,
+		AccountService:    accountService,
+		CategoriesService: categoriesService,
 	}, nil
 }
 
@@ -78,6 +88,12 @@ func (app *App) Router() *mux.Router {
 	accounts.HandleFunc("", app.GetAccounts).
 		Methods("GET")
 
+	categories := r.PathPrefix("/api/v1/categories").Subrouter()
+	categories.HandleFunc("", app.CreateCategories).
+		Methods("POST")
+	categories.HandleFunc("", app.GetCategories).
+		Methods("GET")
+
 	statikFS, err := fs.New()
 	if err != nil {
 		panic(err)
@@ -91,6 +107,7 @@ func (app *App) Router() *mux.Router {
 
 func (app *App) MustEncodeJson(w http.ResponseWriter, v interface{}, status int) {
 	encoder := json.NewEncoder(w)
+	encoder.SetEscapeHTML(true)
 	w.WriteHeader(status)
 	if err := encoder.Encode(v); err != nil {
 		log.Fatalf("Failed to encode json '%v'. Reason: %s", v, err)

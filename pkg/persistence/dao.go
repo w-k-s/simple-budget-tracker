@@ -40,13 +40,15 @@ type AccountDao interface {
 }
 
 type CategoryDao interface {
+	BeginTx() (*sql.Tx, error)
+	MustBeginTx() *sql.Tx
+
 	Close() error
-	NewCategoryId() (ledger.CategoryId, error)
+	NewCategoryId(tx *sql.Tx) (ledger.CategoryId, error)
 
-	Save(id ledger.UserId, c ledger.Categories) error
-	SaveTx(id ledger.UserId, c ledger.Categories, tx *sql.Tx) error
+	SaveTx(ctx context.Context, id ledger.UserId, c ledger.Categories, tx *sql.Tx) error
 
-	GetCategoriesForUser(id ledger.UserId) (ledger.Categories, error)
+	GetCategoriesForUser(ctx context.Context, id ledger.UserId, tx *sql.Tx) (ledger.Categories, error)
 }
 
 type RecordDao interface {

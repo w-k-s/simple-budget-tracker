@@ -208,14 +208,14 @@ func (d *DefaultAccountDao) GetAccountsByUserId(ctx context.Context, queryId led
 	return entities, nil
 }
 
-func (d *DefaultAccountDao) Save(ctx context.Context, userId ledger.UserId, a []ledger.Account) error {
+func (d *DefaultAccountDao) Save(ctx context.Context, userId ledger.UserId, as ledger.Accounts) error {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	err = d.SaveTx(ctx, userId, a, tx)
+	err = d.SaveTx(ctx, userId, as, tx)
 	if err == nil {
 		err = tx.Commit()
 	}

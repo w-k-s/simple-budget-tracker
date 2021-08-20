@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"log"
 	"sort"
 	"testing"
@@ -47,7 +48,9 @@ func (suite *CategoryDaoTestSuite) TearDownTest() {
 
 func (suite *CategoryDaoTestSuite) Test_WHEN_NewCategoryIdIsCalled_THEN_categoryIdIsReturnedFromDatabaseSequence() {
 	// WHEN
-	categoryId, err := suite.categoryDao.NewCategoryId()
+	tx, _ := suite.categoryDao.BeginTx()
+	categoryId, err := suite.categoryDao.NewCategoryId(tx)
+	_ = tx.Commit()
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -60,8 +63,13 @@ func (suite *CategoryDaoTestSuite) Test_Given_categories_WHEN_theCategoriesAreSa
 	rentCategory, _ := ledger.NewCategory(2, "Rent", ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
-	_ = suite.categoryDao.Save(testUserId, ledger.Categories{salaryCategory, rentCategory})
-	theCategories, err := suite.categoryDao.GetCategoriesForUser(testUserId)
+	tx, _ := suite.categoryDao.BeginTx()
+	_ = suite.categoryDao.SaveTx(context.Background(), testUserId, ledger.Categories{salaryCategory, rentCategory}, tx)
+	_ = tx.Commit()
+
+	tx, _ = suite.categoryDao.BeginTx()
+	theCategories, err := suite.categoryDao.GetCategoriesForUser(context.Background(), testUserId, tx)
+	_ = tx.Commit()
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -76,7 +84,9 @@ func (suite *CategoryDaoTestSuite) Test_Given_categories_WHEN_theCategoriesAreSa
 
 func (suite *CategoryDaoTestSuite) Test_Given_aUserId_WHEN_noCategoriesExistForThatUser_THEN_emptyCategoryListIsReturned() {
 	// WHEN
-	theCategories, err := suite.categoryDao.GetCategoriesForUser(testUserId)
+	tx, _ := suite.categoryDao.BeginTx()
+	theCategories, err := suite.categoryDao.GetCategoriesForUser(context.Background(), testUserId, tx)
+	_ = tx.Commit()
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -97,8 +107,13 @@ func (suite *CategoryDaoTestSuite) Test_Given_twoCategoriesPerUsers_WHEN_oneUser
 	category2ForUser2, _ := ledger.NewCategory(4, "Shopping", ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
-	err1 := suite.categoryDao.Save(testUserId, ledger.Categories{category1ForUser1, category2ForUser1})
-	err2 := suite.categoryDao.Save(aUser.Id(), ledger.Categories{category1ForUser2, category2ForUser2})
+	tx, _ := suite.categoryDao.BeginTx()
+	err1 := suite.categoryDao.SaveTx(context.Background(), testUserId, ledger.Categories{category1ForUser1, category2ForUser1}, tx)
+	_ = tx.Commit()
+
+	tx, _ = suite.categoryDao.BeginTx()
+	err2 := suite.categoryDao.SaveTx(context.Background(), aUser.Id(), ledger.Categories{category1ForUser2, category2ForUser2}, tx)
+	_ = tx.Commit()
 
 	// THEN
 	assert.Nil(suite.T(), err1)

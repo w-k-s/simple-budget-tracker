@@ -51,14 +51,14 @@ func (suite *RecordDaoTestSuite) SetupTest() {
 	if err := suite.accountDao.SaveTx(context.Background(), testUserId, ledger.Accounts{currentAccount, savingsAccount}, tx); err != nil {
 		log.Fatalf("RecordDaoTestSuite: Test setup failed: %s", err)
 	}
-	_ = tx.Commit()
 
 	testSalaryCategory, _ = ledger.NewCategory(testSalaryCategoryId, testSalaryCategoryName, ledger.MustMakeUpdatedByUserId(testUserId))
 	testBillsCategory, _ = ledger.NewCategory(testBillsCategoryId, testBillsCategoryName, ledger.MustMakeUpdatedByUserId(testUserId))
 	testSavingsCategory, _ = ledger.NewCategory(testSavingsCategoryId, testSavingsCategoryName, ledger.MustMakeUpdatedByUserId(testUserId))
-	if err := suite.categoryDao.Save(testUserId, ledger.Categories{testSalaryCategory, testBillsCategory, testSavingsCategory}); err != nil {
+	if err := suite.categoryDao.SaveTx(context.Background(), testUserId, ledger.Categories{testSalaryCategory, testBillsCategory, testSavingsCategory}, tx); err != nil {
 		log.Fatalf("RecordDaoTestSuite: Test setup failed: %s", err)
 	}
+	_ = tx.Commit()
 }
 
 func (suite *RecordDaoTestSuite) TearDownTest() {

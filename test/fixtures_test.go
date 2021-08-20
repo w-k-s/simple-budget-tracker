@@ -95,7 +95,7 @@ func simulateRecords(db *sql.DB, numberOfUsers int, startMonth ledger.CalendarMo
 		}
 
 		categories := ledger.Categories{salaryCategory, savingsCaegory, billsCategory, foodAndDrinkCategory}
-		if err = CategoryDao.SaveTx(userId, categories, tx); err != nil {
+		if err = CategoryDao.SaveTx(context.Background(), userId, categories, tx); err != nil {
 			return nil, err
 		}
 
