@@ -71,7 +71,9 @@ func (suite *RecordDaoTestSuite) TearDownTest() {
 
 func (suite *RecordDaoTestSuite) Test_WHEN_NewRecordIdIsCalled_THEN_recordIdIsReturnedFromDatabaseSequence() {
 	// WHEN
-	recordId, err := suite.recordDao.NewRecordId()
+	tx, _ := suite.recordDao.BeginTx()
+	recordId, err := suite.recordDao.NewRecordId(tx)
+	_ = tx.Commit()
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -80,10 +82,13 @@ func (suite *RecordDaoTestSuite) Test_WHEN_NewRecordIdIsCalled_THEN_recordIdIsRe
 
 func (suite *RecordDaoTestSuite) Test_Given_anIncomeRecord_WHEN_theRecordIsSaved_THEN_recordCanBeRetrievedInMonthRange() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Salary", testSalaryCategory, quickMoney("AED", 100000), testRecordDate, ledger.Income, 0, ledger.MustMakeUpdatedByUserId(testUserId))
+	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Salary", testSalaryCategory, quickMoney("AED", 100000), testRecordDate, ledger.Income, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
-	_ = suite.recordDao.Save(testCurrentAccountId, &aRecord)
+	tx, _ := suite.recordDao.BeginTx()
+	_ = suite.recordDao.SaveTx(context.Background(), testCurrentAccountId, aRecord, tx)
+	_ = tx.Commit()
+
 	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, ledger.MakeCalendarMonthFromDate(testRecordDate))
 
 	// THEN
@@ -100,10 +105,13 @@ func (suite *RecordDaoTestSuite) Test_Given_anIncomeRecord_WHEN_theRecordIsSaved
 
 func (suite *RecordDaoTestSuite) Test_Given_anExpenseRecord_WHEN_theRecordIsSaved_THEN_recordCanBeRetrievedInMonthRange() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Electricity Bill", testBillsCategory, quickMoney("AED", 20000), testRecordDate, ledger.Expense, 0, ledger.MustMakeUpdatedByUserId(testUserId))
+	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Electricity Bill", testBillsCategory, quickMoney("AED", 20000), testRecordDate, ledger.Expense, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
-	_ = suite.recordDao.Save(testCurrentAccountId, &aRecord)
+	tx, _ := suite.recordDao.BeginTx()
+	_ = suite.recordDao.SaveTx(context.Background(), testCurrentAccountId, aRecord, tx)
+	_ = tx.Commit()
+
 	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, ledger.MakeCalendarMonthFromDate(testRecordDate))
 
 	// THEN
@@ -120,10 +128,13 @@ func (suite *RecordDaoTestSuite) Test_Given_anExpenseRecord_WHEN_theRecordIsSave
 
 func (suite *RecordDaoTestSuite) Test_Given_aTransferRecord_WHEN_theRecordIsSaved_THEN_recordCanBeRetrievedInMonthRange() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", testSavingsCategory, quickMoney("AED", 50000), testRecordDate, ledger.Transfer, testSavingsAccountId, ledger.MustMakeUpdatedByUserId(testUserId))
+	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", testSavingsCategory, quickMoney("AED", 50000), testRecordDate, ledger.Transfer, testCurrentAccountId, testSavingsAccountId, ledger.MakeTransferReference(), ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
-	_ = suite.recordDao.Save(testCurrentAccountId, &aRecord)
+	tx, _ := suite.recordDao.BeginTx()
+	_ = suite.recordDao.SaveTx(context.Background(), testCurrentAccountId, aRecord, tx)
+	_ = tx.Commit()
+
 	records, err := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, ledger.MakeCalendarMonthFromDate(testRecordDate))
 
 	// THEN
@@ -140,16 +151,18 @@ func (suite *RecordDaoTestSuite) Test_Given_aTransferRecord_WHEN_theRecordIsSave
 
 func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_loadingRecordsForLastPeriod_THEN_recordsForMonthOfLatestRecordReturned() {
 	// GIVEN
-	beforeLastMonthIncome, _ := ledger.NewRecord(ledger.RecordId(1), "Salary", testSalaryCategory, quickMoney("AED", 100000), time.Date(2021, time.May, 6, 18, 30, 0, 0, time.UTC), ledger.Income, 0, ledger.MustMakeUpdatedByUserId(testUserId))
-	beforeLastMonthExpense, _ := ledger.NewRecord(ledger.RecordId(2), "Bills", testBillsCategory, quickMoney("AED", 50000), time.Date(2021, time.May, 6, 18, 30, 1, 0, time.UTC), ledger.Expense, 0, ledger.MustMakeUpdatedByUserId(testUserId))
-	lastMonthIncome, _ := ledger.NewRecord(ledger.RecordId(3), "Salary", testSalaryCategory, quickMoney("AED", 100000), time.Date(2021, time.July, 6, 18, 30, 0, 0, time.UTC), ledger.Income, 0, ledger.MustMakeUpdatedByUserId(testUserId))
-	lastMonthExpense, _ := ledger.NewRecord(ledger.RecordId(4), "Bills", testBillsCategory, quickMoney("AED", 50000), time.Date(2021, time.July, 6, 18, 30, 1, 0, time.UTC), ledger.Expense, 0, ledger.MustMakeUpdatedByUserId(testUserId))
+	beforeLastMonthIncome, _ := ledger.NewRecord(ledger.RecordId(1), "Salary", testSalaryCategory, quickMoney("AED", 100000), time.Date(2021, time.May, 6, 18, 30, 0, 0, time.UTC), ledger.Income, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(testUserId))
+	beforeLastMonthExpense, _ := ledger.NewRecord(ledger.RecordId(2), "Bills", testBillsCategory, quickMoney("AED", 50000), time.Date(2021, time.May, 6, 18, 30, 1, 0, time.UTC), ledger.Expense, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(testUserId))
+	lastMonthIncome, _ := ledger.NewRecord(ledger.RecordId(3), "Salary", testSalaryCategory, quickMoney("AED", 100000), time.Date(2021, time.July, 6, 18, 30, 0, 0, time.UTC), ledger.Income, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(testUserId))
+	lastMonthExpense, _ := ledger.NewRecord(ledger.RecordId(4), "Bills", testBillsCategory, quickMoney("AED", 50000), time.Date(2021, time.July, 6, 18, 30, 1, 0, time.UTC), ledger.Expense, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
-	_ = suite.recordDao.Save(testCurrentAccountId, &lastMonthExpense)
-	_ = suite.recordDao.Save(testCurrentAccountId, &lastMonthIncome)
-	_ = suite.recordDao.Save(testCurrentAccountId, &beforeLastMonthExpense)
-	_ = suite.recordDao.Save(testCurrentAccountId, &beforeLastMonthIncome)
+	tx, _ := suite.recordDao.BeginTx()
+	_ = suite.recordDao.SaveTx(context.Background(), testCurrentAccountId, lastMonthExpense, tx)
+	_ = suite.recordDao.SaveTx(context.Background(), testCurrentAccountId, lastMonthIncome, tx)
+	_ = suite.recordDao.SaveTx(context.Background(), testCurrentAccountId, beforeLastMonthExpense, tx)
+	_ = suite.recordDao.SaveTx(context.Background(), testCurrentAccountId, beforeLastMonthIncome, tx)
+	_ = tx.Commit()
 
 	records, err := suite.recordDao.GetRecordsForLastPeriod(testCurrentAccountId)
 
@@ -195,10 +208,13 @@ func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_searchingBySearchTerm_T
 
 func (suite *RecordDaoTestSuite) Test_Given_aRecordWithAmountInDifferentCurrencyThanAccount_WHEN_recordIsSaved_THEN_currencyIsSetToAccountsCurrency() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", testSavingsCategory, quickMoney("USD", 50000), testRecordDate, ledger.Transfer, testSavingsAccountId, ledger.MustMakeUpdatedByUserId(testUserId))
+	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", testSavingsCategory, quickMoney("USD", 50000), testRecordDate, ledger.Transfer, testCurrentAccountId, testSavingsAccountId, ledger.MakeTransferReference(), ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
-	err := suite.recordDao.Save(testCurrentAccountId, &aRecord)
+	tx, _ := suite.recordDao.BeginTx()
+	err := suite.recordDao.SaveTx(context.Background(), testCurrentAccountId, aRecord, tx)
+	_ = tx.Commit()
+
 	records, _ := suite.recordDao.GetRecordsForMonth(testCurrentAccountId, ledger.MakeCalendarMonthFromDate(testRecordDate))
 
 	// THEN

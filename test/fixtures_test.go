@@ -106,30 +106,38 @@ func simulateRecords(db *sql.DB, numberOfUsers int, startMonth ledger.CalendarMo
 		for date := fromDate; date.Before(toDate); date = date.AddDate(0, 0, 1) {
 			if date.Day() == 1 {
 				var (
-					salaryRecord  ledger.Record
-					billsRecord   ledger.Record
-					savingsRecord ledger.Record
+					salaryRecord           ledger.Record
+					billsRecord            ledger.Record
+					sendToSavingsRecord    ledger.Record
+					receiveInSavingsRecord ledger.Record
 				)
 				// Add salary
-				if salaryRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Salary", salaryCategory, quickMoney("AED", 50_000_00), date, ledger.Income, 0, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
+				if salaryRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Salary", salaryCategory, quickMoney("AED", 50_000_00), date, ledger.Income, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
 					return nil, err
 				}
 				// Pay bills
-				if billsRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Bills", billsCategory, quickMoney("AED", 1_000_00), date, ledger.Expense, 0, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
+				if billsRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Bills", billsCategory, quickMoney("AED", 1_000_00), date, ledger.Expense, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
 					return nil, err
 				}
 				// Save a little money for a rainy day
-				if savingsRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Savings", savingsCaegory, quickMoney("AED", 10_000_00), date, ledger.Transfer, savingsAccount.Id(), ledger.MustMakeUpdatedByUserId(userId)); err != nil {
+				ref := ledger.MakeTransferReference()
+				if sendToSavingsRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Savings", savingsCaegory, quickMoney("AED", -10_000_00), date, ledger.Transfer, currentAccount.Id(), savingsAccount.Id(), ref, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
+					return nil, err
+				}
+				if receiveInSavingsRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Savings", savingsCaegory, quickMoney("AED", 10_000_00), date, ledger.Transfer, currentAccount.Id(), savingsAccount.Id(), ref, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
 					return nil, err
 				}
 
-				if err := RecordDao.SaveTx(currentAccount.Id(), &salaryRecord, tx); err != nil {
+				if err := RecordDao.SaveTx(context.Background(), currentAccount.Id(), salaryRecord, tx); err != nil {
 					return nil, err
 				}
-				if err := RecordDao.SaveTx(currentAccount.Id(), &billsRecord, tx); err != nil {
+				if err := RecordDao.SaveTx(context.Background(), currentAccount.Id(), billsRecord, tx); err != nil {
 					return nil, err
 				}
-				if err := RecordDao.SaveTx(currentAccount.Id(), &savingsRecord, tx); err != nil {
+				if err := RecordDao.SaveTx(context.Background(), currentAccount.Id(), sendToSavingsRecord, tx); err != nil {
+					return nil, err
+				}
+				if err := RecordDao.SaveTx(context.Background(), currentAccount.Id(), receiveInSavingsRecord, tx); err != nil {
 					return nil, err
 				}
 			}
@@ -139,26 +147,26 @@ func simulateRecords(db *sql.DB, numberOfUsers int, startMonth ledger.CalendarMo
 				lunchRecord  ledger.Record
 				dinnerRecord ledger.Record
 			)
-			if lunchRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Lunch", foodAndDrinkCategory, quickMoney("AED", 10_00), date, ledger.Expense, 0, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
+			if lunchRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Lunch", foodAndDrinkCategory, quickMoney("AED", 10_00), date, ledger.Expense, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
 				return nil, err
 			}
-			if dinnerRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Dinner", foodAndDrinkCategory, quickMoney("AED", 20_00), date, ledger.Expense, 0, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
+			if dinnerRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Dinner", foodAndDrinkCategory, quickMoney("AED", 20_00), date, ledger.Expense, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
 				return nil, err
 			}
-			if err := RecordDao.SaveTx(currentAccount.Id(), &lunchRecord, tx); err != nil {
+			if err := RecordDao.SaveTx(context.Background(), currentAccount.Id(), lunchRecord, tx); err != nil {
 				return nil, err
 			}
-			if err := RecordDao.SaveTx(currentAccount.Id(), &dinnerRecord, tx); err != nil {
+			if err := RecordDao.SaveTx(context.Background(), currentAccount.Id(), dinnerRecord, tx); err != nil {
 				return nil, err
 			}
 
 			// eat big lunch on birthday (e.g. June 2)
 			if date.Day() == 2 && date.Month() == time.June {
 				var specialOccasionRecord ledger.Record
-				if specialOccasionRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Birthday", foodAndDrinkCategory, quickMoney("AED", 100_00), date, ledger.Expense, 0, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
+				if specialOccasionRecord, err = ledger.NewRecord(ledger.RecordId(time.Now().UnixNano()), "Birthday", foodAndDrinkCategory, quickMoney("AED", 100_00), date, ledger.Expense, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(userId)); err != nil {
 					return nil, err
 				}
-				if err := RecordDao.SaveTx(currentAccount.Id(), &specialOccasionRecord, tx); err != nil {
+				if err := RecordDao.SaveTx(context.Background(), currentAccount.Id(), specialOccasionRecord, tx); err != nil {
 					return nil, err
 				}
 			}

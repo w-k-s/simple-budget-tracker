@@ -84,6 +84,7 @@ func (suite *AccountTestSuite) Test_GIVEN_validParameters_WHEN_AccountIsCreated_
 	assert.Equal(suite.T(), AccountId(2), account.Id())
 	assert.Equal(suite.T(), "Main", account.Name())
 	assert.Equal(suite.T(), "AED", account.Currency())
+	assert.Equal(suite.T(), "AED 0.00", account.CurrentBalance().String())
 	assert.Equal(suite.T(), "UserId: 1", account.CreatedBy().String())
 	assert.Equal(suite.T(), Version(1), account.Version())
 	assert.True(suite.T(), time.Now().UTC().Sub(account.CreatedAtUTC()) < time.Duration(1)*time.Second)
@@ -95,7 +96,7 @@ func (suite *AccountTestSuite) Test_GIVEN_anAccount_WHEN_stringIsCalled_THEN_str
 	account, _ := NewAccount(2, "Main", "AED", MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
-	assert.Equal(suite.T(), "Account{id: 2, name: Main, currency: AED}", account.String())
+	assert.Equal(suite.T(), "Account{id: 2, name: Main, currency: AED, balance: AED 0.00}", account.String())
 }
 
 func (suite *AccountTestSuite) Test_GIVEN_accounts_WHEN_namesIsCalled_THEN_sliceOfSortedAccountNamesIsReturned() {
@@ -142,5 +143,20 @@ func (suite *AccountTestSuite) Test_GIVEN_accounts_WHEN_stringIsCalled_THEN_stri
 	}
 
 	// THEN
-	assert.Equal(suite.T(), "Accounts{Account{id: 1, name: Current, currency: AED}, Account{id: 2, name: Savings, currency: AED}}", accounts.String())
+	assert.Equal(suite.T(), "Accounts{Account{id: 1, name: Current, currency: AED, balance: AED 0.00}, Account{id: 2, name: Savings, currency: AED, balance: AED 0.00}}", accounts.String())
+}
+
+func (suite *AccountTestSuite) Test_GIVEN_anAccountName_WHEN_accountIsCreated_THEN_accountNameIsCapitalized() {
+
+	// WHEN
+	account1, _ := NewAccount(1, "current", "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account2, _ := NewAccount(2, "sAVINGS", "AED", MustMakeUpdatedByUserId(UserId(1)))
+
+	accounts := Accounts{
+		account2,
+		account1,
+	}
+
+	// THEN
+	assert.Equal(suite.T(), "Accounts{Account{id: 1, name: Current, currency: AED, balance: AED 0.00}, Account{id: 2, name: Savings, currency: AED, balance: AED 0.00}}", accounts.String())
 }

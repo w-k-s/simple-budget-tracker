@@ -37,6 +37,7 @@ type AccountDao interface {
 	SaveTx(ctx context.Context, id ledger.UserId, as ledger.Accounts, tx *sql.Tx) error
 
 	GetAccountsByUserId(ctx context.Context, id ledger.UserId, tx *sql.Tx) (ledger.Accounts, error)
+	GetAccountById(ctx context.Context, id ledger.AccountId, tx *sql.Tx) (ledger.Account, error)
 }
 
 type CategoryDao interface {
@@ -48,15 +49,20 @@ type CategoryDao interface {
 
 	SaveTx(ctx context.Context, id ledger.UserId, c ledger.Categories, tx *sql.Tx) error
 
+	GetCategoryById(ctx context.Context, id ledger.CategoryId, userId ledger.UserId, tx *sql.Tx) (ledger.Category, error)
 	GetCategoriesForUser(ctx context.Context, id ledger.UserId, tx *sql.Tx) (ledger.Categories, error)
+
+	UpdateCategoryLastUsed(ctx context.Context, id ledger.CategoryId, lastUsed time.Time, tx *sql.Tx) error
 }
 
 type RecordDao interface {
-	Close() error
-	NewRecordId() (ledger.RecordId, error)
+	BeginTx() (*sql.Tx, error)
+	MustBeginTx() *sql.Tx
 
-	Save(id ledger.AccountId, r *ledger.Record) error
-	SaveTx(id ledger.AccountId, r *ledger.Record, tx *sql.Tx) error
+	Close() error
+	NewRecordId(*sql.Tx) (ledger.RecordId, error)
+
+	SaveTx(ctx context.Context, id ledger.AccountId, r ledger.Record, tx *sql.Tx) error
 
 	Search(id ledger.AccountId, search RecordSearch) (ledger.Records, error)
 	GetRecordsForMonth(id ledger.AccountId, month ledger.CalendarMonth) (ledger.Records, error)

@@ -70,7 +70,7 @@ func newCategory(id CategoryId, name string, auditInfo auditInfo) (Category, err
 	return Category{
 		auditInfo: auditInfo,
 		id:        id,
-		name:      name,
+		name:      strings.Title(strings.ToLower(name)),
 	}, nil
 }
 

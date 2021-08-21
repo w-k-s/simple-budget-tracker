@@ -34,7 +34,7 @@ func (suite *RecordTestSuite) Test_GIVEN_invalidRecordId_WHEN_RecordIsCreated_TH
 	recordId := RecordId(0)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now(), Expense, 0, MustMakeUpdatedByUserId(UserId(1)))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now(), Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -50,7 +50,7 @@ func (suite *RecordTestSuite) Test_GIVEN_emptyNote_WHEN_RecordIsCreated_THEN_rec
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "", suite.billsCategory, suite.billAmount, time.Now(), Expense, 0, MustMakeUpdatedByUserId(UserId(1)))
+	record, err := NewRecord(recordId, "", suite.billsCategory, suite.billAmount, time.Now(), Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -69,7 +69,7 @@ func (suite *RecordTestSuite) Test_GIVEN_noteExceeds50Characters_WHEN_RecordIsCr
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "123456789012345678901234567890123456789012345678901", suite.billsCategory, suite.billAmount, time.Now(), Expense, 0, MustMakeUpdatedByUserId(UserId(1)))
+	record, err := NewRecord(recordId, "123456789012345678901234567890123456789012345678901", suite.billsCategory, suite.billAmount, time.Now(), Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -85,7 +85,7 @@ func (suite *RecordTestSuite) Test_GIVEN_nilCategory_WHEN_RecordIsCreated_THEN_e
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", Category{}, suite.billAmount, time.Now(), Expense, 0, MustMakeUpdatedByUserId(UserId(1)))
+	record, err := NewRecord(recordId, "Telephone Bill", Category{}, suite.billAmount, time.Now(), Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -101,7 +101,7 @@ func (suite *RecordTestSuite) Test_GIVEN_nilTime_WHEN_RecordIsCreated_THEN_error
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Time{}, Expense, 0, MustMakeUpdatedByUserId(UserId(1)))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Time{}, Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -117,7 +117,7 @@ func (suite *RecordTestSuite) Test_GIVEN_nilAmount_WHEN_RecordIsCreated_THEN_err
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, nil, time.Now(), Expense, 0, MustMakeUpdatedByUserId(UserId(1)))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, nil, time.Now(), Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -132,7 +132,7 @@ func (suite *RecordTestSuite) Test_GIVEN_invalidExpenseType_WHEN_RecordIsCreated
 	// GIVEN
 	recordId := RecordId(1)
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), "nil", 0, MustMakeUpdatedByUserId(UserId(1)))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), "nil", NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -148,7 +148,7 @@ func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutBeneficiaryId_
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Transfer, 0, MustMakeUpdatedByUserId(UserId(1)))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Transfer, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -164,7 +164,7 @@ func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithBeneficiaryId_WHE
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Transfer, AccountId(2), MustMakeUpdatedByUserId(1))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Transfer, AccountId(1), AccountId(2), "Ref", MustMakeUpdatedByUserId(1))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -183,7 +183,7 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithBeneficiaryId_WHEN
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Expense, AccountId(2), MustMakeUpdatedByUserId(1))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Expense, AccountId(1), AccountId(2), "Ref", MustMakeUpdatedByUserId(1))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -200,7 +200,7 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithZeroAmount_WHEN_Re
 	amount, _ := NewMoney("AED", 0)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, amount, time.Now().UTC(), Expense, 0, MustMakeUpdatedByUserId(1))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, amount, time.Now().UTC(), Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -216,7 +216,7 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithPositiveAmount_WHE
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Expense, 0, MustMakeUpdatedByUserId(1))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -230,7 +230,7 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithNegativeAmount_WHE
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Expense, 0, MustMakeUpdatedByUserId(1))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -248,7 +248,7 @@ func (suite *RecordTestSuite) Test_GIVEN_incomeRecordTypeWithNegativeAmount_WHEN
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Income, 0, MustMakeUpdatedByUserId(1))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Income, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -266,7 +266,7 @@ func (suite *RecordTestSuite) Test_GIVEN_incomeRecordTypeWithPositiveAmount_WHEN
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Income, 0, MustMakeUpdatedByUserId(1))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Income, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -285,7 +285,7 @@ func (suite *RecordTestSuite) Test_GIVEN_aRecord_WHEN_stringIsCalled_THEN_string
 	date := time.Date(2021, time.July, 2, 21, 10, 0, 0, time.UTC)
 
 	// WHEN
-	record, _ := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, date, Expense, 0, MustMakeUpdatedByUserId(1))
+	record, _ := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, date, Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// THEN
 	assert.Equal(suite.T(), "Record{id: 1, type: EXPENSE, amount: AED -200.00, category: Category{id: 1, name: Bills}, date: 2021-07-02T21:10:00+0000, beneficiaryId: 0}", record.String())
@@ -301,8 +301,8 @@ func (suite *RecordTestSuite) Test_GIVEN_records_WHEN_stringIsCalled_THEN_record
 	billAmount, _ := NewMoney("AED", 5000)
 	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
 
-	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0, MustMakeUpdatedByUserId(1))
-	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0, MustMakeUpdatedByUserId(1))
+	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// WHEN
 	records := Records{record1, record2}
@@ -321,8 +321,8 @@ func (suite *RecordTestSuite) Test_GIVEN_records_WHEN_recordsAreSorted_THEN_reco
 	billAmount, _ := NewMoney("AED", 5000)
 	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
 
-	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0, MustMakeUpdatedByUserId(1))
-	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0, MustMakeUpdatedByUserId(1))
+	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// WHEN
 	records := Records{record1, record2}
@@ -344,8 +344,8 @@ func (suite *RecordTestSuite) Test_GIVEN_recordsOfSameCurrency_WHEN_recordsAreTo
 	billAmount, _ := NewMoney("AED", 5000)
 	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
 
-	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0, MustMakeUpdatedByUserId(1))
-	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0, MustMakeUpdatedByUserId(1))
+	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// WHEN
 	records := Records{record1, record2}
@@ -367,8 +367,8 @@ func (suite *RecordTestSuite) Test_GIVEN_recordsOfDifferentCurrency_WHEN_records
 	billAmount, _ := NewMoney("KWD", 5000)
 	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
 
-	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, 0, MustMakeUpdatedByUserId(1))
-	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, 0, MustMakeUpdatedByUserId(1))
+	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+	record2, _ := NewRecord(RecordId(2), "Electricity Bill", billsCategory, billAmount, billDate, Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// WHEN
 	total, err := Records{record1, record2}.Total()

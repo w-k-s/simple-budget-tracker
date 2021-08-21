@@ -117,3 +117,18 @@ func (suite *CategoryTestSuite) Test_GIVEN_categories_WHEN_stringIsCalled_THEN_s
 	// THEN
 	assert.Equal(suite.T(), "Categories{Category{id: 2, name: Entertainment}, Category{id: 1, name: Health}}", categories.String())
 }
+
+func (suite *CategoryTestSuite) Test_GIVEN_categoryNames_WHEN_categoriesAreSaved_THEN_categoryNamesAreCapitalized() {
+
+	// WHEN
+	category1, _ := NewCategory(1, "health", MustMakeUpdatedByUserId(UserId(1)))
+	category2, _ := NewCategory(2, "ENTERTAINMENT", MustMakeUpdatedByUserId(UserId(1)))
+
+	categories := Categories([]Category{
+		category1,
+		category2,
+	})
+
+	// THEN
+	assert.Equal(suite.T(), "Categories{Category{id: 2, name: Entertainment}, Category{id: 1, name: Health}}", categories.String())
+}

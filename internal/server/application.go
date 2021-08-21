@@ -23,6 +23,7 @@ type App struct {
 	UserService       svc.UserService
 	AccountService    svc.AccountService
 	CategoriesService svc.CategoriesService
+	RecordService     svc.RecordService
 }
 
 func (app *App) Config() *cfg.Config {
@@ -38,7 +39,18 @@ func Init(config *cfg.Config) (*App, error) {
 		userService       svc.UserService
 		accountService    svc.AccountService
 		categoriesService svc.CategoriesService
+		recordService     svc.RecordService
 		err               error
+	)
+
+	accountDao := dao.MustOpenAccountDao(
+		config.Database().DriverName(),
+		config.Database().ConnectionString(),
+	)
+
+	categoryDao := dao.MustOpenCategoryDao(
+		config.Database().DriverName(),
+		config.Database().ConnectionString(),
 	)
 
 	if userService, err = svc.NewUserService(dao.MustOpenUserDao(
@@ -48,18 +60,19 @@ func Init(config *cfg.Config) (*App, error) {
 		return nil, fmt.Errorf("failed to initiaise user service. Reason: %w", err)
 	}
 
-	if accountService, err = svc.NewAccountService(dao.MustOpenAccountDao(
-		config.Database().DriverName(),
-		config.Database().ConnectionString(),
-	)); err != nil {
+	if accountService, err = svc.NewAccountService(accountDao); err != nil {
 		return nil, fmt.Errorf("failed to initiaise account service. Reason: %w", err)
 	}
 
-	if categoriesService, err = svc.NewCategoriesService(dao.MustOpenCategoryDao(
+	if categoriesService, err = svc.NewCategoriesService(categoryDao); err != nil {
+		return nil, fmt.Errorf("failed to initiaise categories service. Reason: %w", err)
+	}
+
+	if recordService, err = svc.NewRecordService(dao.MustOpenRecordDao(
 		config.Database().DriverName(),
 		config.Database().ConnectionString(),
-	)); err != nil {
-		return nil, fmt.Errorf("failed to initiaise categories service. Reason: %w", err)
+	), accountDao, categoryDao); err != nil {
+		return nil, fmt.Errorf("failed to initiaise record service. Reason: %w", err)
 	}
 
 	log.Printf("--- Application Initialized ---")
@@ -68,6 +81,7 @@ func Init(config *cfg.Config) (*App, error) {
 		UserService:       userService,
 		AccountService:    accountService,
 		CategoriesService: categoriesService,
+		RecordService:     recordService,
 	}, nil
 }
 
@@ -92,6 +106,12 @@ func (app *App) Router() *mux.Router {
 	categories.HandleFunc("", app.CreateCategories).
 		Methods("POST")
 	categories.HandleFunc("", app.GetCategories).
+		Methods("GET")
+
+	records := r.PathPrefix("/api/v1/record").Subrouter()
+	records.HandleFunc("", app.CreateRecord).
+		Methods("POST")
+	records.HandleFunc("", app.GetRecords).
 		Methods("GET")
 
 	statikFS, err := fs.New()

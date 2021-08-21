@@ -9,6 +9,7 @@ import (
 
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
+	"github.com/google/uuid"
 )
 
 type RecordType string
@@ -19,16 +20,35 @@ const (
 	Transfer RecordType = "TRANSFER"
 )
 
+const (
+	NoSourceAccount      = AccountId(0)
+	NoBeneficiaryAccount = AccountId(0)
+	NoTransferReference  = TransferReference("")
+)
+
+func NoTransfer() (AccountId, AccountId, TransferReference) {
+	return NoSourceAccount, NoBeneficiaryAccount, NoTransferReference
+}
+
+// TransferReference is used to link the sender and receiver records of a transfer
+type TransferReference string
+
+func MakeTransferReference() TransferReference {
+	return TransferReference(uuid.NewString())
+}
+
 type RecordId uint64
 type Record struct {
 	auditInfo
-	id            RecordId
-	note          string
-	category      Category
-	amount        Money
-	date          time.Time
-	recordType    RecordType
-	beneficiaryId AccountId
+	id                RecordId
+	note              string
+	category          Category
+	amount            Money
+	date              time.Time
+	recordType        RecordType
+	sourceAccountId   AccountId
+	beneficiaryId     AccountId
+	transferReference TransferReference
 }
 
 // I did not thing the naming through :(
@@ -39,7 +59,9 @@ type RecordRecord interface {
 	Amount() Money
 	DateUTC() time.Time
 	RecordType() RecordType
+	SourceAccountId() AccountId
 	BeneficiaryId() AccountId
+	TransferReference() TransferReference
 	CreatedBy() UpdatedBy
 	CreatedAtUTC() time.Time
 	ModifiedBy() UpdatedBy
@@ -47,7 +69,7 @@ type RecordRecord interface {
 	Version() Version
 }
 
-func NewRecord(id RecordId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, beneficiaryId AccountId, updatedBy UpdatedBy) (Record, error) {
+func NewRecord(id RecordId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, sourceAccountId AccountId, beneficiaryId AccountId, transferReference TransferReference, updatedBy UpdatedBy) (Record, error) {
 	var (
 		auditInfo auditInfo
 		err       error
@@ -57,7 +79,7 @@ func NewRecord(id RecordId, note string, category Category, amount Money, dateUT
 		return Record{}, err
 	}
 
-	return newRecord(id, note, category, amount, dateUTC, recordType, beneficiaryId, auditInfo)
+	return newRecord(id, note, category, amount, dateUTC, recordType, sourceAccountId, beneficiaryId, transferReference, auditInfo)
 }
 
 func NewRecordFromRecord(rr RecordRecord) (Record, error) {
@@ -76,25 +98,19 @@ func NewRecordFromRecord(rr RecordRecord) (Record, error) {
 		return Record{}, err
 	}
 
-	return newRecord(rr.Id(), rr.Note(), rr.Category(), rr.Amount(), rr.DateUTC(), rr.RecordType(), rr.BeneficiaryId(), auditInfo)
+	return newRecord(rr.Id(), rr.Note(), rr.Category(), rr.Amount(), rr.DateUTC(), rr.RecordType(), rr.SourceAccountId(), rr.BeneficiaryId(), rr.TransferReference(), auditInfo)
 }
 
-func newRecord(id RecordId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, beneficiaryId AccountId, auditInfo auditInfo) (Record, error) {
+func newRecord(id RecordId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, sourceAccountId, beneficiaryId AccountId, transferReference TransferReference, auditInfo auditInfo) (Record, error) {
 	errors := validate.Validate(
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
 		&validators.StringLengthInRange{Name: "Note", Field: note, Min: 0, Max: 50, Message: "Note can not be longer than 50 characters"},
 		&categoryValidator{Field: "Category", Value: category},
 		&amountValidator{Field: "Amount", Value: amount},
 		&validators.TimeIsPresent{Name: "Date", Field: dateUTC, Message: "Invalid date"},
-		&validators.FuncValidator{Name: "RecordType", Field: string(recordType), Message: "recordType must be INCOME,EXPENSE or TRANSFER. Invalid: %q", Fn: func() bool {
-			for _, rt := range []RecordType{Income, Expense, Transfer} {
-				if recordType == rt {
-					return true
-				}
-			}
-			return false
-		}},
-		&beneficiaryIdValidator{Field: "BeneficiaryId", Value: beneficiaryId, RecordType: recordType},
+		&validators.StringInclusion{Name: "RecordType", Field: string(recordType), List: []string{"INCOME", "EXPENSE", "TRANSFER"}, Message: "recordType must be INCOME,EXPENSE or TRANSFER. Invalid: %q"},
+		&beneficiaryIdValidator{Field: "BeneficiaryId", BeneficiaryId: beneficiaryId, SourceAccountId: sourceAccountId, RecordType: recordType},
+		&transferReferenceValidator{Value: transferReference, RecordType: recordType},
 	)
 
 	var err error
@@ -104,8 +120,10 @@ func newRecord(id RecordId, note string, category Category, amount Money, dateUT
 
 	var actualAmount Money
 
-	if actualAmount, err = amount.Negate(); err != nil {
-		return Record{}, err
+	if recordType == Expense {
+		if actualAmount, err = amount.Negate(); err != nil {
+			return Record{}, err
+		}
 	}
 
 	if recordType == Income {
@@ -115,14 +133,16 @@ func newRecord(id RecordId, note string, category Category, amount Money, dateUT
 	}
 
 	record := Record{
-		auditInfo:     auditInfo,
-		id:            id,
-		note:          note,
-		category:      category,
-		amount:        actualAmount,
-		date:          dateUTC,
-		recordType:    recordType,
-		beneficiaryId: beneficiaryId,
+		auditInfo:         auditInfo,
+		id:                id,
+		note:              note,
+		category:          category,
+		amount:            actualAmount,
+		date:              dateUTC,
+		recordType:        recordType,
+		sourceAccountId:   sourceAccountId,
+		beneficiaryId:     beneficiaryId,
+		transferReference: transferReference,
 	}
 
 	return record, nil
@@ -156,26 +176,61 @@ func (r Record) Type() RecordType {
 	return r.recordType
 }
 
+func (r Record) SourceAccountId() AccountId {
+	return r.sourceAccountId
+}
+
 func (r Record) BeneficiaryId() AccountId {
 	return r.beneficiaryId
 }
 
+func (r Record) TransferReference() TransferReference {
+	return r.transferReference
+}
+
 func (r Record) String() string {
-	return fmt.Sprintf("Record{id: %d, type: %s, amount: %s, category: %s, date: %s, beneficiaryId: %d}", r.id, r.recordType, r.amount, r.category, r.DateUTCString(), r.beneficiaryId)
+	return fmt.Sprintf("Record{id: %d, type: %s, amount: %s, category: %s, date: %s, sourceAccountId: %d, beneficiaryId: %d, transferReference: %s}",
+		r.id,
+		r.recordType,
+		r.amount,
+		r.category,
+		r.DateUTCString(),
+		r.sourceAccountId,
+		r.beneficiaryId,
+		r.transferReference,
+	)
 }
 
 type beneficiaryIdValidator struct {
-	Field      string
-	Value      AccountId
-	RecordType RecordType
+	Field           string
+	BeneficiaryId   AccountId
+	SourceAccountId AccountId
+	RecordType      RecordType
 }
 
 func (v *beneficiaryIdValidator) IsValid(errors *validate.Errors) {
-	if v.RecordType == Transfer && v.Value <= 0 {
-		errors.Add("beneficiary_id", fmt.Sprintf("beneficiaryId can not be <= 0 when record type is %s", Transfer))
+	if v.RecordType == Transfer && v.BeneficiaryId <= 0 {
+		errors.Add("beneficiaryId", fmt.Sprintf("beneficiaryId can not be <= 0 when record type is %s", Transfer))
 	}
-	if v.RecordType != Transfer && v.Value > 0 {
-		errors.Add("beneficiary_id", fmt.Sprintf("beneficiaryId must be 0 when record type is %q", v.RecordType))
+	if v.RecordType == Transfer && v.SourceAccountId <= 0 {
+		errors.Add("sourceAccountId", fmt.Sprintf("sourceAccountId can not be <= 0 when record type is %s", Transfer))
+	}
+	if v.RecordType != Transfer && v.BeneficiaryId > 0 {
+		errors.Add("beneficiaryId", fmt.Sprintf("beneficiaryId must be 0 when record type is %q", v.RecordType))
+	}
+	if v.RecordType != Transfer && v.SourceAccountId > 0 {
+		errors.Add("sourceAccountId", fmt.Sprintf("sourceAccountId must be 0 when record type is %q", v.RecordType))
+	}
+}
+
+type transferReferenceValidator struct {
+	Value      TransferReference
+	RecordType RecordType
+}
+
+func (v *transferReferenceValidator) IsValid(errors *validate.Errors) {
+	if v.RecordType == Transfer && len(v.Value) == 0 {
+		errors.Add("transferReference", fmt.Sprintf("transferReference can not be empty when record type is %s", Transfer))
 	}
 }
 

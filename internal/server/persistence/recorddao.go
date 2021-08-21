@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -14,19 +15,21 @@ import (
 )
 
 type recordRecord struct {
-	id               ledger.RecordId
-	note             string
-	category         categoryRecord
-	currency         string
-	amountMinorUnits int64
-	date             time.Time
-	recordType       ledger.RecordType
-	beneficiaryId    sql.NullInt64
-	createdBy        string
-	createdAt        time.Time
-	modifiedBy       sql.NullString
-	modifiedAt       sql.NullTime
-	version          ledger.Version
+	id                ledger.RecordId
+	note              string
+	category          categoryRecord
+	currency          string
+	amountMinorUnits  int64
+	date              time.Time
+	recordType        ledger.RecordType
+	sourceAccountId   sql.NullInt64
+	beneficiaryId     sql.NullInt64
+	transferReference sql.NullString
+	createdBy         string
+	createdAt         time.Time
+	modifiedBy        sql.NullString
+	modifiedAt        sql.NullTime
+	version           ledger.Version
 }
 
 func (rr recordRecord) Id() ledger.RecordId {
@@ -67,11 +70,25 @@ func (rr recordRecord) RecordType() ledger.RecordType {
 	return rr.recordType
 }
 
+func (rr recordRecord) SourceAccountId() ledger.AccountId {
+	if rr.sourceAccountId.Valid {
+		return ledger.AccountId(rr.sourceAccountId.Int64)
+	}
+	return ledger.NoSourceAccount
+}
+
 func (rr recordRecord) BeneficiaryId() ledger.AccountId {
 	if rr.beneficiaryId.Valid {
 		return ledger.AccountId(rr.beneficiaryId.Int64)
 	}
-	return ledger.AccountId(0)
+	return ledger.NoBeneficiaryAccount
+}
+
+func (rr recordRecord) TransferReference() ledger.TransferReference {
+	if rr.beneficiaryId.Valid {
+		return ledger.TransferReference(rr.transferReference.String)
+	}
+	return ledger.NoTransferReference
 }
 
 func (rr recordRecord) CreatedBy() ledger.UpdatedBy {
@@ -115,7 +132,7 @@ func (rr recordRecord) Version() ledger.Version {
 }
 
 type DefaultRecordDao struct {
-	db *sql.DB
+	RootDao
 }
 
 func MustOpenRecordDao(driverName, dataSourceName string) dao.RecordDao {
@@ -124,16 +141,16 @@ func MustOpenRecordDao(driverName, dataSourceName string) dao.RecordDao {
 	if db, err = sql.Open(driverName, dataSourceName); err != nil {
 		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", dataSourceName, driverName, err)
 	}
-	return &DefaultRecordDao{db}
+	return &DefaultRecordDao{RootDao{db}}
 }
 
 func (d DefaultRecordDao) Close() error {
 	return d.db.Close()
 }
 
-func (d *DefaultRecordDao) NewRecordId() (ledger.RecordId, error) {
+func (d *DefaultRecordDao) NewRecordId(tx *sql.Tx) (ledger.RecordId, error) {
 	var recordId ledger.RecordId
-	err := d.db.QueryRow("SELECT nextval('budget.record_id')").Scan(&recordId)
+	err := tx.QueryRow("SELECT nextval('budget.record_id')").Scan(&recordId)
 	if err != nil {
 		log.Printf("Failed to assign record id. Reason; %s", err)
 		return 0, ledger.NewError(ledger.ErrDatabaseState, "Failed to assign record id", err)
@@ -141,28 +158,29 @@ func (d *DefaultRecordDao) NewRecordId() (ledger.RecordId, error) {
 	return recordId, err
 }
 
-func (d *DefaultRecordDao) Save(accountId ledger.AccountId, r *ledger.Record) error {
+func (d *DefaultRecordDao) Save(ctx context.Context, accountId ledger.AccountId, r ledger.Record) error {
 	tx, err := d.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	err = d.SaveTx(accountId, r, tx)
+	err = d.SaveTx(ctx, accountId, r, tx)
 	if err == nil {
 		err = tx.Commit()
 	}
 	return err
 }
 
-func (d *DefaultRecordDao) SaveTx(accountId ledger.AccountId, r *ledger.Record, tx *sql.Tx) error {
+func (d *DefaultRecordDao) SaveTx(ctx context.Context, accountId ledger.AccountId, r ledger.Record, tx *sql.Tx) error {
 	epoch := time.Time{}
 	amountMinorUnits, _ := r.Amount().MinorUnits()
-	_, err := tx.Exec(
+	_, err := tx.ExecContext(
+		ctx,
 		`INSERT INTO budget.record 
-		(id, account_id, category_id, note, currency, amount_minor_units, date, type, beneficiary_id, created_by, created_at, last_modified_by, last_modified_at, version) 
+		(id, account_id, category_id, note, currency, amount_minor_units, date, type, source_account_id, beneficiary_id, transfer_reference, created_by, created_at, last_modified_by, last_modified_at, version) 
 		VALUES 
-		($1, $2, $3, $4, (SELECT currency FROM budget.account WHERE id = $5), $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+		($1, $2, $3, $4, (SELECT currency FROM budget.account WHERE id = $5), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
 		r.Id(),
 		accountId,
 		r.Category().Id(),
@@ -172,8 +190,16 @@ func (d *DefaultRecordDao) SaveTx(accountId ledger.AccountId, r *ledger.Record, 
 		r.DateUTC(),
 		r.Type(),
 		sql.NullInt64{
+			Int64: int64(r.SourceAccountId()),
+			Valid: r.SourceAccountId() != 0,
+		},
+		sql.NullInt64{
 			Int64: int64(r.BeneficiaryId()),
 			Valid: r.BeneficiaryId() != 0,
+		},
+		sql.NullString{
+			String: string(r.TransferReference()),
+			Valid:  len(r.TransferReference()) != 0,
 		},
 		r.CreatedBy().String(),
 		r.CreatedAtUTC(),
@@ -228,7 +254,9 @@ func (d *DefaultRecordDao) Search(accountId ledger.AccountId, search dao.RecordS
 		"r.amount_minor_units",
 		"r.date",
 		"r.type",
+		"r.source_account_id",
 		"r.beneficiary_id",
+		"r.transfer_reference",
 		"r.created_by",
 		"r.created_at",
 		"r.last_modified_by",
@@ -303,7 +331,9 @@ func (d *DefaultRecordDao) Search(accountId ledger.AccountId, search dao.RecordS
 			&rr.amountMinorUnits,
 			&rr.date,
 			&rr.recordType,
+			&rr.sourceAccountId,
 			&rr.beneficiaryId,
+			&rr.transferReference,
 			&rr.createdBy,
 			&rr.createdAt,
 			&rr.modifiedBy,
@@ -372,7 +402,9 @@ func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month le
 			r.amount_minor_units, 
 			r.date, 
 			r.type, 
+			r.source_account_id,
 			r.beneficiary_id,
+			r.transfer_reference,
 			r.created_by,
 			r.created_at,
 			r.last_modified_by,
@@ -428,7 +460,9 @@ func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month le
 			&rr.amountMinorUnits,
 			&rr.date,
 			&rr.recordType,
+			&rr.sourceAccountId,
 			&rr.beneficiaryId,
+			&rr.transferReference,
 			&rr.createdBy,
 			&rr.createdAt,
 			&rr.modifiedBy,

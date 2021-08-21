@@ -203,6 +203,57 @@ func (d *DefaultCategoryDao) GetCategoriesForUser(ctx context.Context, userId le
 	return entities, nil
 }
 
+func (d *DefaultCategoryDao) GetCategoryById(ctx context.Context, categoryId ledger.CategoryId, userId ledger.UserId, tx *sql.Tx) (ledger.Category, error) {
+	var cr categoryRecord
+	err := tx.QueryRowContext(
+		ctx,
+		`SELECT 
+			c.id, 
+			c.name,
+			c.created_by,
+			c.created_at,
+			c.last_modified_by,
+			c.last_modified_at,
+			c.version
+		FROM 
+			budget.category c 
+		LEFT JOIN budget.user u 
+		ON 
+			c.user_id = u.id 
+		WHERE 
+			u.id = $1
+		AND 
+			c.id = $2`, userId, categoryId,
+	).Scan(&cr.id, &cr.name, &cr.createdBy, &cr.createdAt, &cr.modifiedBy, &cr.modifiedAt, &cr.version)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return ledger.Category{}, ledger.NewError(ledger.ErrCategoriesNotFound, fmt.Sprintf("Category with id %d not found", categoryId), err)
+		}
+		return ledger.Category{}, ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Category with id %d not found", categoryId), err)
+	}
+
+	return ledger.NewCategoryFromRecord(cr)
+}
+
+func (d *DefaultCategoryDao) UpdateCategoryLastUsed(ctx context.Context, categoryId ledger.CategoryId, lastUsedTime time.Time, tx *sql.Tx) error {
+	_, err := tx.ExecContext(
+		ctx,
+		`UPDATE 
+			budget.category c 
+		SET 
+			c.last_used_at = $1
+		WHERE 
+			c.id = $2`,
+		lastUsedTime,
+		categoryId,
+	)
+	if err != nil {
+		return ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Failed to update last used for category id %d", categoryId), err)
+	}
+
+	return nil
+}
+
 func (d *DefaultCategoryDao) Save(ctx context.Context, userId ledger.UserId, c ledger.Categories) error {
 	tx, err := d.db.Begin()
 	if err != nil {
