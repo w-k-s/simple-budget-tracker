@@ -17,7 +17,7 @@ type accountRecord struct {
 	id                       ledger.AccountId
 	name                     string
 	currency                 string
-	currentBalanceMinorUnits uint64
+	currentBalanceMinorUnits sql.NullInt64
 	createdBy                string
 	createdAt                time.Time
 	modifiedBy               sql.NullString
@@ -38,7 +38,10 @@ func (ar accountRecord) Currency() string {
 }
 
 func (ar accountRecord) CurrentBalanceMinorUnits() uint64 {
-	return ar.currentBalanceMinorUnits
+	if ar.currentBalanceMinorUnits.Valid {
+		return uint64(ar.currentBalanceMinorUnits.Int64)
+	}
+	return 0
 }
 
 func (ar accountRecord) CreatedBy() ledger.UpdatedBy {
@@ -174,23 +177,22 @@ func (d *DefaultAccountDao) GetAccountsByUserId(ctx context.Context, queryId led
 			a.id, 
 			a.name, 
 			a.currency, 
-			(SELECT SUM(r.amount_minor_units))
+			(SELECT SUM(r.amount_minor_units) FROM budget.record r WHERE r.account_id = a.id),
 			a.created_by, 
 			a.created_at, 
 			a.last_modified_by,
-			 a.last_modified_at, 
-			 a.version 
+			a.last_modified_at, 
+			a.version 
 		FROM budget.account a 
 		INNER JOIN budget.user u 
 			ON a.user_id = u.id 
-		INNER JOIN budger.record r
-			ON a.id = r.account_id
 		WHERE 
 			u.id = $1 
 		ORDER BY a.id`,
 		queryId,
 	)
 	if err != nil {
+		log.Printf("Error querying for accounts for user %d. Reason: %s", queryId, err)
 		return nil, ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Accounts for user id %d not found", queryId), err)
 	}
 	defer rows.Close()
@@ -224,12 +226,12 @@ func (d *DefaultAccountDao) GetAccountById(ctx context.Context, queryId ledger.A
 			a.id, 
 			a.name, 
 			a.currency, 
-			(SELECT SUM(r.amount_minor_units))
+			(SELECT SUM(r.amount_minor_units) FROM budget.record r WHERE r.account_id = a.id),
 			a.created_by, 
 			a.created_at, 
 			a.last_modified_by,
-			 a.last_modified_at, 
-			 a.version 
+			a.last_modified_at, 
+			a.version 
 		FROM budget.account a 
 		INNER JOIN budget.user u 
 			ON a.user_id = u.id 

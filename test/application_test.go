@@ -66,5 +66,5 @@ func (suite *ApplicationTestSuite) Test_GIVEN_aCategoryIsCreatedWithEmbeddedScri
 	assert.Nil(suite.T(), json.Unmarshal(w.Body.Bytes(), &getResponse))
 	assert.Equal(suite.T(), 200, w.Code)
 
-	assert.Equal(suite.T(), "\u003cscript\u003eevil();\u003c/script\u003e", getResponse.Categories[0].Name)
+	assert.Equal(suite.T(), "\u003cScript\u003eEvil();\u003c/Script\u003e", getResponse.Categories[0].Name)
 }

@@ -140,11 +140,15 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 	}
 
 	transferReference := ledger.NoTransferReference
+	sourceAccountId := ledger.NoSourceAccount
+	beneficiaryAccountId := ledger.NoBeneficiaryAccount
 	if ledger.RecordType(request.Type) == ledger.Transfer {
 		if amount, err = amount.Negate(); err != nil {
 			return RecordResponse{}, err.(ledger.Error)
 		}
 		transferReference = ledger.MakeTransferReference()
+		sourceAccountId = account.Id()
+		beneficiaryAccountId = ledger.AccountId(request.Transfer.Beneficiary.Id)
 	}
 
 	if date, err = time.Parse(time.RFC3339, request.DateUTC); err != nil {
@@ -158,8 +162,8 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 		amount,
 		date.In(time.UTC),
 		ledger.RecordType(request.Type),
-		account.Id(),
-		ledger.AccountId(request.Transfer.Beneficiary.Id),
+		sourceAccountId,
+		beneficiaryAccountId,
 		transferReference,
 		ledger.MustMakeUpdatedByUserId(userId),
 	); err != nil {
@@ -189,13 +193,13 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 
 		if transfer, err = ledger.NewRecord(
 			transferId,
-			fmt.Sprintf("From %s: %s", account.Name(), record.Note()),
+			record.Note(),
 			category,
 			credit,
 			date.In(time.UTC),
 			ledger.RecordType(request.Type),
-			account.Id(),
-			ledger.AccountId(request.Transfer.Beneficiary.Id),
+			sourceAccountId,
+			beneficiaryAccountId,
 			transferReference,
 			ledger.MustMakeUpdatedByUserId(userId),
 		); err != nil {

@@ -138,8 +138,8 @@ func (suite *RecordTestSuite) Test_GIVEN_invalidExpenseType_WHEN_RecordIsCreated
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "recordType must be INCOME,EXPENSE or TRANSFER. Invalid: \"nil\"", err.(Error).Error())
-	assert.Equal(suite.T(), "recordType must be INCOME,EXPENSE or TRANSFER. Invalid: \"nil\"", err.(Error).Fields()["record_type"])
+	assert.Equal(suite.T(), "recordType must be INCOME,EXPENSE or TRANSFER.", err.(Error).Error())
+	assert.Equal(suite.T(), "recordType must be INCOME,EXPENSE or TRANSFER.", err.(Error).Fields()["record_type"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutBeneficiaryId_WHEN_RecordIsCreated_THEN_errorIsReturned() {
@@ -148,23 +148,56 @@ func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutBeneficiaryId_
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Transfer, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(UserId(1)))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Transfer, AccountId(1), NoBeneficiaryAccount, "Ref", MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "beneficiaryId can not be <= 0 when record type is TRANSFER", err.(Error).Error())
-	assert.Equal(suite.T(), "beneficiaryId can not be <= 0 when record type is TRANSFER", err.(Error).Fields()["beneficiary_id"])
+	assert.Equal(suite.T(), "beneficiaryId can not be <= 0 when record type is TRANSFER", err.(Error).Fields()["beneficiaryId"])
+}
+
+func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutSourceAccountId_WHEN_RecordIsCreated_THEN_errorIsReturned() {
+
+	// GIVEN
+	recordId := RecordId(1)
+
+	// WHEN
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Transfer, NoSourceAccount, AccountId(2), "Ref", MustMakeUpdatedByUserId(UserId(1)))
+
+	// THEN
+	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
+	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
+	assert.Equal(suite.T(), "sourceAccountId can not be <= 0 when record type is TRANSFER", err.(Error).Error())
+	assert.Equal(suite.T(), "sourceAccountId can not be <= 0 when record type is TRANSFER", err.(Error).Fields()["sourceAccountId"])
+}
+
+func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutTranferReference_WHEN_RecordIsCreated_THEN_errorIsReturned() {
+
+	// GIVEN
+	recordId := RecordId(1)
+
+	// WHEN
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Transfer, AccountId(1), AccountId(2), NoTransferReference, MustMakeUpdatedByUserId(UserId(1)))
+
+	// THEN
+	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
+	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
+	assert.Equal(suite.T(), "transferReference can not be empty when record type is TRANSFER", err.(Error).Error())
+	assert.Equal(suite.T(), "transferReference can not be empty when record type is TRANSFER", err.(Error).Fields()["transferReference"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithBeneficiaryId_WHEN_RecordIsCreated_THEN_recordIsCreated() {
 
 	// GIVEN
 	recordId := RecordId(1)
+	amount, _ := suite.billAmount.Negate()
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Transfer, AccountId(1), AccountId(2), "Ref", MustMakeUpdatedByUserId(1))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, amount, time.Now().UTC(), Transfer, AccountId(1), AccountId(2), "Ref", MustMakeUpdatedByUserId(1))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -183,14 +216,46 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithBeneficiaryId_WHEN
 	recordId := RecordId(1)
 
 	// WHEN
-	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Expense, AccountId(1), AccountId(2), "Ref", MustMakeUpdatedByUserId(1))
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Expense, NoSourceAccount, AccountId(2), NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
 	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
 	assert.Equal(suite.T(), "beneficiaryId must be 0 when record type is \"EXPENSE\"", err.(Error).Error())
-	assert.Equal(suite.T(), "beneficiaryId must be 0 when record type is \"EXPENSE\"", err.(Error).Fields()["beneficiary_id"])
+	assert.Equal(suite.T(), "beneficiaryId must be 0 when record type is \"EXPENSE\"", err.(Error).Fields()["beneficiaryId"])
+}
+
+func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithSourceAccountId_WHEN_RecordIsCreated_THEN_errorIsReturned() {
+
+	// GIVEN
+	recordId := RecordId(1)
+
+	// WHEN
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Expense, AccountId(1), NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+
+	// THEN
+	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
+	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
+	assert.Equal(suite.T(), "sourceAccountId must be 0 when record type is \"EXPENSE\"", err.(Error).Error())
+	assert.Equal(suite.T(), "sourceAccountId must be 0 when record type is \"EXPENSE\"", err.(Error).Fields()["sourceAccountId"])
+}
+
+func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithTransferReference_WHEN_RecordIsCreated_THEN_errorIsReturned() {
+
+	// GIVEN
+	recordId := RecordId(1)
+
+	// WHEN
+	record, err := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, time.Now().UTC(), Expense, NoSourceAccount, NoBeneficiaryAccount, "Ref", MustMakeUpdatedByUserId(1))
+
+	// THEN
+	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Record{}, record)
+	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
+	assert.Equal(suite.T(), "transferReference must be empty when record type is EXPENSE", err.(Error).Error())
+	assert.Equal(suite.T(), "transferReference must be empty when record type is EXPENSE", err.(Error).Fields()["transferReference"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithZeroAmount_WHEN_RecordIsCreated_THEN_errorReturned() {
@@ -288,7 +353,7 @@ func (suite *RecordTestSuite) Test_GIVEN_aRecord_WHEN_stringIsCalled_THEN_string
 	record, _ := NewRecord(recordId, "Telephone Bill", suite.billsCategory, suite.billAmount, date, Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
 
 	// THEN
-	assert.Equal(suite.T(), "Record{id: 1, type: EXPENSE, amount: AED -200.00, category: Category{id: 1, name: Bills}, date: 2021-07-02T21:10:00+0000, beneficiaryId: 0}", record.String())
+	assert.Equal(suite.T(), "Record{id: 1, type: EXPENSE, amount: AED -200.00, category: Category{id: 1, name: Bills}, date: 2021-07-02T21:10:00+0000, sourceAccountId: 0, beneficiaryId: 0, transferReference: }", record.String())
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_records_WHEN_stringIsCalled_THEN_recordsArePrintedInSortedOrder() {
@@ -308,7 +373,7 @@ func (suite *RecordTestSuite) Test_GIVEN_records_WHEN_stringIsCalled_THEN_record
 	records := Records{record1, record2}
 
 	// THEN
-	assert.Equal(suite.T(), "Records{Record{id: 1, type: INCOME, amount: AED 1000.00, category: Category{id: 1, name: Salary}, date: 2021-07-01T12:00:00+0000, beneficiaryId: 0}, Record{id: 2, type: EXPENSE, amount: AED -50.00, category: Category{id: 2, name: Bills}, date: 2021-07-03T13:30:00+0000, beneficiaryId: 0}}", records.String())
+	assert.Equal(suite.T(), "Records{Record{id: 1, type: INCOME, amount: AED 1000.00, category: Category{id: 1, name: Salary}, date: 2021-07-01T12:00:00+0000, sourceAccountId: 0, beneficiaryId: 0, transferReference: }, Record{id: 2, type: EXPENSE, amount: AED -50.00, category: Category{id: 2, name: Bills}, date: 2021-07-03T13:30:00+0000, sourceAccountId: 0, beneficiaryId: 0, transferReference: }}", records.String())
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_records_WHEN_recordsAreSorted_THEN_recordsAreSortedByDate() {

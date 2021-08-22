@@ -128,7 +128,7 @@ func (suite *RecordDaoTestSuite) Test_Given_anExpenseRecord_WHEN_theRecordIsSave
 
 func (suite *RecordDaoTestSuite) Test_Given_aTransferRecord_WHEN_theRecordIsSaved_THEN_recordCanBeRetrievedInMonthRange() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", testSavingsCategory, quickMoney("AED", 50000), testRecordDate, ledger.Transfer, testCurrentAccountId, testSavingsAccountId, ledger.MakeTransferReference(), ledger.MustMakeUpdatedByUserId(testUserId))
+	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", testSavingsCategory, quickMoney("AED", -50000), testRecordDate, ledger.Transfer, testCurrentAccountId, testSavingsAccountId, ledger.MakeTransferReference(), ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
 	tx, _ := suite.recordDao.BeginTx()
@@ -208,7 +208,7 @@ func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_searchingBySearchTerm_T
 
 func (suite *RecordDaoTestSuite) Test_Given_aRecordWithAmountInDifferentCurrencyThanAccount_WHEN_recordIsSaved_THEN_currencyIsSetToAccountsCurrency() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", testSavingsCategory, quickMoney("USD", 50000), testRecordDate, ledger.Transfer, testCurrentAccountId, testSavingsAccountId, ledger.MakeTransferReference(), ledger.MustMakeUpdatedByUserId(testUserId))
+	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", testSavingsCategory, quickMoney("USD", -50000), testRecordDate, ledger.Transfer, testCurrentAccountId, testSavingsAccountId, ledger.MakeTransferReference(), ledger.MustMakeUpdatedByUserId(testUserId))
 
 	// WHEN
 	tx, _ := suite.recordDao.BeginTx()

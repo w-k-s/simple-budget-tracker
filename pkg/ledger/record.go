@@ -108,7 +108,7 @@ func newRecord(id RecordId, note string, category Category, amount Money, dateUT
 		&categoryValidator{Field: "Category", Value: category},
 		&amountValidator{Field: "Amount", Value: amount},
 		&validators.TimeIsPresent{Name: "Date", Field: dateUTC, Message: "Invalid date"},
-		&validators.StringInclusion{Name: "RecordType", Field: string(recordType), List: []string{"INCOME", "EXPENSE", "TRANSFER"}, Message: "recordType must be INCOME,EXPENSE or TRANSFER. Invalid: %q"},
+		&validators.StringInclusion{Name: "RecordType", Field: string(recordType), List: []string{"INCOME", "EXPENSE", "TRANSFER"}, Message: "recordType must be INCOME,EXPENSE or TRANSFER."},
 		&beneficiaryIdValidator{Field: "BeneficiaryId", BeneficiaryId: beneficiaryId, SourceAccountId: sourceAccountId, RecordType: recordType},
 		&transferReferenceValidator{Value: transferReference, RecordType: recordType},
 	)
@@ -118,7 +118,7 @@ func newRecord(id RecordId, note string, category Category, amount Money, dateUT
 		return Record{}, err
 	}
 
-	var actualAmount Money
+	actualAmount := amount
 
 	if recordType == Expense {
 		if actualAmount, err = amount.Negate(); err != nil {
@@ -231,6 +231,9 @@ type transferReferenceValidator struct {
 func (v *transferReferenceValidator) IsValid(errors *validate.Errors) {
 	if v.RecordType == Transfer && len(v.Value) == 0 {
 		errors.Add("transferReference", fmt.Sprintf("transferReference can not be empty when record type is %s", Transfer))
+	}
+	if v.RecordType != Transfer && len(v.Value) > 0 {
+		errors.Add("transferReference", fmt.Sprintf("transferReference must be empty when record type is %s", v.RecordType))
 	}
 }
 
