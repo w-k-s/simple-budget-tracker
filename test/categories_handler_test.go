@@ -28,7 +28,7 @@ func TestCategoriesHandlerTestSuite(t *testing.T) {
 func (suite *CategoriesHandlerTestSuite) SetupTest() {
 	aUser, _ := ledger.NewUserWithEmailString(testUserId, testUserEmail)
 	if err := UserDao.Save(aUser); err != nil {
-		log.Fatalf("AccountDaoTestSuite: Test setup failed: %s", err)
+		log.Fatalf("CategoriesHandlerTestSuite: Test setup failed: %s", err)
 	}
 }
 

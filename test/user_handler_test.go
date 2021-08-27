@@ -23,7 +23,7 @@ func TestUserHandlerTestSuite(t *testing.T) {
 
 // -- SUITE
 
-func (suite *UserHandlerTestSuite) Test_GIVEN_validCreateUserRequest_WHEN_createUserEndpointIsCalled_THEN_userIsCreatedAnd201IsReturned() {
+func (suite *UserHandlerTestSuite) Test_GIVEN_aRecordRequest_WHEN_createUserEndpointIsCalled_THEN_userIsCreatedAnd201IsReturned() {
 	// GIVEN
 	var request bytes.Buffer
 	request.WriteString("{\"email\":\"test@burger.com\"}")

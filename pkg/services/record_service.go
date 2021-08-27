@@ -44,14 +44,10 @@ type RecordResponse struct {
 	Type    string         `json:"type"`
 
 	// Transfer is only set when record type is transfer
-	Transfer struct {
-		Beneficiary struct {
-			Id uint64 `json:"id"`
-		} `json:"beneficiary"`
-	} `json:"transfer"`
+	Transfer *TransferResponse `json:"transfer,omitempty"`
 
 	// Account is only set when a single record is updated.
-	Account AccountBalanceResponse `json:"account"`
+	Account *AccountBalanceResponse `json:"account,omitempty"`
 }
 
 func makeRecordResponse(record ledger.Record, account ledger.Account) (RecordResponse, error) {
@@ -71,16 +67,24 @@ func makeRecordResponse(record ledger.Record, account ledger.Account) (RecordRes
 	if account != emptyAccount {
 		currentBalanceValue, _ := account.CurrentBalance().MinorUnits()
 
+		resp.Account = new(AccountBalanceResponse)
 		resp.Account.Id = uint64(account.Id())
 		resp.Account.Balance.Currency = account.CurrentBalance().Currency().CurrencyCode()
 		resp.Account.Balance.Value = currentBalanceValue
 	}
 
 	if record.Type() == ledger.Transfer {
+		resp.Transfer = new(TransferResponse)
 		resp.Transfer.Beneficiary.Id = uint64(record.BeneficiaryId())
 	}
 
 	return resp, nil
+}
+
+type TransferResponse struct {
+	Beneficiary struct {
+		Id uint64 `json:"id"`
+	} `json:"beneficiary"`
 }
 
 type AccountBalanceResponse struct {

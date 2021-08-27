@@ -108,7 +108,7 @@ func (app *App) Router() *mux.Router {
 	categories.HandleFunc("", app.GetCategories).
 		Methods("GET")
 
-	records := r.PathPrefix("/api/v1/record").Subrouter()
+	records := r.PathPrefix("/api/v1/accounts/{accountId}/records").Subrouter()
 	records.HandleFunc("", app.CreateRecord).
 		Methods("POST")
 	records.HandleFunc("", app.GetRecords).

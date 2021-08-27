@@ -3,6 +3,7 @@ package test
 import (
 	"log"
 	"testing"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
@@ -61,12 +62,13 @@ func (suite *UserDaoTestSuite) Test_Given_aUser_WHEN_theUserIsSaved_THEN_userCan
 
 func (suite *UserDaoTestSuite) Test_Given_aUserId_WHEN_noUserWithThatIdExists_THEN_appropriateErrorIsReturned() {
 	// GIVEN
-	userId := ledger.UserId(1)
+	userId := ledger.UserId(time.Now().UnixMilli())
 
 	// WHEN
 	theUser, err := suite.userDao.GetUserById(userId)
 
 	// THEN
+	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), ledger.User{}, theUser)
 
 	coreError := err.(ledger.Error)

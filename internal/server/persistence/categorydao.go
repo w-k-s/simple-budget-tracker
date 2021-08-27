@@ -239,15 +239,16 @@ func (d *DefaultCategoryDao) UpdateCategoryLastUsed(ctx context.Context, categor
 	_, err := tx.ExecContext(
 		ctx,
 		`UPDATE 
-			budget.category c 
+			budget.category
 		SET 
-			c.last_used_at = $1
+			last_used_at = $1
 		WHERE 
-			c.id = $2`,
+			id = $2`,
 		lastUsedTime,
 		categoryId,
 	)
 	if err != nil {
+		log.Printf("Failed to update last used for category id %d. Reason: %s", categoryId, err)
 		return ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Failed to update last used for category id %d", categoryId), err)
 	}
 

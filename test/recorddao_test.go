@@ -191,13 +191,14 @@ func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_loadingRecordsForLastPe
 
 func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_searchingBySearchTerm_THEN_recordIsFound() {
 	// GIVEN
-	accountIds, err := simulateRecords(TestDB, 1, ledger.MakeCalendarMonth(2021, time.June), ledger.MakeCalendarMonth(2021, time.July))
+	userAndAccounts, err := simulateRecords(TestDB, 1, ledger.MakeCalendarMonth(2021, time.June), ledger.MakeCalendarMonth(2021, time.July))
 	assert.Nil(suite.T(), err)
 
 	// WHEN
+	userId := userAndAccounts.First()
 	fromDate := time.Date(2021, time.June, 10, 0, 0, 0, 0, time.UTC)
 	toDate := time.Date(2021, time.July, 1, 0, 0, 0, 0, time.UTC)
-	records, err := suite.recordDao.Search(accountIds[0], dao.RecordSearch{
+	records, err := suite.recordDao.Search(userAndAccounts[userId][0], dao.RecordSearch{
 		SearchTerm: "Birthday",
 		FromDate:   &fromDate,
 		ToDate:     &toDate,

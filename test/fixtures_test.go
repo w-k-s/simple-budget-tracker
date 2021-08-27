@@ -38,14 +38,24 @@ var (
 	testRecordDate = time.Date(2021, time.July, 5, 18, 30, 0, 0, time.UTC)
 )
 
-func simulateRecords(db *sql.DB, numberOfUsers int, startMonth ledger.CalendarMonth, endMonth ledger.CalendarMonth) ([]ledger.AccountId, error) {
+type UserAndAccounts map[ledger.UserId][]ledger.AccountId
+
+func (u UserAndAccounts) First() ledger.UserId {
+	for userId := range u {
+		return userId
+	}
+	return ledger.UserId(0)
+}
+
+func simulateRecords(db *sql.DB, numberOfUsers int, startMonth ledger.CalendarMonth, endMonth ledger.CalendarMonth) (UserAndAccounts, error) {
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	currentAccountIds := make([]ledger.AccountId, 0, numberOfUsers*10)
+	result := map[ledger.UserId][]ledger.AccountId{}
+
 	for i := 0; i < numberOfUsers; i++ {
 		// create user
 		var user ledger.User
@@ -180,7 +190,7 @@ func simulateRecords(db *sql.DB, numberOfUsers int, startMonth ledger.CalendarMo
 		_ = db.QueryRow("SELECT COUNT(*) FROM budget.record").Scan(&count)
 		log.Printf("%d records inserted for simulation", count)
 
-		currentAccountIds = append(currentAccountIds, currentAccount.Id())
+		result[userId] = []ledger.AccountId{currentAccount.Id(), savingsAccount.Id()}
 	}
-	return currentAccountIds, nil
+	return result, nil
 }

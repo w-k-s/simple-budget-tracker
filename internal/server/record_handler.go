@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	svc "github.com/w-k-s/simple-budget-tracker/pkg/services"
 )
@@ -36,7 +37,8 @@ func (a *App) GetRecords(w http.ResponseWriter, req *http.Request) {
 		err       error
 	)
 
-	if accountId, err = strconv.ParseUint(req.URL.Query().Get("accountId"), 10, 64); err != nil {
+	params := mux.Vars(req)
+	if accountId, err = strconv.ParseUint(params["accountId"], 10, 64); err != nil {
 		a.MustEncodeProblem(w, req, ledger.NewErrorWithFields(
 			ledger.ErrAccountValidation,
 			"Invalid account Id provided",
