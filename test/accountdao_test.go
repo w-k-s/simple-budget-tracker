@@ -128,12 +128,12 @@ func (suite *AccountDaoTestSuite) Test_Given_twoAccounts_WHEN_theAccountsHaveThe
 
 func (suite *AccountDaoTestSuite) Test_Given_twoUsersCreateTwoAccounts_WHEN_aUserTriesToRetrieveTheAccountOfTheOtherUserByAccountId_THEN_accountIsNotFound() {
 	// GIVEN
-	user1, _ := ledger.NewUserWithEmailString(ledger.UserId(time.Now().UnixMilli()), "bob1@example.com")
+	user1, _ := ledger.NewUserWithEmailString(ledger.UserId(time.Now().UnixNano()), "bob1@example.com")
 	if err := suite.userDao.Save(user1); err != nil {
 		log.Fatalf("AccountDaoTestSuite: Test setup failed: %s", err)
 	}
 
-	user2, _ := ledger.NewUserWithEmailString(ledger.UserId(time.Now().UnixMilli()), "bob2@example.com")
+	user2, _ := ledger.NewUserWithEmailString(ledger.UserId(time.Now().UnixNano()), "bob2@example.com")
 	if err := suite.userDao.Save(user2); err != nil {
 		log.Fatalf("AccountDaoTestSuite: Test setup failed: %s", err)
 	}
