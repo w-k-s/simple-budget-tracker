@@ -37,7 +37,7 @@ type AccountDao interface {
 	SaveTx(ctx context.Context, id ledger.UserId, as ledger.Accounts, tx *sql.Tx) error
 
 	GetAccountsByUserId(ctx context.Context, id ledger.UserId, tx *sql.Tx) (ledger.Accounts, error)
-	GetAccountById(ctx context.Context, id ledger.AccountId, tx *sql.Tx) (ledger.Account, error)
+	GetAccountById(ctx context.Context, id ledger.AccountId, userId ledger.UserId, tx *sql.Tx) (ledger.Account, error)
 }
 
 type CategoryDao interface {
@@ -66,7 +66,7 @@ type RecordDao interface {
 
 	Search(id ledger.AccountId, search RecordSearch) (ledger.Records, error)
 	GetRecordsForMonth(id ledger.AccountId, month ledger.CalendarMonth) (ledger.Records, error)
-	GetRecordsForLastPeriod(id ledger.AccountId) (ledger.Records, error)
+	GetRecordsForLastPeriod(ctx context.Context, id ledger.AccountId, tx *sql.Tx) (ledger.Records, error)
 }
 
 type RecordSearch struct {

@@ -28,6 +28,7 @@ const (
 	ErrCategoryNameDuplicated
 	ErrCategoriesNotFound
 	ErrRecordValidation
+	ErrRecordsPeriodOfEmptySet
 	ErrAmountOverflow
 	ErrAmountMismatchingCurrencies
 	ErrAmountTotalOfEmptySet
@@ -53,6 +54,7 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrCategoryNameDuplicated:      "CATEGORY_NAME_DUPLICATED",
 	ErrCategoriesNotFound:          "CATEGORIES_NOT_FOUND",
 	ErrRecordValidation:            "RECORD_VALIDATION_FAILED",
+	ErrRecordsPeriodOfEmptySet:     "RECORDS_PERIOD_OF_EMPTY_SET",
 	ErrAmountOverflow:              "AMOUNT_OVERFLOW",
 	ErrAmountMismatchingCurrencies: "AMOUNT_MISMATCHING_CURRENCIES",
 	ErrAmountTotalOfEmptySet:       "AMOUNT_TOTAL_OF_EMPTY_SET",
@@ -115,6 +117,8 @@ func (c ErrorCode) Status() int {
 	case ErrDatabaseState:
 		fallthrough
 	case ErrAmountTotalOfEmptySet:
+		fallthrough
+	case ErrRecordsPeriodOfEmptySet:
 		fallthrough
 	case ErrAmountOverflow:
 		fallthrough

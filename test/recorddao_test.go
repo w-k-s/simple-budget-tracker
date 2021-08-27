@@ -164,7 +164,9 @@ func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_loadingRecordsForLastPe
 	_ = suite.recordDao.SaveTx(context.Background(), testCurrentAccountId, beforeLastMonthIncome, tx)
 	_ = tx.Commit()
 
-	records, err := suite.recordDao.GetRecordsForLastPeriod(testCurrentAccountId)
+	tx, _ = suite.recordDao.BeginTx()
+	records, err := suite.recordDao.GetRecordsForLastPeriod(context.Background(), testCurrentAccountId, tx)
+	_ = tx.Commit()
 
 	// THEN
 	assert.Nil(suite.T(), err)

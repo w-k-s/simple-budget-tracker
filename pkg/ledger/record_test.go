@@ -456,3 +456,87 @@ func (suite *RecordTestSuite) Test_GIVEN_emptyRecords_WHEN_recordsAreTotaled_THE
 	assert.Equal(suite.T(), ErrAmountTotalOfEmptySet, err.(Error).Code())
 	assert.Equal(suite.T(), "No amounts to total", err.(Error).Error())
 }
+
+func (suite *RecordTestSuite) Test_GIVEN_recordsWithExpensesAndIncome_WHEN_totalIncomeAndTotalExpensesAreCalculated_THEN_totalsAreCorrect() {
+	// GIVEN
+
+	// -- Income
+	salaryCategory, _ := NewCategory(CategoryId(1), "Salary", MustMakeUpdatedByUserId(1))
+	salaryAmount, _ := NewMoney("AED", 100000)
+	salaryDate := time.Date(2021, time.July, 1, 12, 0, 0, 0, time.UTC)
+
+	giftCategory, _ := NewCategory(CategoryId(1), "Gift", MustMakeUpdatedByUserId(1))
+	birthdayMoney, _ := NewMoney("AED", 1000)
+	birthday := time.Date(2021, time.July, 1, 12, 0, 0, 0, time.UTC)
+
+	// -- Expense
+	billsCategory, _ := NewCategory(CategoryId(2), "Bills", MustMakeUpdatedByUserId(1))
+	billAmount, _ := NewMoney("AED", 5000)
+	billDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
+
+	transportationCategory, _ := NewCategory(CategoryId(2), "Transportation", MustMakeUpdatedByUserId(1))
+	taxiFare, _ := NewMoney("AED", 1200)
+	taxiDate := time.Date(2021, time.July, 3, 13, 30, 0, 0, time.UTC)
+
+	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, salaryDate, Income, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+	record2, _ := NewRecord(RecordId(2), "Birthday Gift", giftCategory, birthdayMoney, birthday, Income, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+	record3, _ := NewRecord(RecordId(3), "Electricity Bill", billsCategory, billAmount, billDate, Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+	record4, _ := NewRecord(RecordId(4), "Taxi", transportationCategory, taxiFare, taxiDate, Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+
+	// WHEN
+	records := Records{record1, record2, record3, record4}
+	total, _ := records.Total()
+	expenses, _ := records.TotalExpenses()
+	income, _ := records.TotalIncome()
+
+	// THEN
+	assert.NotNil(suite.T(), total)
+	assert.Equal(suite.T(), "AED 948.00", total.String())
+	assert.Equal(suite.T(), "AED 62.00", expenses.String())
+	assert.Equal(suite.T(), "AED 1010.00", income.String())
+}
+
+func (suite *RecordTestSuite) Test_GIVEN_recordsAcrossTwoMonths_WHEN_determiningRecordPeriod_THEN_periodIsCorrect() {
+	// GIVEN
+
+	// -- January
+	salaryCategory, _ := NewCategory(CategoryId(1), "Salary", MustMakeUpdatedByUserId(1))
+	salaryAmount, _ := NewMoney("AED", 100000)
+	januarySalaryDate := time.Date(2021, time.January, 1, 12, 0, 0, 0, time.UTC)
+
+	billsCategory, _ := NewCategory(CategoryId(2), "Bills", MustMakeUpdatedByUserId(1))
+	billAmount, _ := NewMoney("AED", 5000)
+	januaryBillDate := time.Date(2021, time.January, 29, 13, 30, 0, 0, time.UTC)
+
+	// -- February
+	februarySalaryDate := time.Date(2021, time.February, 1, 12, 0, 0, 0, time.UTC)
+	februaryBillDate := time.Date(2021, time.February, 28, 12, 0, 0, 0, time.UTC)
+
+	record1, _ := NewRecord(RecordId(1), "Salary", salaryCategory, salaryAmount, januarySalaryDate, Income, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+	record2, _ := NewRecord(RecordId(2), "Bill", billsCategory, billAmount, januaryBillDate, Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+
+	record3, _ := NewRecord(RecordId(3), "Salary", salaryCategory, salaryAmount, februarySalaryDate, Income, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+	record4, _ := NewRecord(RecordId(4), "Bill", billsCategory, billAmount, februaryBillDate, Expense, NoSourceAccount, NoBeneficiaryAccount, NoTransferReference, MustMakeUpdatedByUserId(1))
+
+	// WHEN
+	records := Records{record1, record2, record3, record4}
+	from, to, err := records.Period()
+
+	// THEN
+	assert.Nil(suite.T(), err)
+	assert.Equal(suite.T(), "2021-01-01 12:00:00 +0000 UTC", from.String())
+	assert.Equal(suite.T(), "2021-02-28 12:00:00 +0000 UTC", to.String())
+}
+
+func (suite *RecordTestSuite) Test_GIVEN_emptyRecords_WHEN_determiningRecordPeriod_THEN_errorIsReturned() {
+
+	// WHEN
+	from, to, err := Records{}.Period()
+
+	// THEN
+	assert.Equal(suite.T(), time.Time{}, from)
+	assert.Equal(suite.T(), time.Time{}, to)
+	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), ErrRecordsPeriodOfEmptySet, err.(Error).Code())
+	assert.Equal(suite.T(), "Can not determine records period for empty set", err.(Error).Error())
+}

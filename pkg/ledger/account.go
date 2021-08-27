@@ -68,8 +68,7 @@ func newAccount(id AccountId, name string, currency string, currentBalanceMinorU
 	errors := validate.Validate(
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
 		&validators.StringLengthInRange{Name: "Name", Field: name, Min: 1, Max: 25, Message: "Name must be 1 and 25 characters long"},
-		&validators.StringLengthInRange{Name: "Currency", Field: currency, Min: 3, Max: 4, Message: "Currency must be 3 characters long"},
-		&validators.FuncValidator{Name: "Currency", Field: currency, Message: "No such currency '%s'", Fn: func() bool { return IsValidCurrency(currency) }},
+		&currencyValidator{Name: "Currency", Value: currency},
 	)
 
 	var (
@@ -137,3 +136,18 @@ func (as Accounts) String() string {
 func (as Accounts) Len() int           { return len(as) }
 func (as Accounts) Swap(i, j int)      { as[i], as[j] = as[j], as[i] }
 func (as Accounts) Less(i, j int) bool { return as[i].Name() < as[j].Name() }
+
+type currencyValidator struct {
+	Name  string
+	Value string
+}
+
+func (v *currencyValidator) IsValid(errors *validate.Errors) {
+	if len(v.Value) == 0 {
+		errors.Add(strings.ToLower(v.Name), "currency is required")
+		return
+	}
+	if !IsValidCurrency(v.Value) {
+		errors.Add(strings.ToLower(v.Name), fmt.Sprintf("No such currency '%s'", v.Value))
+	}
+}

@@ -1,4 +1,4 @@
-FROM golang:1.16 as builder
+FROM golang:1.17 as builder
 
 COPY . /go/src/github.com/w-k-s/simple-budget-tracker
 

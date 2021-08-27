@@ -56,8 +56,8 @@ func (suite *AccountTestSuite) Test_GIVEN_noCurrency_WHEN_AccountIsCreated_THEN_
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Account{}, account)
 	assert.Equal(suite.T(), ErrAccountValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "No such currency '', Currency must be 3 characters long", err.(Error).Error())
-	assert.Equal(suite.T(), "No such currency '', Currency must be 3 characters long", err.(Error).Fields()["currency"])
+	assert.Equal(suite.T(), "currency is required", err.(Error).Error())
+	assert.Equal(suite.T(), "currency is required", err.(Error).Fields()["currency"])
 }
 
 func (suite *AccountTestSuite) Test_GIVEN_aNonExistantCurrency_WHEN_AccountIsCreated_THEN_errorIsReturned() {

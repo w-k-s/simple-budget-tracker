@@ -154,7 +154,7 @@ func (suite *CategoriesHandlerTestSuite) Test_GIVEN_unauthenticatedRequest_WHEN_
 	p := problem.New()
 	assert.Equal(suite.T(), 401, w.Code)
 	assert.Nil(suite.T(), p.UnmarshalJSON(w.Body.Bytes()))
-	assert.Equal(suite.T(), "{\"detail\":\"User id is required\",\"instance\":\"/api/v1/categories\",\"status\":401,\"title\":\"SERVICE_REQUIRED_USER_ID\",\"type\":\"/api/v1/problems/1021\"}", p.Error())
+	assert.Equal(suite.T(), "{\"detail\":\"User id is required\",\"instance\":\"/api/v1/categories\",\"status\":401,\"title\":\"SERVICE_REQUIRED_USER_ID\",\"type\":\"/api/v1/problems/1022\"}", p.Error())
 }
 
 func (suite *CategoriesHandlerTestSuite) Test_GIVEN_unauthenticatedRequest_WHEN_getAccountsEndpointIsCalled_THEN_401IsReturned() {
@@ -177,5 +177,5 @@ func (suite *CategoriesHandlerTestSuite) Test_GIVEN_unauthenticatedRequest_WHEN_
 	p := problem.New()
 	assert.Equal(suite.T(), 401, w.Code)
 	assert.Nil(suite.T(), p.UnmarshalJSON(w.Body.Bytes()))
-	assert.Equal(suite.T(), "{\"detail\":\"User id is required\",\"instance\":\"/api/v1/categories\",\"status\":401,\"title\":\"SERVICE_REQUIRED_USER_ID\",\"type\":\"/api/v1/problems/1021\"}", p.Error())
+	assert.Equal(suite.T(), "{\"detail\":\"User id is required\",\"instance\":\"/api/v1/categories\",\"status\":401,\"title\":\"SERVICE_REQUIRED_USER_ID\",\"type\":\"/api/v1/problems/1022\"}", p.Error())
 }

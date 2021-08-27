@@ -218,7 +218,7 @@ func (d *DefaultAccountDao) GetAccountsByUserId(ctx context.Context, queryId led
 	return entities, nil
 }
 
-func (d *DefaultAccountDao) GetAccountById(ctx context.Context, queryId ledger.AccountId, tx *sql.Tx) (ledger.Account, error) {
+func (d *DefaultAccountDao) GetAccountById(ctx context.Context, queryId ledger.AccountId, userId ledger.UserId, tx *sql.Tx) (ledger.Account, error) {
 	var ar accountRecord
 	err := tx.QueryRowContext(
 		ctx,
@@ -233,18 +233,20 @@ func (d *DefaultAccountDao) GetAccountById(ctx context.Context, queryId ledger.A
 			a.last_modified_at, 
 			a.version 
 		FROM budget.account a 
-		INNER JOIN budget.user u 
+		LEFT JOIN budget.user u 
 			ON a.user_id = u.id 
-		INNER JOIN budger.record r
+		LEFT JOIN budget.record r
 			ON a.id = r.account_id
 		WHERE 
-			u.id = $1 
+			a.id = $1 
+		AND a.user_id = $2
 		ORDER BY a.id`,
-		queryId,
+		queryId, userId,
 	).Scan(&ar.id, &ar.name, &ar.currency, &ar.currentBalanceMinorUnits, &ar.createdBy, &ar.createdAt, &ar.modifiedBy, &ar.modifiedAt, &ar.version)
 	if err != nil {
+		log.Printf("Failed to find account id %d for user %d. Reason: %s", queryId, userId, err)
 		if err == sql.ErrNoRows {
-			return ledger.Account{}, ledger.NewError(ledger.ErrCategoriesNotFound, fmt.Sprintf("Account with id %d not found", queryId), err)
+			return ledger.Account{}, ledger.NewError(ledger.ErrAccountNotFound, fmt.Sprintf("Account with id %d not found", queryId), err)
 		}
 		return ledger.Account{}, ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Account with id %d not found", queryId), err)
 	}

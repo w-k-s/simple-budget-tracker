@@ -54,6 +54,35 @@ type RecordResponse struct {
 	Account AccountBalanceResponse `json:"account"`
 }
 
+func makeRecordResponse(record ledger.Record, account ledger.Account) (RecordResponse, error) {
+	amountValue, _ := record.Amount().MinorUnits()
+
+	resp := RecordResponse{}
+	resp.Id = uint64(record.Id())
+	resp.Note = record.Note()
+	resp.Category.Id = uint64(record.Category().Id())
+	resp.Category.Name = record.Category().Name()
+	resp.Amount.Currency = record.Amount().Currency().CurrencyCode()
+	resp.Amount.Value = amountValue
+	resp.DateUTC = record.DateUTCString()
+	resp.Type = string(record.Type())
+
+	emptyAccount := ledger.Account{}
+	if account != emptyAccount {
+		currentBalanceValue, _ := account.CurrentBalance().MinorUnits()
+
+		resp.Account.Id = uint64(account.Id())
+		resp.Account.Balance.Currency = account.CurrentBalance().Currency().CurrencyCode()
+		resp.Account.Balance.Value = currentBalanceValue
+	}
+
+	if record.Type() == ledger.Transfer {
+		resp.Transfer.Beneficiary.Id = uint64(record.BeneficiaryId())
+	}
+
+	return resp, nil
+}
+
 type AccountBalanceResponse struct {
 	Id      uint64         `json:"id"`
 	Balance AmountResponse `json:"currentBalance"`
@@ -61,20 +90,84 @@ type AccountBalanceResponse struct {
 
 type AmountResponse struct {
 	Currency string `json:"currency"`
-	Value    uint64 `json:"value"`
+	Value    int64  `json:"value"`
 }
 
-type CalendarMonthRecordsResponse struct {
+type RecordsResponse struct {
 	Records []RecordResponse `json:"records"`
 	Summary struct {
 		TotalExpenses AmountResponse `json:"totalExpenses"`
 		TotalIncome   AmountResponse `json:"totalIncome"`
 	} `json:"summary"`
+	SearchParameters struct {
+		From time.Time `json:"from"`
+		To   time.Time `json:"to"`
+	} `json:"search"`
+}
+
+func makeRecordsResponse(records ledger.Records) (RecordsResponse, error) {
+	if len(records) == 0 {
+		return RecordsResponse{}, nil
+	}
+
+	var (
+		totalExpenses      ledger.Money
+		totalExpensesValue int64
+
+		totalIncome      ledger.Money
+		totalIncomeValue int64
+
+		from time.Time
+		to   time.Time
+
+		err error
+	)
+
+	if totalIncome, err = records.TotalIncome(); err != nil {
+		return RecordsResponse{}, err.(ledger.Error)
+	}
+	if totalIncomeValue, err = totalIncome.MinorUnits(); err != nil {
+		return RecordsResponse{}, err.(ledger.Error)
+	}
+
+	if totalExpenses, err = records.TotalExpenses(); err != nil {
+		return RecordsResponse{}, err.(ledger.Error)
+	}
+	if totalExpensesValue, err = totalExpenses.MinorUnits(); err != nil {
+		return RecordsResponse{}, err.(ledger.Error)
+	}
+
+	if from, to, err = records.Period(); err != nil {
+		return RecordsResponse{}, err.(ledger.Error)
+	}
+
+	var recordsResponse RecordsResponse
+	recordsResponse.Summary.TotalExpenses = AmountResponse{
+		Currency: totalExpenses.Currency().CurrencyCode(),
+		Value:    totalExpensesValue,
+	}
+	recordsResponse.Summary.TotalIncome = AmountResponse{
+		Currency: totalIncome.Currency().CurrencyCode(),
+		Value:    totalIncomeValue,
+	}
+	recordsResponse.SearchParameters.From = from
+	recordsResponse.SearchParameters.To = to
+
+	for _, record := range records {
+		var recordResponse RecordResponse
+
+		if recordResponse, err = makeRecordResponse(record, ledger.Account{}); err != nil {
+			return RecordsResponse{}, err.(ledger.Error)
+		}
+
+		recordsResponse.Records = append(recordsResponse.Records, recordResponse)
+	}
+	return recordsResponse, nil
 }
 
 type RecordService interface {
 	CreateRecord(ctx context.Context, request CreateRecordRequest) (RecordResponse, error)
-	GetRecords(ctx context.Context) (CalendarMonthRecordsResponse, error)
+	GetRecords(ctx context.Context, accountId ledger.AccountId) (RecordsResponse, error)
 }
 
 type recordService struct {
@@ -127,9 +220,7 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 		record   ledger.Record
 	)
 
-	if recordId, err = svc.recordDao.NewRecordId(tx); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
-	}
+	// TODO: Check account belongs to user id
 
 	if category, err = svc.categoryDao.GetCategoryById(ctx, ledger.CategoryId(request.Category.Id), userId, tx); err != nil {
 		return RecordResponse{}, err.(ledger.Error)
@@ -153,6 +244,10 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 
 	if date, err = time.Parse(time.RFC3339, request.DateUTC); err != nil {
 		return RecordResponse{}, ledger.NewError(ledger.ErrRecordValidation, fmt.Sprintf("Date '%s' does not match format '%s'", request.DateUTC, time.RFC3339), err)
+	}
+
+	if recordId, err = svc.recordDao.NewRecordId(tx); err != nil {
+		return RecordResponse{}, err.(ledger.Error)
 	}
 
 	if record, err = ledger.NewRecord(
@@ -217,7 +312,7 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 	}
 
 	// Get account balance
-	if account, err = svc.accountDao.GetAccountById(ctx, ledger.AccountId(request.Account.Id), tx); err != nil {
+	if account, err = svc.accountDao.GetAccountById(ctx, ledger.AccountId(request.Account.Id), userId, tx); err != nil {
 		return RecordResponse{}, err.(ledger.Error)
 	}
 
@@ -225,30 +320,35 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 		return RecordResponse{}, err.(ledger.Error)
 	}
 
-	// Return response
-	amountValue, _ := record.Amount().MinorUnits()
-	currentBalanceValue, _ := account.CurrentBalance().MinorUnits()
-
-	resp := RecordResponse{}
-	resp.Id = uint64(recordId)
-	resp.Note = record.Note()
-	resp.Category.Id = uint64(category.Id())
-	resp.Category.Name = category.Name()
-	resp.Amount.Currency = record.Amount().Currency().CurrencyCode()
-	resp.Amount.Value = uint64(amountValue)
-	resp.DateUTC = record.DateUTCString()
-	resp.Type = string(record.Type())
-	resp.Account.Id = uint64(account.Id())
-	resp.Account.Balance.Currency = account.CurrentBalance().Currency().CurrencyCode()
-	resp.Account.Balance.Value = uint64(currentBalanceValue)
-
-	if record.Type() == ledger.Transfer {
-		resp.Transfer.Beneficiary.Id = uint64(record.BeneficiaryId())
-	}
-
-	return resp, nil
+	return makeRecordResponse(record, account)
 }
 
-func (svc recordService) GetRecords(ctx context.Context) (CalendarMonthRecordsResponse, error) {
-	return CalendarMonthRecordsResponse{}, nil
+func (svc recordService) GetRecords(ctx context.Context, accountId ledger.AccountId) (RecordsResponse, error) {
+
+	var (
+		userId  ledger.UserId
+		records ledger.Records
+		tx      *sql.Tx
+		err     error
+	)
+
+	if userId, err = RequireUserId(ctx); err != nil {
+		return RecordsResponse{}, err.(ledger.Error)
+	}
+
+	if tx, err = svc.recordDao.BeginTx(); err != nil {
+		return RecordsResponse{}, err.(ledger.Error)
+	}
+
+	defer dao.DeferRollback(tx, fmt.Sprintf("GetRecords: %d", userId))
+
+	if _, err = svc.accountDao.GetAccountById(ctx, accountId, userId, tx); err != nil {
+		return RecordsResponse{}, err.(ledger.Error)
+	}
+
+	if records, err = svc.recordDao.GetRecordsForLastPeriod(ctx, accountId, tx); err != nil {
+		return RecordsResponse{}, err.(ledger.Error)
+	}
+
+	return makeRecordsResponse(records)
 }

@@ -270,15 +270,81 @@ func (rs Records) Total() (Money, error) {
 	if rs.Len() == 0 {
 		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
 	}
-	total := rs[0].Amount()
-	var err error
-	for i := 1; i < rs.Len(); i++ {
+
+	var (
+		total, _ = NewMoney(rs[0].Amount().Currency().CurrencyCode(), 0)
+		err      error
+	)
+	for i := 0; i < rs.Len(); i++ {
 		total, err = total.Add(rs[i].Amount())
 		if err != nil {
 			return nil, err
 		}
 	}
 	return total, nil
+}
+
+func (rs Records) TotalExpenses() (Money, error) {
+	if rs.Len() == 0 {
+		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
+	}
+
+	var (
+		total, _  = NewMoney(rs[0].Amount().Currency().CurrencyCode(), 0)
+		amountAbs Money
+		err       error
+	)
+	for i := 1; i < rs.Len(); i++ {
+		record := rs[i]
+		if record.Amount().IsNegative() {
+			amountAbs, err = record.Amount().Abs()
+			if err != nil {
+				return nil, err
+			}
+			total, err = total.Add(amountAbs)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return total, nil
+}
+
+func (rs Records) TotalIncome() (Money, error) {
+	total, _ := NewMoney(rs[0].Amount().Currency().CurrencyCode(), 0)
+	var err error
+	for i := 0; i < rs.Len(); i++ {
+		record := rs[i]
+		if record.Amount().IsPositive() {
+			total, err = total.Add(record.Amount())
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return total, nil
+}
+
+func (rs Records) Period() (time.Time, time.Time, error) {
+	if len(rs) == 0 {
+		return time.Time{}, time.Time{}, NewError(ErrRecordsPeriodOfEmptySet, "Can not determine records period for empty set", nil)
+	}
+
+	var (
+		from = rs[0].date
+		to   = rs[0].date
+	)
+
+	for _, r := range rs {
+		if r.date.After(to) {
+			to = r.date
+		}
+		if r.date.Before(from) {
+			from = r.date
+		}
+	}
+
+	return from, to, nil
 }
 
 func (rs Records) String() string {

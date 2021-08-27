@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"testing"
+	"time"
 
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
@@ -80,6 +81,28 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_TH
 	assert.EqualValues(suite.T(), "EUR", allAccounts[1].Currency())
 }
 
+func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedByAccountId() {
+	// GIVEN
+	currentAccount, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
+
+	// WHEN
+	tx := suite.accountDao.MustBeginTx()
+	_ = suite.accountDao.SaveTx(context.Background(), testUserId, ledger.Accounts{currentAccount}, tx)
+	_ = tx.Commit()
+
+	tx = suite.accountDao.MustBeginTx()
+	account, err := suite.accountDao.GetAccountById(context.Background(), currentAccount.Id(), testUserId, tx)
+	_ = tx.Commit()
+
+	// THEN
+	assert.Nil(suite.T(), err)
+	assert.NotEqual(suite.T(), ledger.Account{}, account)
+
+	assert.EqualValues(suite.T(), ledger.AccountId(1), account.Id())
+	assert.EqualValues(suite.T(), "Current", account.Name())
+	assert.EqualValues(suite.T(), "AED", account.Currency())
+}
+
 func (suite *AccountDaoTestSuite) Test_Given_twoAccounts_WHEN_theAccountsHaveTheSameName_THEN_onlyOneAccountIsSaved() {
 	// GIVEN
 	account1, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
@@ -101,4 +124,37 @@ func (suite *AccountDaoTestSuite) Test_Given_twoAccounts_WHEN_theAccountsHaveThe
 	coreError := err2.(ledger.Error)
 	assert.Equal(suite.T(), ledger.ErrAccountNameDuplicated, coreError.Code())
 	assert.Equal(suite.T(), "Acccount named \"Current\" already exists", coreError.Error())
+}
+
+func (suite *AccountDaoTestSuite) Test_Given_twoUsersCreateTwoAccounts_WHEN_aUserTriesToRetrieveTheAccountOfTheOtherUserByAccountId_THEN_accountIsNotFound() {
+	// GIVEN
+	user1, _ := ledger.NewUserWithEmailString(ledger.UserId(time.Now().UnixMilli()), "bob1@example.com")
+	if err := suite.userDao.Save(user1); err != nil {
+		log.Fatalf("AccountDaoTestSuite: Test setup failed: %s", err)
+	}
+
+	user2, _ := ledger.NewUserWithEmailString(ledger.UserId(time.Now().UnixMilli()), "bob2@example.com")
+	if err := suite.userDao.Save(user2); err != nil {
+		log.Fatalf("AccountDaoTestSuite: Test setup failed: %s", err)
+	}
+
+	currentAccountOfUser1, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(user1.Id()))
+	currentAccountOfUser2, _ := ledger.NewAccount(2, "Current", "EUR", ledger.MustMakeUpdatedByUserId(user2.Id()))
+
+	tx := suite.accountDao.MustBeginTx()
+	_ = suite.accountDao.SaveTx(context.Background(), user1.Id(), ledger.Accounts{currentAccountOfUser1}, tx)
+	_ = suite.accountDao.SaveTx(context.Background(), user2.Id(), ledger.Accounts{currentAccountOfUser2}, tx)
+	_ = tx.Commit()
+
+	tx = suite.accountDao.MustBeginTx()
+	account, err := suite.accountDao.GetAccountById(context.Background(), currentAccountOfUser2.Id(), user1.Id(), tx)
+	_ = tx.Commit()
+
+	// THEN
+	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), ledger.Account{}, account)
+
+	coreError := err.(ledger.Error)
+	assert.Equal(suite.T(), ledger.ErrAccountNotFound, coreError.Code())
+	assert.Equal(suite.T(), "Account with id 2 not found", coreError.Error())
 }

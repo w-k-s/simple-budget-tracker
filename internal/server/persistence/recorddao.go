@@ -358,7 +358,7 @@ func (d *DefaultRecordDao) Search(accountId ledger.AccountId, search dao.RecordS
 	return records, nil
 }
 
-func (d *DefaultRecordDao) GetRecordsForLastPeriod(accountId ledger.AccountId) (ledger.Records, error) {
+func (d *DefaultRecordDao) GetRecordsForLastPeriod(ctx context.Context, accountId ledger.AccountId, tx *sql.Tx) (ledger.Records, error) {
 	checkError := func(err error) bool {
 		if err != nil {
 			log.Printf("Error loading records for last period for account id: %d. Reason: %s", accountId, err)
@@ -369,7 +369,13 @@ func (d *DefaultRecordDao) GetRecordsForLastPeriod(accountId ledger.AccountId) (
 
 	var rows *sql.Rows
 	var err error
-	if rows, err = d.db.Query("SELECT MAX(r.date) FROM budget.record r WHERE r.account_id = $1", accountId); checkError(err) {
+	if rows, err = d.db.QueryContext(ctx,
+		`SELECT 
+			MAX(r.date) 
+		FROM 
+			budget.record r 
+		WHERE 
+			r.account_id = $1`, accountId); checkError(err) {
 		return ledger.Records{}, nil
 	}
 
