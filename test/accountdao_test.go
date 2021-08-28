@@ -17,6 +17,7 @@ type AccountDaoTestSuite struct {
 	suite.Suite
 	userDao    dao.UserDao
 	accountDao dao.AccountDao
+	testUser   ledger.User
 }
 
 func TestAccountDaoTestSuite(t *testing.T) {
@@ -26,13 +27,14 @@ func TestAccountDaoTestSuite(t *testing.T) {
 // -- SETUP
 
 func (suite *AccountDaoTestSuite) SetupTest() {
-	suite.userDao = UserDao
-	suite.accountDao = AccountDao
-
-	aUser, _ := ledger.NewUserWithEmailString(testUserId, testUserEmail)
-	if err := suite.userDao.Save(aUser); err != nil {
+	aUser, _ := ledger.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
+	if err := UserDao.Save(aUser); err != nil {
 		log.Fatalf("AccountDaoTestSuite: Test setup failed: %s", err)
 	}
+
+	suite.userDao = UserDao
+	suite.accountDao = AccountDao
+	suite.testUser = aUser
 }
 
 func (suite *AccountDaoTestSuite) TearDownTest() {
@@ -56,16 +58,16 @@ func (suite *AccountDaoTestSuite) Test_WHEN_NewAccountIdIsCalled_THEN_accountIdI
 
 func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedByUserId() {
 	// GIVEN
-	currentAccount, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
-	lifeSavingsAccount, _ := ledger.NewAccount(2, "Life Savings", "EUR", ledger.MustMakeUpdatedByUserId(testUserId))
+	currentAccount, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	lifeSavingsAccount, _ := ledger.NewAccount(2, "Life Savings", "EUR", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
 
 	// WHEN
 	tx := suite.accountDao.MustBeginTx()
-	_ = suite.accountDao.SaveTx(context.Background(), testUserId, ledger.Accounts{currentAccount, lifeSavingsAccount}, tx)
+	_ = suite.accountDao.SaveTx(context.Background(), suite.testUser.Id(), ledger.Accounts{currentAccount, lifeSavingsAccount}, tx)
 	_ = tx.Commit()
 
 	tx = suite.accountDao.MustBeginTx()
-	allAccounts, err := suite.accountDao.GetAccountsByUserId(context.Background(), testUserId, tx)
+	allAccounts, err := suite.accountDao.GetAccountsByUserId(context.Background(), suite.testUser.Id(), tx)
 	_ = tx.Commit()
 
 	// THEN
@@ -83,15 +85,15 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_TH
 
 func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedByAccountId() {
 	// GIVEN
-	currentAccount, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
+	currentAccount, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
 
 	// WHEN
 	tx := suite.accountDao.MustBeginTx()
-	_ = suite.accountDao.SaveTx(context.Background(), testUserId, ledger.Accounts{currentAccount}, tx)
+	_ = suite.accountDao.SaveTx(context.Background(), suite.testUser.Id(), ledger.Accounts{currentAccount}, tx)
 	_ = tx.Commit()
 
 	tx = suite.accountDao.MustBeginTx()
-	account, err := suite.accountDao.GetAccountById(context.Background(), currentAccount.Id(), testUserId, tx)
+	account, err := suite.accountDao.GetAccountById(context.Background(), currentAccount.Id(), suite.testUser.Id(), tx)
 	_ = tx.Commit()
 
 	// THEN
@@ -105,16 +107,16 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_TH
 
 func (suite *AccountDaoTestSuite) Test_Given_twoAccounts_WHEN_theAccountsHaveTheSameName_THEN_onlyOneAccountIsSaved() {
 	// GIVEN
-	account1, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
-	account2, _ := ledger.NewAccount(2, "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
+	account1, _ := ledger.NewAccount(1, "Current", "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	account2, _ := ledger.NewAccount(2, "Current", "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
 
 	// WHEN
 	tx := suite.accountDao.MustBeginTx()
-	err1 := suite.accountDao.SaveTx(context.Background(), testUserId, ledger.Accounts{account1}, tx)
+	err1 := suite.accountDao.SaveTx(context.Background(), suite.testUser.Id(), ledger.Accounts{account1}, tx)
 	_ = tx.Commit()
 
 	tx = suite.accountDao.MustBeginTx()
-	err2 := suite.accountDao.SaveTx(context.Background(), testUserId, ledger.Accounts{account2}, tx)
+	err2 := suite.accountDao.SaveTx(context.Background(), suite.testUser.Id(), ledger.Accounts{account2}, tx)
 	_ = tx.Commit()
 
 	// THEN

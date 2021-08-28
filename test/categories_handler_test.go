@@ -17,6 +17,7 @@ import (
 
 type CategoriesHandlerTestSuite struct {
 	suite.Suite
+	testUser ledger.User
 }
 
 func TestCategoriesHandlerTestSuite(t *testing.T) {
@@ -26,10 +27,12 @@ func TestCategoriesHandlerTestSuite(t *testing.T) {
 // -- SETUP
 
 func (suite *CategoriesHandlerTestSuite) SetupTest() {
-	aUser, _ := ledger.NewUserWithEmailString(testUserId, testUserEmail)
+	aUser, _ := ledger.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
 	if err := UserDao.Save(aUser); err != nil {
 		log.Fatalf("CategoriesHandlerTestSuite: Test setup failed: %s", err)
 	}
+
+	suite.testUser = aUser
 }
 
 func (suite *CategoriesHandlerTestSuite) TearDownTest() {
@@ -45,7 +48,7 @@ func (suite *CategoriesHandlerTestSuite) Test_GIVEN_validCreateCategoriesRequest
 	var createRequest bytes.Buffer
 	createRequest.WriteString("{\"categories\":[{\"name\":\"Bills\"},{\"name\":\"Groceries\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/categories", &createRequest)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	// WHEN
 	w := httptest.NewRecorder()
@@ -67,7 +70,7 @@ func (suite *CategoriesHandlerTestSuite) Test_GIVEN_validCreateCategoriesRequest
 	// ---
 
 	r, _ = http.NewRequest("GET", "/api/v1/categories", nil)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	w = httptest.NewRecorder()
 	TestApp.Router().ServeHTTP(w, r)
@@ -90,7 +93,7 @@ func (suite *CategoriesHandlerTestSuite) Test_GIVEN_emptyRequest_WHEN_createCate
 	var request bytes.Buffer
 	request.WriteString("{\"categories\":[]}")
 	r, _ := http.NewRequest("POST", "/api/v1/categories", &request)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	// WHEN
 	w := httptest.NewRecorder()
@@ -109,7 +112,7 @@ func (suite *CategoriesHandlerTestSuite) Test_GIVEN_categoriesRequestWithDuplica
 	var request bytes.Buffer
 	request.WriteString("{\"categories\":[{\"name\":\"Bills\"},{\"name\":\"Bills\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/categories", &request)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	// WHEN
 	w := httptest.NewRecorder()
@@ -127,7 +130,7 @@ func (suite *CategoriesHandlerTestSuite) Test_GIVEN_categoriesRequestWithBlankNa
 	var request bytes.Buffer
 	request.WriteString("{\"categories\":[{\"name\":\"\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/categories", &request)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	// WHEN
 	w := httptest.NewRecorder()
@@ -162,7 +165,7 @@ func (suite *CategoriesHandlerTestSuite) Test_GIVEN_unauthenticatedRequest_WHEN_
 	var createRequest bytes.Buffer
 	createRequest.WriteString("{\"categories\":[{\"name\":\"Bills\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/categories", &createRequest)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	// WHEN
 	w := httptest.NewRecorder()

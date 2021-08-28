@@ -45,17 +45,17 @@ func (suite *RecordsHandlerTestSuite) SetupTest() {
 		aUser ledger.User
 		err   error
 	)
-	aUser, _ = ledger.NewUserWithEmailString(testUserId, testUserEmail)
+	aUser, _ = ledger.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
 	if err = UserDao.Save(aUser); err != nil {
 		log.Fatalf("CategoriesHandlerTestSuite: Test setup failed: %s", err)
 	}
 
-	currentAccount, _ := ledger.NewAccount(ledger.AccountId(1630067787222), "Current", "AED", ledger.MustMakeUpdatedByUserId(testUserId))
-	salaryCategory, _ := ledger.NewCategory(ledger.CategoryId(1630067305041), "Salary", ledger.MustMakeUpdatedByUserId(testUserId))
+	currentAccount, _ := ledger.NewAccount(ledger.AccountId(1630067787222), "Current", "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
+	salaryCategory, _ := ledger.NewCategory(ledger.CategoryId(1630067305041), "Salary", ledger.MustMakeUpdatedByUserId(aUser.Id()))
 
 	tx, _ := AccountDao.BeginTx()
-	_ = AccountDao.SaveTx(context.Background(), testUserId, ledger.Accounts{currentAccount}, tx)
-	_ = CategoryDao.SaveTx(context.Background(), testUserId, ledger.Categories{salaryCategory}, tx)
+	_ = AccountDao.SaveTx(context.Background(), aUser.Id(), ledger.Accounts{currentAccount}, tx)
+	_ = CategoryDao.SaveTx(context.Background(), aUser.Id(), ledger.Categories{salaryCategory}, tx)
 	_ = tx.Commit()
 
 	suite.simulatedUser = aUser

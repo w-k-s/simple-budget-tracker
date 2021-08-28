@@ -17,6 +17,7 @@ import (
 
 type AccountHandlerTestSuite struct {
 	suite.Suite
+	testUser ledger.User
 }
 
 func TestAccountHandlerTestSuite(t *testing.T) {
@@ -26,10 +27,12 @@ func TestAccountHandlerTestSuite(t *testing.T) {
 // -- SETUP
 
 func (suite *AccountHandlerTestSuite) SetupTest() {
-	aUser, _ := ledger.NewUserWithEmailString(testUserId, testUserEmail)
+	aUser, _ := ledger.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
 	if err := UserDao.Save(aUser); err != nil {
 		log.Fatalf("AccountDaoTestSuite: Test setup failed: %s", err)
 	}
+
+	suite.testUser = aUser
 }
 
 func (suite *AccountHandlerTestSuite) TearDownTest() {
@@ -45,7 +48,7 @@ func (suite *AccountHandlerTestSuite) Test_GIVEN_validCreateAccountsRequest_WHEN
 	var createRequest bytes.Buffer
 	createRequest.WriteString("{\"accounts\":[{\"name\":\"Current\", \"currency\":\"AED\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/accounts", &createRequest)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	// WHEN
 	w := httptest.NewRecorder()
@@ -63,7 +66,7 @@ func (suite *AccountHandlerTestSuite) Test_GIVEN_validCreateAccountsRequest_WHEN
 	// ---
 
 	r, _ = http.NewRequest("GET", "/api/v1/accounts", nil)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	w = httptest.NewRecorder()
 	TestApp.Router().ServeHTTP(w, r)
@@ -82,7 +85,7 @@ func (suite *AccountHandlerTestSuite) Test_GIVEN_emptyRequest_WHEN_createAccount
 	var request bytes.Buffer
 	request.WriteString("{\"accounts\":[]}")
 	r, _ := http.NewRequest("POST", "/api/v1/accounts", &request)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	// WHEN
 	w := httptest.NewRecorder()
@@ -101,7 +104,7 @@ func (suite *AccountHandlerTestSuite) Test_GIVEN_accountRequestWithDuplicateName
 	var request bytes.Buffer
 	request.WriteString("{\"accounts\":[{\"name\":\"Current\", \"currency\":\"AED\"},{\"name\":\"Current\", \"currency\":\"AED\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/accounts", &request)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	// WHEN
 	w := httptest.NewRecorder()
@@ -119,7 +122,7 @@ func (suite *AccountHandlerTestSuite) Test_GIVEN_accountRequestWithInvalidCurren
 	var request bytes.Buffer
 	request.WriteString("{\"accounts\":[{\"name\":\"Current\", \"currency\":\"XXX\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/accounts", &request)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	// WHEN
 	w := httptest.NewRecorder()
@@ -154,7 +157,7 @@ func (suite *AccountHandlerTestSuite) Test_GIVEN_unauthenticatedRequest_WHEN_get
 	var createRequest bytes.Buffer
 	createRequest.WriteString("{\"accounts\":[{\"name\":\"Current\", \"currency\":\"AED\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/accounts", &createRequest)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	// WHEN
 	w := httptest.NewRecorder()

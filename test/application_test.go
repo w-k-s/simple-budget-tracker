@@ -16,6 +16,7 @@ import (
 
 type ApplicationTestSuite struct {
 	suite.Suite
+	testUser ledger.User
 }
 
 func TestApplicationTestSuite(t *testing.T) {
@@ -25,10 +26,12 @@ func TestApplicationTestSuite(t *testing.T) {
 // -- SETUP
 
 func (suite *ApplicationTestSuite) SetupTest() {
-	aUser, _ := ledger.NewUserWithEmailString(testUserId, testUserEmail)
+	aUser, _ := ledger.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
 	if err := UserDao.Save(aUser); err != nil {
 		log.Fatalf("AccountDaoTestSuite: Test setup failed: %s", err)
 	}
+
+	suite.testUser = aUser
 }
 
 func (suite *ApplicationTestSuite) TearDownTest() {
@@ -44,7 +47,7 @@ func (suite *ApplicationTestSuite) Test_GIVEN_aCategoryIsCreatedWithEmbeddedScri
 	var createRequest bytes.Buffer
 	createRequest.WriteString("{\"categories\":[{\"name\":\"<script>evil();</script>\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/categories", &createRequest)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	// WHEN
 	w := httptest.NewRecorder()
@@ -56,7 +59,7 @@ func (suite *ApplicationTestSuite) Test_GIVEN_aCategoryIsCreatedWithEmbeddedScri
 	// ---
 
 	r, _ = http.NewRequest("GET", "/api/v1/categories", nil)
-	AddAuthorizationHeader(r, testUserId)
+	AddAuthorizationHeader(r, suite.testUser.Id())
 
 	w = httptest.NewRecorder()
 	TestApp.Router().ServeHTTP(w, r)
