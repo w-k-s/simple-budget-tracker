@@ -164,3 +164,4 @@ func (suite *RecordsHandlerTestSuite) Test_GIVEN_validCreateRecordRequest_WHEN_c
 	assert.Equal(suite.T(), 200, w.Code)
 	assert.JSONEq(suite.T(), expected, w.Body.String())
 }
+
