@@ -32,12 +32,6 @@ Parameters:
   HealthCheckPath:
     Type: String
     Description: The health check path starting with / e.g. /health
-  HostedZoneName:
-    Type: String
-    Description: Domain name for your website (example.com.). Note it must end in a .
-  HostedZoneID:
-    Type: String
-    Description: Hosted Zone Id
 
 Resources:
   TaskDefinition:
