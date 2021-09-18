@@ -36,6 +36,7 @@ const (
 	ErrAuditUpdatedByBadFormat
 	ErrRequestUnmarshallingFailed
 	ErrServiceUserIdRequired
+	ErrServiceAccountIdRequired
 )
 
 var errorCodeNames = map[ErrorCode]string{
@@ -62,6 +63,7 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrAuditUpdatedByBadFormat:     "AUDIT_UPDATED_BY_BAD_FORMAT",
 	ErrRequestUnmarshallingFailed:  "REQUEST_UNMARSHALLING_FAILED",
 	ErrServiceUserIdRequired:       "SERVICE_REQUIRED_USER_ID",
+	ErrServiceAccountIdRequired:    "SERVICE_REQUIRED_ACCOUNT_ID",
 }
 
 func (c ErrorCode) Name() string {
@@ -100,6 +102,8 @@ func (c ErrorCode) Status() int {
 	case ErrAuditUpdatedByBadFormat:
 		fallthrough
 	case ErrRequestUnmarshallingFailed:
+		fallthrough
+	case ErrServiceAccountIdRequired:
 		return http.StatusBadRequest
 
 	case ErrServiceUserIdRequired:

@@ -77,7 +77,6 @@ func (suite *RecordsHandlerTestSuite) Test_GIVEN_validCreateRecordRequest_WHEN_c
 	accountId := suite.simulatedCurrentAccount.Id()
 
 	var createRequest svc.CreateRecordRequest
-	createRequest.Account.Id = uint64(accountId)
 	createRequest.Note = "Salary"
 	createRequest.Amount.Currency = "AED"
 	createRequest.Amount.Value = 10000
@@ -164,4 +163,3 @@ func (suite *RecordsHandlerTestSuite) Test_GIVEN_validCreateRecordRequest_WHEN_c
 	assert.Equal(suite.T(), 200, w.Code)
 	assert.JSONEq(suite.T(), expected, w.Body.String())
 }
-

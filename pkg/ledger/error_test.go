@@ -42,6 +42,7 @@ func (suite *ErrorTestSuite) Test_GIVEN_errorCode_WHEN_mappedToNumber_THEN_mappi
 	assert.Equal(suite.T(), uint64(1020), uint64(ErrAuditUpdatedByBadFormat))
 	assert.Equal(suite.T(), uint64(1021), uint64(ErrRequestUnmarshallingFailed))
 	assert.Equal(suite.T(), uint64(1022), uint64(ErrServiceUserIdRequired))
+	assert.Equal(suite.T(), uint64(1023), uint64(ErrServiceAccountIdRequired))
 }
 
 func (suite *ErrorTestSuite) Test_GIVEN_errorCode_WHEN_mappedToHttpStatus_THEN_mappingIsCorrect() {
@@ -68,4 +69,5 @@ func (suite *ErrorTestSuite) Test_GIVEN_errorCode_WHEN_mappedToHttpStatus_THEN_m
 	assert.Equal(suite.T(), http.StatusBadRequest, ErrAuditUpdatedByBadFormat.Status())
 	assert.Equal(suite.T(), http.StatusBadRequest, ErrRequestUnmarshallingFailed.Status())
 	assert.Equal(suite.T(), http.StatusUnauthorized, ErrServiceUserIdRequired.Status())
+	assert.Equal(suite.T(), http.StatusBadRequest, ErrServiceAccountIdRequired.Status())
 }

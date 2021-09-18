@@ -11,9 +11,6 @@ import (
 )
 
 type CreateRecordRequest struct {
-	Account struct {
-		Id uint64 `json:"id"`
-	} `json:"account"`
 	Note     string `json:"note"`
 	Category struct {
 		Id   uint64 `json:"id"`
@@ -200,12 +197,17 @@ func NewRecordService(recordDao dao.RecordDao, accountDao dao.AccountDao, catego
 
 func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordRequest) (RecordResponse, error) {
 	var (
-		userId ledger.UserId
-		tx     *sql.Tx
-		err    error
+		userId    ledger.UserId
+		accountId ledger.AccountId
+		tx        *sql.Tx
+		err       error
 	)
 
 	if userId, err = RequireUserId(ctx); err != nil {
+		return RecordResponse{}, err.(ledger.Error)
+	}
+
+	if accountId, err = RequireAccountId(ctx); err != nil {
 		return RecordResponse{}, err.(ledger.Error)
 	}
 
@@ -270,7 +272,7 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 	}
 
 	// Save Record(s)
-	if err = svc.recordDao.SaveTx(ctx, ledger.AccountId(request.Account.Id), record, tx); err != nil {
+	if err = svc.recordDao.SaveTx(ctx, accountId, record, tx); err != nil {
 		return RecordResponse{}, err.(ledger.Error)
 	}
 
@@ -316,7 +318,7 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 	}
 
 	// Get account balance
-	if account, err = svc.accountDao.GetAccountById(ctx, ledger.AccountId(request.Account.Id), userId, tx); err != nil {
+	if account, err = svc.accountDao.GetAccountById(ctx, accountId, userId, tx); err != nil {
 		return RecordResponse{}, err.(ledger.Error)
 	}
 
