@@ -244,11 +244,11 @@ func (d *DefaultAccountDao) GetAccountById(ctx context.Context, queryId ledger.A
 		queryId, userId,
 	).Scan(&ar.id, &ar.name, &ar.currency, &ar.currentBalanceMinorUnits, &ar.createdBy, &ar.createdAt, &ar.modifiedBy, &ar.modifiedAt, &ar.version)
 	if err != nil {
-		log.Printf("Failed to find account id %d for user %d. Reason: %s", queryId, userId, err)
+		log.Printf("Failed to load account id %d for user %d. Reason: %s", queryId, userId, err)
 		if err == sql.ErrNoRows {
-			return ledger.Account{}, ledger.NewError(ledger.ErrAccountNotFound, fmt.Sprintf("Account with id %d not found", queryId), err)
+			return ledger.Account{}, ledger.NewError(ledger.ErrAccountNotFound, "Account not found", err)
 		}
-		return ledger.Account{}, ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Account with id %d not found", queryId), err)
+		return ledger.Account{}, ledger.NewError(ledger.ErrDatabaseState, "Error loading account", err)
 	}
 
 	return ledger.NewAccountFromRecord(ar)

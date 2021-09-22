@@ -158,5 +158,5 @@ func (suite *AccountDaoTestSuite) Test_Given_twoUsersCreateTwoAccounts_WHEN_aUse
 
 	coreError := err.(ledger.Error)
 	assert.Equal(suite.T(), ledger.ErrAccountNotFound, coreError.Code())
-	assert.Equal(suite.T(), "Account with id 2 not found", coreError.Error())
+	assert.Equal(suite.T(), "Account not found", coreError.Error())
 }

@@ -18,7 +18,7 @@ type CreateRecordRequest struct {
 	} `json:"category"`
 	Amount struct {
 		Currency string `json:"currency"`
-		Value    uint64 `json:"value"`
+		Value    int64  `json:"value"`
 	} `json:"amount"`
 	DateUTC  string `json:"date"`
 	Type     string `json:"type"`

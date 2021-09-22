@@ -145,6 +145,18 @@ func ClearTables() error {
 	if _, err = db.Exec("DELETE FROM budget.record"); err != nil {
 		return fmt.Errorf("Failed to delete record table: %w", err)
 	}
+	if _, err = db.Exec("ALTER SEQUENCE budget.user_id RESTART"); err != nil {
+		return fmt.Errorf("Failed to delete record table: %w", err)
+	}
+	if _, err = db.Exec("ALTER SEQUENCE budget.account_id RESTART"); err != nil {
+		return fmt.Errorf("Failed to delete record table: %w", err)
+	}
+	if _, err = db.Exec("ALTER SEQUENCE budget.category_id RESTART"); err != nil {
+		return fmt.Errorf("Failed to delete record table: %w", err)
+	}
+	if _, err = db.Exec("ALTER SEQUENCE budget.record_id RESTART"); err != nil {
+		return fmt.Errorf("Failed to delete record table: %w", err)
+	}
 	return nil
 }
 

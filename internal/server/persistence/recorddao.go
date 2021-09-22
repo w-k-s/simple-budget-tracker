@@ -345,7 +345,7 @@ func (d *DefaultRecordDao) Search(accountId ledger.AccountId, search dao.RecordS
 		}
 
 		if record, err = ledger.NewRecordFromRecord(rr); err != nil {
-			log.Printf("Error loading account with id: %d from database. Reason: %s", rr.id, err)
+			log.Printf("Error loading record with id: %d from database. Reason: %s", rr.id, err)
 			continue
 		}
 
@@ -382,12 +382,12 @@ func (d *DefaultRecordDao) GetRecordsForLastPeriod(ctx context.Context, accountI
 	defer rows.Close()
 	rows.Next()
 
-	var max time.Time
-	if err = rows.Scan(&max); checkError(err) {
-		return ledger.Records{}, nil
+	var max sql.NullTime
+	if err = rows.Scan(&max); max.Valid && checkError(err) {
+		return ledger.Records{}, err
 	}
 
-	return d.GetRecordsForMonth(accountId, ledger.MakeCalendarMonthFromDate(max))
+	return d.GetRecordsForMonth(accountId, ledger.MakeCalendarMonthFromDate(max.Time))
 }
 
 func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month ledger.CalendarMonth) (ledger.Records, error) {
@@ -480,7 +480,7 @@ func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month le
 		}
 
 		if record, err = ledger.NewRecordFromRecord(rr); err != nil {
-			log.Printf("Error loading account with id: %d from database. Reason: %s", rr.id, err)
+			log.Printf("Error loading record with id: %d from database. Reason: %s", rr.id, err)
 			continue
 		}
 

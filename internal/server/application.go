@@ -136,6 +136,7 @@ func (app *App) MustEncodeJson(w http.ResponseWriter, v interface{}, status int)
 
 func (app *App) DecodeJsonOrSendBadRequest(w http.ResponseWriter, req *http.Request, v interface{}) bool {
 	decoder := json.NewDecoder(req.Body)
+	decoder.UseNumber()
 	if err := decoder.Decode(v); err != nil {
 		app.MustEncodeProblem(w, req, ledger.NewError(ledger.ErrRequestUnmarshallingFailed, "Failed to parse request", err))
 		return false

@@ -294,7 +294,7 @@ func (rs Records) TotalExpenses() (Money, error) {
 		amountAbs Money
 		err       error
 	)
-	for i := 1; i < rs.Len(); i++ {
+	for i := 0; i < rs.Len(); i++ {
 		record := rs[i]
 		if record.Amount().IsNegative() {
 			amountAbs, err = record.Amount().Abs()
@@ -311,6 +311,10 @@ func (rs Records) TotalExpenses() (Money, error) {
 }
 
 func (rs Records) TotalIncome() (Money, error) {
+	if rs.Len() == 0 {
+		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
+	}
+
 	total, _ := NewMoney(rs[0].Amount().Currency().CurrencyCode(), 0)
 	var err error
 	for i := 0; i < rs.Len(); i++ {
