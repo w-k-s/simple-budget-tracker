@@ -52,7 +52,6 @@ func PingWithBackOff(db *sql.DB) error {
 			log.Printf("DB is not ready...backing off...: %s", err)
 			return err
 		}
-		log.Println("DB is ready!")
 		return nil
 	}
 

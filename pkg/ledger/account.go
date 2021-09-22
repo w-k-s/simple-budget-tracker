@@ -23,7 +23,7 @@ type AccountRecord interface {
 	Id() AccountId
 	Name() string
 	Currency() string
-	CurrentBalanceMinorUnits() uint64
+	CurrentBalanceMinorUnits() int64
 	CreatedBy() UpdatedBy
 	CreatedAtUTC() time.Time
 	ModifiedBy() UpdatedBy
@@ -63,7 +63,7 @@ func NewAccountFromRecord(record AccountRecord) (Account, error) {
 	return newAccount(record.Id(), record.Name(), record.Currency(), record.CurrentBalanceMinorUnits(), auditInfo)
 }
 
-func newAccount(id AccountId, name string, currency string, currentBalanceMinorUnits uint64, auditInfo auditInfo) (Account, error) {
+func newAccount(id AccountId, name string, currency string, currentBalanceMinorUnits int64, auditInfo auditInfo) (Account, error) {
 
 	errors := validate.Validate(
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
@@ -80,7 +80,7 @@ func newAccount(id AccountId, name string, currency string, currentBalanceMinorU
 		return Account{}, err
 	}
 
-	if currentBalance, err = NewMoney(currency, int64(currentBalanceMinorUnits)); err != nil {
+	if currentBalance, err = NewMoney(currency, currentBalanceMinorUnits); err != nil {
 		return Account{}, err
 	}
 

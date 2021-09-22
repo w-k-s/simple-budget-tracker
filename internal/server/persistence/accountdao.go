@@ -37,9 +37,9 @@ func (ar accountRecord) Currency() string {
 	return ar.currency
 }
 
-func (ar accountRecord) CurrentBalanceMinorUnits() uint64 {
+func (ar accountRecord) CurrentBalanceMinorUnits() int64 {
 	if ar.currentBalanceMinorUnits.Valid {
-		return uint64(ar.currentBalanceMinorUnits.Int64)
+		return ar.currentBalanceMinorUnits.Int64
 	}
 	return 0
 }
