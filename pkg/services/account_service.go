@@ -12,6 +12,7 @@ import (
 type CreateAccountsRequest struct {
 	Accounts []struct {
 		Name     string `json:"name"`
+		Type     string `json:"type"`
 		Currency string `json:"currency"`
 	} `json:"accounts"`
 }
@@ -19,6 +20,7 @@ type CreateAccountsRequest struct {
 type AccountResponse struct {
 	Id       uint64 `json:"id"`
 	Name     string `json:"name"`
+	Type     string `json:"type"`
 	Currency string `json:"currency"`
 }
 
@@ -78,6 +80,7 @@ func (svc accountService) CreateAccounts(ctx context.Context, request CreateAcco
 		if account, err = ledger.NewAccount(
 			accountId,
 			accountReq.Name,
+			ledger.AccountType(accountReq.Type),
 			accountReq.Currency,
 			ledger.MustMakeUpdatedByUserId(userId),
 		); err != nil {
@@ -102,6 +105,7 @@ func (svc accountService) CreateAccounts(ctx context.Context, request CreateAcco
 		response.Accounts = append(response.Accounts, AccountResponse{
 			Id:       uint64(account.Id()),
 			Name:     account.Name(),
+			Type:     string(account.Type()),
 			Currency: account.Currency(),
 		})
 	}
@@ -140,6 +144,7 @@ func (svc accountService) GetAccounts(ctx context.Context) (AccountsResponse, er
 		response.Accounts = append(response.Accounts, AccountResponse{
 			Id:       uint64(account.Id()),
 			Name:     account.Name(),
+			Type: string(account.Type()),
 			Currency: account.Currency(),
 		})
 	}

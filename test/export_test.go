@@ -207,10 +207,10 @@ func simulateRecords(db *sql.DB, numberOfUsers int, startMonth ledger.CalendarMo
 			savingsAccount ledger.Account
 		)
 
-		if currentAccount, err = ledger.NewAccount(ledger.AccountId(time.Now().UnixNano()), "Current", "AED", ledger.MustMakeUpdatedByUserId(userId)); err != nil {
+		if currentAccount, err = ledger.NewAccount(ledger.AccountId(time.Now().UnixNano()), "Current", ledger.Current, "AED", ledger.MustMakeUpdatedByUserId(userId)); err != nil {
 			return nil, err
 		}
-		if savingsAccount, err = ledger.NewAccount(ledger.AccountId(time.Now().UnixNano()), "Savings", "AED", ledger.MustMakeUpdatedByUserId(userId)); err != nil {
+		if savingsAccount, err = ledger.NewAccount(ledger.AccountId(time.Now().UnixNano()), "Savings", ledger.Saving, "AED", ledger.MustMakeUpdatedByUserId(userId)); err != nil {
 			return nil, err
 		}
 

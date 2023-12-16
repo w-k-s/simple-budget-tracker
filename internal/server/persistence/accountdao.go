@@ -16,6 +16,7 @@ import (
 type accountRecord struct {
 	id                       ledger.AccountId
 	name                     string
+	accountType              ledger.AccountType
 	currency                 string
 	currentBalanceMinorUnits sql.NullInt64
 	createdBy                string
@@ -31,6 +32,10 @@ func (ar accountRecord) Id() ledger.AccountId {
 
 func (ar accountRecord) Name() string {
 	return ar.name
+}
+
+func (ar accountRecord) Type() ledger.AccountType {
+	return ar.accountType
 }
 
 func (ar accountRecord) Currency() string {
@@ -127,7 +132,7 @@ func (d *DefaultAccountDao) SaveTx(ctx context.Context, userId ledger.UserId, a 
 		return nil
 	}
 
-	stmt, err := tx.Prepare(pq.CopyInSchema("budget", "account", "id", "user_id", "name", "currency", "created_by", "created_at", "last_modified_by", "last_modified_at", "version"))
+	stmt, err := tx.Prepare(pq.CopyInSchema("budget", "account", "id", "user_id", "name", "account_type", "currency", "created_by", "created_at", "last_modified_by", "last_modified_at", "version"))
 	if err = checkError(err); err != nil {
 		return err
 	}
@@ -138,6 +143,7 @@ func (d *DefaultAccountDao) SaveTx(ctx context.Context, userId ledger.UserId, a 
 			account.Id(),
 			userId,
 			account.Name(),
+			string(account.Type()),
 			account.Currency(),
 			account.CreatedBy().String(),
 			account.CreatedAtUTC(),
@@ -176,6 +182,7 @@ func (d *DefaultAccountDao) GetAccountsByUserId(ctx context.Context, queryId led
 		`SELECT 
 			a.id, 
 			a.name, 
+			a.account_type,
 			a.currency, 
 			(SELECT SUM(r.amount_minor_units) FROM budget.record r WHERE r.account_id = a.id),
 			a.created_by, 
@@ -201,7 +208,7 @@ func (d *DefaultAccountDao) GetAccountsByUserId(ctx context.Context, queryId led
 	for rows.Next() {
 		var ar accountRecord
 
-		if err := rows.Scan(&ar.id, &ar.name, &ar.currency, &ar.currentBalanceMinorUnits, &ar.createdBy, &ar.createdAt, &ar.modifiedBy, &ar.modifiedAt, &ar.version); err != nil {
+		if err := rows.Scan(&ar.id, &ar.name, &ar.accountType, &ar.currency, &ar.currentBalanceMinorUnits, &ar.createdBy, &ar.createdAt, &ar.modifiedBy, &ar.modifiedAt, &ar.version); err != nil {
 			log.Printf("Error processign accounts for user %d. Reason: %s", queryId, err)
 			continue
 		}
@@ -225,6 +232,7 @@ func (d *DefaultAccountDao) GetAccountById(ctx context.Context, queryId ledger.A
 		`SELECT 
 			a.id, 
 			a.name, 
+			a.account_type,
 			a.currency, 
 			(SELECT SUM(r.amount_minor_units) FROM budget.record r WHERE r.account_id = a.id),
 			a.created_by, 
@@ -242,7 +250,7 @@ func (d *DefaultAccountDao) GetAccountById(ctx context.Context, queryId ledger.A
 		AND a.user_id = $2
 		ORDER BY a.id`,
 		queryId, userId,
-	).Scan(&ar.id, &ar.name, &ar.currency, &ar.currentBalanceMinorUnits, &ar.createdBy, &ar.createdAt, &ar.modifiedBy, &ar.modifiedAt, &ar.version)
+	).Scan(&ar.id, &ar.name, &ar.accountType, &ar.currency, &ar.currentBalanceMinorUnits, &ar.createdBy, &ar.createdAt, &ar.modifiedBy, &ar.modifiedAt, &ar.version)
 	if err != nil {
 		log.Printf("Failed to load account id %d for user %d. Reason: %s", queryId, userId, err)
 		if err == sql.ErrNoRows {

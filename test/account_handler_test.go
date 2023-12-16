@@ -46,7 +46,7 @@ func (suite *AccountHandlerTestSuite) TearDownTest() {
 func (suite *AccountHandlerTestSuite) Test_GIVEN_validCreateAccountsRequest_WHEN_createAccountsEndpointIsCalled_THEN_accountsAreCreatedAnd201IsReturned() {
 	// GIVEN
 	var createRequest bytes.Buffer
-	createRequest.WriteString("{\"accounts\":[{\"name\":\"Current\", \"currency\":\"AED\"}]}")
+	createRequest.WriteString("{\"accounts\":[{\"name\":\"Current\", \"type\":\"Current\", \"currency\":\"AED\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/accounts", &createRequest)
 	AddAuthorizationHeader(r, suite.testUser.Id())
 
@@ -102,7 +102,7 @@ func (suite *AccountHandlerTestSuite) Test_GIVEN_emptyRequest_WHEN_createAccount
 func (suite *AccountHandlerTestSuite) Test_GIVEN_accountRequestWithDuplicateNames_WHEN_createAccountsEndpointIsCalled_THEN_accountNameValidationFailsAnd400IsReturned() {
 	// GIVEN
 	var request bytes.Buffer
-	request.WriteString("{\"accounts\":[{\"name\":\"Current\", \"currency\":\"AED\"},{\"name\":\"Current\", \"currency\":\"AED\"}]}")
+	request.WriteString("{\"accounts\":[{\"name\":\"Current\", \"type\":\"Current\", \"currency\":\"AED\"},{\"name\":\"Current\", \"type\":\"Current\", \"currency\":\"AED\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/accounts", &request)
 	AddAuthorizationHeader(r, suite.testUser.Id())
 
@@ -120,7 +120,7 @@ func (suite *AccountHandlerTestSuite) Test_GIVEN_accountRequestWithDuplicateName
 func (suite *AccountHandlerTestSuite) Test_GIVEN_accountRequestWithInvalidCurrency_WHEN_createAccountsEndpointIsCalled_THEN_currencyValidationFailsAnd400IsReturned() {
 	// GIVEN
 	var request bytes.Buffer
-	request.WriteString("{\"accounts\":[{\"name\":\"Current\", \"currency\":\"XXX\"}]}")
+	request.WriteString("{\"accounts\":[{\"name\":\"Current\", \"type\":\"Current\", \"currency\":\"XXX\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/accounts", &request)
 	AddAuthorizationHeader(r, suite.testUser.Id())
 
@@ -138,7 +138,7 @@ func (suite *AccountHandlerTestSuite) Test_GIVEN_accountRequestWithInvalidCurren
 func (suite *AccountHandlerTestSuite) Test_GIVEN_unauthenticatedRequest_WHEN_createAccountsEndpointIsCalled_THEN_401IsReturned() {
 	// GIVEN
 	var request bytes.Buffer
-	request.WriteString("{\"accounts\":[{\"name\":\"Current\", \"currency\":\"AED\"}]}")
+	request.WriteString("{\"accounts\":[{\"name\":\"Current\", \"type\":\"Current\", \"currency\":\"AED\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/accounts", &request)
 
 	// WHEN
@@ -155,7 +155,7 @@ func (suite *AccountHandlerTestSuite) Test_GIVEN_unauthenticatedRequest_WHEN_cre
 func (suite *AccountHandlerTestSuite) Test_GIVEN_unauthenticatedRequest_WHEN_getAccountsEndpointIsCalled_THEN_401IsReturned() {
 	// GIVEN
 	var createRequest bytes.Buffer
-	createRequest.WriteString("{\"accounts\":[{\"name\":\"Current\", \"currency\":\"AED\"}]}")
+	createRequest.WriteString("{\"accounts\":[{\"name\":\"Current\", \"type\":\"Current\", \"currency\":\"AED\"}]}")
 	r, _ := http.NewRequest("POST", "/api/v1/accounts", &createRequest)
 	AddAuthorizationHeader(r, suite.testUser.Id())
 

@@ -42,8 +42,8 @@ func (suite *RecordDaoTestSuite) SetupTest() {
 	}
 
 	tx := UserDao.MustBeginTx()
-	currentAccount, _ := ledger.NewAccount(ledger.AccountId(1), "Current", "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
-	savingsAccount, _ := ledger.NewAccount(ledger.AccountId(2), "Savings", "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
+	currentAccount, _ := ledger.NewAccount(ledger.AccountId(1), "Current", ledger.Current, "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
+	savingsAccount, _ := ledger.NewAccount(ledger.AccountId(2), "Savings", ledger.Saving, "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
 
 	if err := AccountDao.SaveTx(context.Background(), aUser.Id(), ledger.Accounts{currentAccount, savingsAccount}, tx); err != nil {
 		log.Fatalf("RecordDaoTestSuite: Test setup failed: %s", err)

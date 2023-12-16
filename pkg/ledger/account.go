@@ -11,17 +11,26 @@ import (
 )
 
 type AccountId uint64
+type AccountType string
+
+const (
+	Current AccountType = "Current"
+	Saving AccountType = "Saving"
+)
+
 type Account struct {
 	auditInfo
 	id             AccountId
 	name           string
 	currency       string
 	currentBalance Money
+	accountType    AccountType
 }
 
 type AccountRecord interface {
 	Id() AccountId
 	Name() string
+	Type() AccountType
 	Currency() string
 	CurrentBalanceMinorUnits() int64
 	CreatedBy() UpdatedBy
@@ -31,7 +40,13 @@ type AccountRecord interface {
 	Version() Version
 }
 
-func NewAccount(id AccountId, name string, currency string, createdBy UpdatedBy) (Account, error) {
+func NewAccount(
+	id AccountId, 
+	name string, 
+	accountType AccountType,
+	currency string, 
+	createdBy UpdatedBy,
+) (Account, error) {
 	var (
 		auditInfo auditInfo
 		err       error
@@ -41,7 +56,7 @@ func NewAccount(id AccountId, name string, currency string, createdBy UpdatedBy)
 		return Account{}, err
 	}
 
-	return newAccount(id, name, currency, 0, auditInfo)
+	return newAccount(id, name, accountType, currency, 0, auditInfo)
 }
 
 func NewAccountFromRecord(record AccountRecord) (Account, error) {
@@ -60,14 +75,22 @@ func NewAccountFromRecord(record AccountRecord) (Account, error) {
 		return Account{}, err
 	}
 
-	return newAccount(record.Id(), record.Name(), record.Currency(), record.CurrentBalanceMinorUnits(), auditInfo)
+	return newAccount(record.Id(), record.Name(), record.Type(), record.Currency(), record.CurrentBalanceMinorUnits(), auditInfo)
 }
 
-func newAccount(id AccountId, name string, currency string, currentBalanceMinorUnits int64, auditInfo auditInfo) (Account, error) {
+func newAccount(
+	id AccountId, 
+	name string, 
+	accountType AccountType, 
+	currency string, 
+	currentBalanceMinorUnits int64,
+	 auditInfo auditInfo,
+) (Account, error) {
 
 	errors := validate.Validate(
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
 		&validators.StringLengthInRange{Name: "Name", Field: name, Min: 1, Max: 25, Message: "Name must be 1 and 25 characters long"},
+		&validators.StringInclusion{Name: "Type", Field: string(accountType), List: []string{string(Saving), string(Current)}, Message: "Invalid Account Type"},
 		&currencyValidator{Name: "Currency", Value: currency},
 	)
 
@@ -88,6 +111,7 @@ func newAccount(id AccountId, name string, currency string, currentBalanceMinorU
 		auditInfo:      auditInfo,
 		id:             id,
 		name:           strings.Title(strings.ToLower(name)),
+		accountType:    AccountType(accountType),
 		currency:       currency,
 		currentBalance: currentBalance,
 	}, nil
@@ -101,6 +125,10 @@ func (a Account) Name() string {
 	return a.name
 }
 
+func (a Account) Type() AccountType {
+	return a.accountType
+}
+
 func (a Account) Currency() string {
 	return a.currency
 }
@@ -110,7 +138,13 @@ func (a Account) CurrentBalance() Money {
 }
 
 func (a Account) String() string {
-	return fmt.Sprintf("Account{id: %d, name: %s, currency: %s, balance: %s}", a.id, a.name, a.currency, a.currentBalance.String())
+	return fmt.Sprintf("Account{id: %d, name: %s, type: %s, currency: %s, balance: %s}", 
+		a.id, 
+		a.name, 
+		a.accountType,
+		a.currency, 
+		a.currentBalance.String(),
+	)
 }
 
 type Accounts []Account

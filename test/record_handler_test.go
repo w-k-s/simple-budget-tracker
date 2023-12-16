@@ -51,7 +51,7 @@ func (suite *RecordsHandlerTestSuite) SetupTest() {
 		log.Fatalf("CategoriesHandlerTestSuite: Test setup failed: %s", err)
 	}
 
-	currentAccount, _ := ledger.NewAccount(ledger.AccountId(1630067787222), "Current", "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
+	currentAccount, _ := ledger.NewAccount(ledger.AccountId(1630067787222), "Current", ledger.Current, "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
 	salaryCategory, _ := ledger.NewCategory(ledger.CategoryId(1630067305041), "Salary", ledger.MustMakeUpdatedByUserId(aUser.Id()))
 
 	tx, _ := AccountDao.BeginTx()
