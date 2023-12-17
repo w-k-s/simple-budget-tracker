@@ -132,7 +132,9 @@ func ClearTables() error {
 	if db, err = sql.Open(testContainerDriverName, testContainerDataSourceName); err != nil {
 		return fmt.Errorf("Failed to connect to %q: %w", testContainerDataSourceName, err)
 	}
-
+	if _, err = db.Exec("DELETE FROM budget.record"); err != nil {
+		return fmt.Errorf("Failed to delete record table: %w", err)
+	}
 	if _, err = db.Exec("DELETE FROM budget.user"); err != nil {
 		return fmt.Errorf("Failed to delete user table: %w", err)
 	}
@@ -142,9 +144,7 @@ func ClearTables() error {
 	if _, err = db.Exec("DELETE FROM budget.category"); err != nil {
 		return fmt.Errorf("Failed to delete category table: %w", err)
 	}
-	if _, err = db.Exec("DELETE FROM budget.record"); err != nil {
-		return fmt.Errorf("Failed to delete record table: %w", err)
-	}
+
 	if _, err = db.Exec("ALTER SEQUENCE budget.user_id RESTART"); err != nil {
 		return fmt.Errorf("Failed to delete record table: %w", err)
 	}

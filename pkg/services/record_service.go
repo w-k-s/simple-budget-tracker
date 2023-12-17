@@ -99,6 +99,7 @@ type RecordsResponse struct {
 	Summary struct {
 		TotalExpenses AmountResponse `json:"totalExpenses"`
 		TotalIncome   AmountResponse `json:"totalIncome"`
+		TotalSavings  AmountResponse `json:"totalSavings"`
 	} `json:"summary"`
 	SearchParameters struct {
 		From time.Time `json:"from"`
@@ -111,12 +112,24 @@ func makeRecordsResponse(records ledger.Records) (RecordsResponse, error) {
 		return RecordsResponse{}, nil
 	}
 
-	var (
-		totalExpenses      ledger.Money
-		totalExpensesValue int64
+	moneyToAmountResponse := func(money ledger.Money, err error) (AmountResponse, error) {
+		if err != nil {
+			return AmountResponse{}, err
+		}
+		var minorUnits int64
+		if minorUnits, err = money.MinorUnits(); err != nil {
+			return AmountResponse{}, err
+		}
+		return AmountResponse{
+			Currency: money.Currency().CurrencyCode(),
+			Value:    minorUnits,
+		}, nil
+	}
 
-		totalIncome      ledger.Money
-		totalIncomeValue int64
+	var (
+		totalExpenses AmountResponse
+		totalIncome   AmountResponse
+		totalSavings  AmountResponse
 
 		from time.Time
 		to   time.Time
@@ -124,17 +137,13 @@ func makeRecordsResponse(records ledger.Records) (RecordsResponse, error) {
 		err error
 	)
 
-	if totalIncome, err = records.TotalIncome(); err != nil {
+	if totalIncome, err = moneyToAmountResponse(records.TotalIncome()); err != nil {
 		return RecordsResponse{}, err.(ledger.Error)
 	}
-	if totalIncomeValue, err = totalIncome.MinorUnits(); err != nil {
+	if totalExpenses, err = moneyToAmountResponse(records.TotalExpenses()); err != nil {
 		return RecordsResponse{}, err.(ledger.Error)
 	}
-
-	if totalExpenses, err = records.TotalExpenses(); err != nil {
-		return RecordsResponse{}, err.(ledger.Error)
-	}
-	if totalExpensesValue, err = totalExpenses.MinorUnits(); err != nil {
+	if totalSavings, err = moneyToAmountResponse(records.TotalSavings()); err != nil {
 		return RecordsResponse{}, err.(ledger.Error)
 	}
 
@@ -143,14 +152,9 @@ func makeRecordsResponse(records ledger.Records) (RecordsResponse, error) {
 	}
 
 	var recordsResponse RecordsResponse
-	recordsResponse.Summary.TotalExpenses = AmountResponse{
-		Currency: totalExpenses.Currency().CurrencyCode(),
-		Value:    totalExpensesValue,
-	}
-	recordsResponse.Summary.TotalIncome = AmountResponse{
-		Currency: totalIncome.Currency().CurrencyCode(),
-		Value:    totalIncomeValue,
-	}
+	recordsResponse.Summary.TotalExpenses = totalExpenses
+	recordsResponse.Summary.TotalIncome = totalIncome
+	recordsResponse.Summary.TotalSavings = totalSavings
 	recordsResponse.SearchParameters.From = from
 	recordsResponse.SearchParameters.To = to
 
@@ -253,7 +257,7 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 		}
 
 		transferReference = ledger.MakeTransferReference()
-		sourceAccountId = account.Id()
+		sourceAccountId = accountId
 	}
 
 	if date, err = time.Parse(time.RFC3339, request.DateUTC); err != nil {

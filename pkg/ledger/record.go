@@ -384,7 +384,7 @@ func (rs Records) TotalExpenses() (Money, error) {
 	)
 	for i := 0; i < rs.Len(); i++ {
 		record := rs[i]
-		if record.Amount().IsNegative() {
+		if record.recordType == Expense {
 			amountAbs, err = record.Amount().Abs()
 			if err != nil {
 				return nil, err

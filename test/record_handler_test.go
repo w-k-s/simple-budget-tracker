@@ -1,15 +1,7 @@
 package test
 
 // - test update category last used
-// - given a transfer with category of different user, when record is saved, then error is returned
-// - given a transfer sent with positive amount, when record is saved, sender account amount is negative
-// - given a transfer sent with a negative amount, when record is saved, sender account amount is negative
-// - given a transfer sent with positive amount, when record is saved, receiver account amount is positive
-// - given a transfer sent with negative amount, when record is saved, receiver account amount is positive
 // - test get account by id (should show correct total balance)
-
-// - given an account receives transfer, when receiver account edits transfer, then error is returned
-// - given an account receives transfer, when receiver account deletes transfer, then error is returned
 
 import (
 	"bytes"
@@ -33,6 +25,11 @@ type RecordsHandlerTestSuite struct {
 	simulatedUser           ledger.User
 	simulatedCurrentAccount ledger.Account
 	simulatedSalaryCategory ledger.Category
+	simulatedSavingAccount  ledger.Account
+
+	otherUser           ledger.User
+	otherCurrentAccount ledger.Account
+	otherSalaryCategory ledger.Category
 }
 
 func TestRecordsHandlerTestSuite(t *testing.T) {
@@ -42,26 +39,65 @@ func TestRecordsHandlerTestSuite(t *testing.T) {
 // -- SETUP
 
 func (suite *RecordsHandlerTestSuite) SetupTest() {
-	var (
-		aUser ledger.User
-		err   error
+
+	aUser, _ := ledger.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
+	otherUser, _ := ledger.NewUserWithEmailString(2, "toby.torrence@theoverlook.com")
+
+	currentAccount, _ := ledger.NewAccount(
+		ledger.AccountId(1630067787222),
+		"Current",
+		ledger.AccountTypeCurrent,
+		"AED",
+		ledger.MustMakeUpdatedByUserId(aUser.Id()),
 	)
-	aUser, _ = ledger.NewUserWithEmailString(1, "jack.torrence@theoverlook.com")
-	if err = UserDao.Save(aUser); err != nil {
+	savingAccount, _ := ledger.NewAccount(
+		ledger.AccountId(1630067787223),
+		"Saving",
+		ledger.AccountTypeSaving,
+		"AED",
+		ledger.MustMakeUpdatedByUserId(aUser.Id()),
+	)
+	salaryCategory, _ := ledger.NewCategory(
+		ledger.CategoryId(1630067305041),
+		"Salary",
+		ledger.MustMakeUpdatedByUserId(aUser.Id()),
+	)
+
+	otherCurrentAccount, _ := ledger.NewAccount(
+		ledger.AccountId(1630067787224),
+		"Current",
+		ledger.AccountTypeCurrent,
+		"AED",
+		ledger.MustMakeUpdatedByUserId(otherUser.Id()),
+	)
+	otherSalaryCategory, _ := ledger.NewCategory(
+		ledger.CategoryId(1630067305042),
+		"Salary",
+		ledger.MustMakeUpdatedByUserId(otherUser.Id()),
+	)
+
+	if err := UserDao.Save(aUser); err != nil {
+		log.Fatalf("CategoriesHandlerTestSuite: Test setup failed: %s", err)
+	}
+	if err := UserDao.Save(otherUser); err != nil {
 		log.Fatalf("CategoriesHandlerTestSuite: Test setup failed: %s", err)
 	}
 
-	currentAccount, _ := ledger.NewAccount(ledger.AccountId(1630067787222), "Current", ledger.AccountTypeCurrent, "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
-	salaryCategory, _ := ledger.NewCategory(ledger.CategoryId(1630067305041), "Salary", ledger.MustMakeUpdatedByUserId(aUser.Id()))
-
 	tx, _ := AccountDao.BeginTx()
-	_ = AccountDao.SaveTx(context.Background(), aUser.Id(), ledger.Accounts{currentAccount}, tx)
+	_ = AccountDao.SaveTx(context.Background(), aUser.Id(), ledger.Accounts{currentAccount, savingAccount}, tx)
 	_ = CategoryDao.SaveTx(context.Background(), aUser.Id(), ledger.Categories{salaryCategory}, tx)
+
+	_ = AccountDao.SaveTx(context.Background(), otherUser.Id(), ledger.Accounts{otherCurrentAccount}, tx)
+	_ = CategoryDao.SaveTx(context.Background(), otherUser.Id(), ledger.Categories{otherSalaryCategory}, tx)
+
 	_ = tx.Commit()
 
 	suite.simulatedUser = aUser
 	suite.simulatedCurrentAccount = currentAccount
+	suite.simulatedSavingAccount = savingAccount
 	suite.simulatedSalaryCategory = salaryCategory
+	suite.otherCurrentAccount = otherCurrentAccount
+	suite.otherSalaryCategory = otherSalaryCategory
 }
 
 func (suite *RecordsHandlerTestSuite) TearDownTest() {
@@ -153,6 +189,10 @@ func (suite *RecordsHandlerTestSuite) Test_GIVEN_validCreateRecordRequest_WHEN_c
 			"totalIncome": {
 				"currency": "AED",
 				"value": 10000
+			},
+			"totalSavings": {
+				"currency": "AED",
+				"value": 0
 			}
 		},
 		"search": {
@@ -266,6 +306,10 @@ func (suite *RecordsHandlerTestSuite) Test_GIVEN_aRecordRequestWithMaxIncome_WHE
 			"totalIncome": {
 				"currency": "AED",
 				"value": 9223372036854775807
+			},
+			"totalSavings": {
+				"currency": "AED",
+				"value": 0
 			}
 		},
 		"search": {
@@ -379,11 +423,313 @@ func (suite *RecordsHandlerTestSuite) Test_GIVEN_aRecordRequestWithMaxExpense_WH
 			"totalIncome": {
 				"currency": "AED",
 				"value": 0
+			},
+			"totalSavings": {
+				"currency": "AED",
+				"value": 0
 			}
 		},
 		"search": {
 			"from": "2021-09-09T00:00:00Z",
 			"to": "2021-09-09T00:00:00Z"
+		}
+	}`
+
+	assert.Equal(suite.T(), 200, w.Code)
+	assert.JSONEq(suite.T(), expected, w.Body.String())
+}
+
+func (suite *RecordsHandlerTestSuite) Test_GIVEN_aRecordWithCategoryFromDifferentUser_WHEN_WHEN_createRecordsEndpointIsCalled_THEN_400IsReturned() {
+	// GIVEN
+	userId := suite.simulatedUser.Id()
+	accountId := suite.simulatedCurrentAccount.Id()
+
+	var createRequest svc.CreateRecordRequest
+	createRequest.Note = "June 2023"
+	createRequest.Amount.Currency = "AED"
+	createRequest.Amount.Value = 100_00
+	createRequest.Category.Id = uint64(suite.otherSalaryCategory.Id())
+	createRequest.DateUTC = "2023-01-01T22:08:41+00:00"
+	createRequest.Type = string(ledger.Income)
+
+	data, _ := json.Marshal(createRequest)
+
+	var buffer bytes.Buffer
+	buffer.Write(data)
+
+	r, _ := http.NewRequest("POST", fmt.Sprintf("/api/v1/accounts/%d/records", accountId), &buffer)
+	AddAuthorizationHeader(r, userId)
+
+	// WHEN
+	w := httptest.NewRecorder()
+	TestApp.Router().ServeHTTP(w, r)
+
+	// THEN
+	expected := `{
+		"detail": "Category with id 1630067305042 not found",
+		"instance": "/api/v1/accounts/1630067787222/records",
+		"status": 404,
+		"title": "CATEGORIES_NOT_FOUND",
+		"type": "2021-01-01T22:08:41+0000",
+		"type": "/api/v1/problems/1013"
+	}`
+	assert.Equal(suite.T(), 404, w.Code)
+	assert.JSONEq(suite.T(), expected, w.Body.String())
+}
+
+func (suite *RecordsHandlerTestSuite) Test_GIVEN_aTransferRecordWithPositiveAmount_WHEN_createRecordsEndpointIsCalled_THEN_senderAmountisNegativeAndReceiverAmountIsPositive() {
+	// GIVEN
+	userId := suite.simulatedUser.Id()
+	currentAccountId := suite.simulatedCurrentAccount.Id()
+
+	var createRequest svc.CreateRecordRequest
+	createRequest.Note = "September Salary"
+	createRequest.Amount.Currency = "AED"
+	createRequest.Amount.Value = 100_00
+	createRequest.Category.Id = uint64(suite.simulatedSalaryCategory.Id())
+	createRequest.DateUTC = "2023-01-01T22:08:41+00:00"
+	createRequest.Type = string(ledger.Transfer)
+	createRequest.Transfer.Beneficiary.Id = uint64(suite.simulatedSavingAccount.Id())
+
+	data, _ := json.Marshal(createRequest)
+
+	var buffer bytes.Buffer
+	buffer.Write(data)
+
+	r, _ := http.NewRequest("POST", fmt.Sprintf("/api/v1/accounts/%d/records", currentAccountId), &buffer)
+	AddAuthorizationHeader(r, userId)
+
+	// WHEN
+	w := httptest.NewRecorder()
+	TestApp.Router().ServeHTTP(w, r)
+
+	// THEN
+	assert.Equal(suite.T(), 201, w.Code)
+
+	// --- Sender Account
+	r, _ = http.NewRequest("GET", fmt.Sprintf("/api/v1/accounts/%d/records?latest", currentAccountId), nil)
+	AddAuthorizationHeader(r, userId)
+
+	w = httptest.NewRecorder()
+	TestApp.Router().ServeHTTP(w, r)
+
+	expected := `{
+		"records": [{
+			"id": 1,
+			"note": "September Salary",
+			"category": {
+				"id": 1630067305041,
+				"name": "Salary"
+			},
+			"amount": {
+				"currency": "AED",
+				"value": -10000
+			},
+			"date": "2023-01-01T00:00:00+0000",
+			"type": "TRANSFER",
+            "transfer": {
+                "beneficiary": {
+                    "id": 1630067787223
+                }
+            }
+		}],
+		"summary": {
+			"totalExpenses": {
+				"currency": "AED",
+				"value": 0
+			},
+			"totalIncome": {
+				"currency": "AED",
+				"value": 0
+			},
+			"totalSavings": {
+				"currency": "AED",
+				"value": 10000
+			}
+		},
+		"search": {
+			"from": "2023-01-01T00:00:00Z",
+			"to": "2023-01-01T00:00:00Z"
+		}
+	}`
+
+	assert.Equal(suite.T(), 200, w.Code)
+	assert.JSONEq(suite.T(), expected, w.Body.String())
+
+	// --- Receiver Account
+	r, _ = http.NewRequest("GET", fmt.Sprintf("/api/v1/accounts/%d/records?latest", suite.simulatedSavingAccount.Id()), nil)
+	AddAuthorizationHeader(r, userId)
+
+	w = httptest.NewRecorder()
+	TestApp.Router().ServeHTTP(w, r)
+
+	expected = `{
+		"records": [{
+			"id": 2,
+			"note": "September Salary",
+			"category": {
+				"id": 1630067305041,
+				"name": "Salary"
+			},
+			"amount": {
+				"currency": "AED",
+				"value": 10000
+			},
+			"date": "2023-01-01T00:00:00+0000",
+			"type": "TRANSFER",
+            "transfer": {
+                "beneficiary": {
+                    "id": 1630067787223
+                }
+            }
+		}],
+		"summary": {
+			"totalExpenses": {
+				"currency": "AED",
+				"value": 0
+			},
+			"totalIncome": {
+				"currency": "AED",
+				"value": 0
+			},
+			"totalSavings": {
+				"currency": "AED",
+				"value": 10000
+			}
+		},
+		"search": {
+			"from": "2023-01-01T00:00:00Z",
+			"to": "2023-01-01T00:00:00Z"
+		}
+	}`
+
+	assert.Equal(suite.T(), 200, w.Code)
+	assert.JSONEq(suite.T(), expected, w.Body.String())
+}
+
+func (suite *RecordsHandlerTestSuite) Test_GIVEN_aTransferRecordWithNegativeAmount_WHEN_createRecordsEndpointIsCalled_THEN_senderAmountisNegativeAndReceiverAmountIsPositive() {
+	// GIVEN
+	userId := suite.simulatedUser.Id()
+	currentAccountId := suite.simulatedCurrentAccount.Id()
+
+	var createRequest svc.CreateRecordRequest
+	createRequest.Note = "September Salary"
+	createRequest.Amount.Currency = "AED"
+	createRequest.Amount.Value = -100_00
+	createRequest.Category.Id = uint64(suite.simulatedSalaryCategory.Id())
+	createRequest.DateUTC = "2023-01-01T22:08:41+00:00"
+	createRequest.Type = string(ledger.Transfer)
+	createRequest.Transfer.Beneficiary.Id = uint64(suite.simulatedSavingAccount.Id())
+
+	data, _ := json.Marshal(createRequest)
+
+	var buffer bytes.Buffer
+	buffer.Write(data)
+
+	r, _ := http.NewRequest("POST", fmt.Sprintf("/api/v1/accounts/%d/records", currentAccountId), &buffer)
+	AddAuthorizationHeader(r, userId)
+
+	// WHEN
+	w := httptest.NewRecorder()
+	TestApp.Router().ServeHTTP(w, r)
+
+	// THEN
+	assert.Equal(suite.T(), 201, w.Code)
+
+	// --- Sender Account
+	r, _ = http.NewRequest("GET", fmt.Sprintf("/api/v1/accounts/%d/records?latest", currentAccountId), nil)
+	AddAuthorizationHeader(r, userId)
+
+	w = httptest.NewRecorder()
+	TestApp.Router().ServeHTTP(w, r)
+
+	expected := `{
+		"records": [{
+			"id": 1,
+			"note": "September Salary",
+			"category": {
+				"id": 1630067305041,
+				"name": "Salary"
+			},
+			"amount": {
+				"currency": "AED",
+				"value": -10000
+			},
+			"date": "2023-01-01T00:00:00+0000",
+			"type": "TRANSFER",
+            "transfer": {
+                "beneficiary": {
+                    "id": 1630067787223
+                }
+            }
+		}],
+		"summary": {
+			"totalExpenses": {
+				"currency": "AED",
+				"value": 0
+			},
+			"totalIncome": {
+				"currency": "AED",
+				"value": 0
+			},
+			"totalSavings": {
+				"currency": "AED",
+				"value": 10000
+			}
+		},
+		"search": {
+			"from": "2023-01-01T00:00:00Z",
+			"to": "2023-01-01T00:00:00Z"
+		}
+	}`
+
+	assert.Equal(suite.T(), 200, w.Code)
+	assert.JSONEq(suite.T(), expected, w.Body.String())
+
+	// --- Receiver Account
+	r, _ = http.NewRequest("GET", fmt.Sprintf("/api/v1/accounts/%d/records?latest", suite.simulatedSavingAccount.Id()), nil)
+	AddAuthorizationHeader(r, userId)
+
+	w = httptest.NewRecorder()
+	TestApp.Router().ServeHTTP(w, r)
+
+	expected = `{
+		"records": [{
+			"id": 2,
+			"note": "September Salary",
+			"category": {
+				"id": 1630067305041,
+				"name": "Salary"
+			},
+			"amount": {
+				"currency": "AED",
+				"value": 10000
+			},
+			"date": "2023-01-01T00:00:00+0000",
+			"type": "TRANSFER",
+            "transfer": {
+                "beneficiary": {
+                    "id": 1630067787223
+                }
+            }
+		}],
+		"summary": {
+			"totalExpenses": {
+				"currency": "AED",
+				"value": 0
+			},
+			"totalIncome": {
+				"currency": "AED",
+				"value": 0
+			},
+			"totalSavings": {
+				"currency": "AED",
+				"value": 10000
+			}
+		},
+		"search": {
+			"from": "2023-01-01T00:00:00Z",
+			"to": "2023-01-01T00:00:00Z"
 		}
 	}`
 

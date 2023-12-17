@@ -6,7 +6,7 @@ test:
 	cp migrations/*.sql ~/.budget/migrations.d/
 	go test -v -coverprofile=coverage.txt -coverpkg=test/...,./... ./...
 fmt:
-	gofmt -w */**
+	gofmt -w */**.go
 
 doc-gen:
 	cp ./api/openapiv3.yaml ./assets/swaggerui
