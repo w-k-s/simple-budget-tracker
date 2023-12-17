@@ -227,6 +227,9 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 	)
 
 	// TODO: Check account belongs to user id
+	if recordId, err = svc.recordDao.NewRecordId(tx); err != nil {
+		return RecordResponse{}, err.(ledger.Error)
+	}
 
 	if category, err = svc.categoryDao.GetCategoryById(ctx, ledger.CategoryId(request.Category.Id), userId, tx); err != nil {
 		return RecordResponse{}, err.(ledger.Error)
@@ -238,22 +241,23 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 
 	transferReference := ledger.NoTransferReference
 	sourceAccountId := ledger.NoSourceAccount
-	beneficiaryAccountId := ledger.NoBeneficiaryAccount
+	var beneficiaryAccount ledger.Account
 	if ledger.RecordType(request.Type) == ledger.Transfer {
+
 		if amount, err = amount.Negate(); err != nil {
 			return RecordResponse{}, err.(ledger.Error)
 		}
+
+		if beneficiaryAccount, err = svc.accountDao.GetAccountById(ctx, ledger.AccountId(request.Transfer.Beneficiary.Id), userId, tx); err != nil {
+			return RecordResponse{}, err.(ledger.Error)
+		}
+
 		transferReference = ledger.MakeTransferReference()
 		sourceAccountId = account.Id()
-		beneficiaryAccountId = ledger.AccountId(request.Transfer.Beneficiary.Id)
 	}
 
 	if date, err = time.Parse(time.RFC3339, request.DateUTC); err != nil {
 		return RecordResponse{}, ledger.NewError(ledger.ErrRecordValidation, fmt.Sprintf("Date '%s' does not match format '%s'", request.DateUTC, time.RFC3339), err)
-	}
-
-	if recordId, err = svc.recordDao.NewRecordId(tx); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
 	}
 
 	if record, err = ledger.NewRecord(
@@ -264,7 +268,8 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 		date.In(time.UTC),
 		ledger.RecordType(request.Type),
 		sourceAccountId,
-		beneficiaryAccountId,
+		beneficiaryAccount.Id(),
+		beneficiaryAccount.Type(),
 		transferReference,
 		ledger.MustMakeUpdatedByUserId(userId),
 	); err != nil {
@@ -300,7 +305,8 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 			date.In(time.UTC),
 			ledger.RecordType(request.Type),
 			sourceAccountId,
-			beneficiaryAccountId,
+			beneficiaryAccount.Id(),
+			beneficiaryAccount.Type(),
 			transferReference,
 			ledger.MustMakeUpdatedByUserId(userId),
 		); err != nil {

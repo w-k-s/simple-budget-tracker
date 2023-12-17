@@ -42,8 +42,8 @@ func (suite *RecordDaoTestSuite) SetupTest() {
 	}
 
 	tx := UserDao.MustBeginTx()
-	currentAccount, _ := ledger.NewAccount(ledger.AccountId(1), "Current", ledger.Current, "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
-	savingsAccount, _ := ledger.NewAccount(ledger.AccountId(2), "Savings", ledger.Saving, "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
+	currentAccount, _ := ledger.NewAccount(ledger.AccountId(1), "Current", ledger.AccountTypeCurrent, "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
+	savingsAccount, _ := ledger.NewAccount(ledger.AccountId(2), "Savings", ledger.AccountTypeSaving, "AED", ledger.MustMakeUpdatedByUserId(aUser.Id()))
 
 	if err := AccountDao.SaveTx(context.Background(), aUser.Id(), ledger.Accounts{currentAccount, savingsAccount}, tx); err != nil {
 		log.Fatalf("RecordDaoTestSuite: Test setup failed: %s", err)
@@ -92,7 +92,19 @@ func (suite *RecordDaoTestSuite) Test_WHEN_NewRecordIdIsCalled_THEN_recordIdIsRe
 
 func (suite *RecordDaoTestSuite) Test_Given_anIncomeRecord_WHEN_theRecordIsSaved_THEN_recordCanBeRetrievedInMonthRange() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Salary", suite.testSalaryCategory, quickMoney("AED", 100000), suite.testRecordDate, ledger.Income, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	aRecord, _ := ledger.NewRecord(
+		ledger.RecordId(1),
+		"Salary",
+		suite.testSalaryCategory,
+		quickMoney("AED", 100000),
+		suite.testRecordDate,
+		ledger.Income,
+		ledger.NoSourceAccount,
+		ledger.NoBeneficiaryAccount,
+		ledger.NoBeneficiaryType,
+		ledger.NoTransferReference,
+		ledger.MustMakeUpdatedByUserId(suite.testUser.Id()),
+	)
 
 	// WHEN
 	tx, _ := suite.recordDao.BeginTx()
@@ -111,11 +123,24 @@ func (suite *RecordDaoTestSuite) Test_Given_anIncomeRecord_WHEN_theRecordIsSaved
 	assert.EqualValues(suite.T(), ledger.Income, records[0].Type())
 	assert.EqualValues(suite.T(), "2021-07-05T00:00:00+0000", records[0].DateUTCString())
 	assert.EqualValues(suite.T(), 0, records[0].BeneficiaryId())
+	assert.EqualValues(suite.T(), "", records[0].BeneficiaryType())
 }
 
 func (suite *RecordDaoTestSuite) Test_Given_anExpenseRecord_WHEN_theRecordIsSaved_THEN_recordCanBeRetrievedInMonthRange() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Electricity Bill", suite.testBillsCategory, quickMoney("AED", 20000), suite.testRecordDate, ledger.Expense, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	aRecord, _ := ledger.NewRecord(
+		ledger.RecordId(1),
+		"Electricity Bill",
+		suite.testBillsCategory,
+		quickMoney("AED", 20000),
+		suite.testRecordDate,
+		ledger.Expense,
+		ledger.NoSourceAccount,
+		ledger.NoBeneficiaryAccount,
+		ledger.NoBeneficiaryType,
+		ledger.NoTransferReference,
+		ledger.MustMakeUpdatedByUserId(suite.testUser.Id()),
+	)
 
 	// WHEN
 	tx, _ := suite.recordDao.BeginTx()
@@ -134,11 +159,23 @@ func (suite *RecordDaoTestSuite) Test_Given_anExpenseRecord_WHEN_theRecordIsSave
 	assert.EqualValues(suite.T(), ledger.Expense, records[0].Type())
 	assert.EqualValues(suite.T(), "2021-07-05T00:00:00+0000", records[0].DateUTCString())
 	assert.EqualValues(suite.T(), 0, records[0].BeneficiaryId())
+	assert.EqualValues(suite.T(), "", records[0].BeneficiaryType())
 }
 
 func (suite *RecordDaoTestSuite) Test_Given_aTransferRecord_WHEN_theRecordIsSaved_THEN_recordCanBeRetrievedInMonthRange() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", suite.testSavingsCategory, quickMoney("AED", -50000), suite.testRecordDate, ledger.Transfer, suite.testCurrentAccount.Id(), suite.testSavingsAccount.Id(), ledger.MakeTransferReference(), ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	aRecord, _ := ledger.NewRecord(
+		ledger.RecordId(1),
+		"Savings",
+		suite.testSavingsCategory,
+		quickMoney("AED", -50000),
+		suite.testRecordDate,
+		ledger.Transfer,
+		suite.testCurrentAccount.Id(),
+		suite.testSavingsAccount.Id(),
+		suite.testSavingsAccount.Type(),
+		ledger.MakeTransferReference(),
+		ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
 
 	// WHEN
 	tx, _ := suite.recordDao.BeginTx()
@@ -157,14 +194,63 @@ func (suite *RecordDaoTestSuite) Test_Given_aTransferRecord_WHEN_theRecordIsSave
 	assert.EqualValues(suite.T(), ledger.Transfer, records[0].Type())
 	assert.EqualValues(suite.T(), "2021-07-05T00:00:00+0000", records[0].DateUTCString())
 	assert.EqualValues(suite.T(), ledger.AccountId(2), records[0].BeneficiaryId())
+	assert.EqualValues(suite.T(), ledger.AccountTypeSaving, records[0].BeneficiaryType())
 }
 
 func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_loadingRecordsForLastPeriod_THEN_recordsForMonthOfLatestRecordReturned() {
 	// GIVEN
-	beforeLastMonthIncome, _ := ledger.NewRecord(ledger.RecordId(1), "Salary", suite.testSalaryCategory, quickMoney("AED", 100000), time.Date(2021, time.May, 6, 18, 30, 0, 0, time.UTC), ledger.Income, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
-	beforeLastMonthExpense, _ := ledger.NewRecord(ledger.RecordId(2), "Bills", suite.testBillsCategory, quickMoney("AED", 50000), time.Date(2021, time.May, 6, 18, 30, 1, 0, time.UTC), ledger.Expense, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
-	lastMonthIncome, _ := ledger.NewRecord(ledger.RecordId(3), "Salary", suite.testSalaryCategory, quickMoney("AED", 100000), time.Date(2021, time.July, 6, 18, 30, 0, 0, time.UTC), ledger.Income, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
-	lastMonthExpense, _ := ledger.NewRecord(ledger.RecordId(4), "Bills", suite.testBillsCategory, quickMoney("AED", 50000), time.Date(2021, time.July, 6, 18, 30, 1, 0, time.UTC), ledger.Expense, ledger.NoSourceAccount, ledger.NoBeneficiaryAccount, ledger.NoTransferReference, ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	beforeLastMonthIncome, _ := ledger.NewRecord(
+		ledger.RecordId(1),
+		"Salary",
+		suite.testSalaryCategory,
+		quickMoney("AED", 100000),
+		time.Date(2021, time.May, 6, 18, 30, 0, 0, time.UTC),
+		ledger.Income,
+		ledger.NoSourceAccount,
+		ledger.NoBeneficiaryAccount,
+		ledger.NoBeneficiaryType,
+		ledger.NoTransferReference,
+		ledger.MustMakeUpdatedByUserId(suite.testUser.Id()),
+	)
+	beforeLastMonthExpense, _ := ledger.NewRecord(
+		ledger.RecordId(2),
+		"Bills",
+		suite.testBillsCategory,
+		quickMoney("AED", 50000),
+		time.Date(2021, time.May, 6, 18, 30, 1, 0, time.UTC),
+		ledger.Expense,
+		ledger.NoSourceAccount,
+		ledger.NoBeneficiaryAccount,
+		ledger.NoBeneficiaryType,
+		ledger.NoTransferReference,
+		ledger.MustMakeUpdatedByUserId(suite.testUser.Id()),
+	)
+	lastMonthIncome, _ := ledger.NewRecord(
+		ledger.RecordId(3),
+		"Salary",
+		suite.testSalaryCategory,
+		quickMoney("AED", 100000),
+		time.Date(2021, time.July, 6, 18, 30, 0, 0, time.UTC),
+		ledger.Income,
+		ledger.NoSourceAccount,
+		ledger.NoBeneficiaryAccount,
+		ledger.NoBeneficiaryType,
+		ledger.NoTransferReference,
+		ledger.MustMakeUpdatedByUserId(suite.testUser.Id()),
+	)
+	lastMonthExpense, _ := ledger.NewRecord(
+		ledger.RecordId(4),
+		"Bills",
+		suite.testBillsCategory,
+		quickMoney("AED", 50000),
+		time.Date(2021, time.July, 6, 18, 30, 1, 0, time.UTC),
+		ledger.Expense,
+		ledger.NoSourceAccount,
+		ledger.NoBeneficiaryAccount,
+		ledger.NoBeneficiaryType,
+		ledger.NoTransferReference,
+		ledger.MustMakeUpdatedByUserId(suite.testUser.Id()),
+	)
 
 	// WHEN
 	tx, _ := suite.recordDao.BeginTx()
@@ -221,7 +307,19 @@ func (suite *RecordDaoTestSuite) Test_Given_records_WHEN_searchingBySearchTerm_T
 
 func (suite *RecordDaoTestSuite) Test_Given_aRecordWithAmountInDifferentCurrencyThanAccount_WHEN_recordIsSaved_THEN_currencyIsSetToAccountsCurrency() {
 	// GIVEN
-	aRecord, _ := ledger.NewRecord(ledger.RecordId(1), "Savings", suite.testSavingsCategory, quickMoney("USD", -50000), suite.testRecordDate, ledger.Transfer, suite.testCurrentAccount.Id(), suite.testSavingsAccount.Id(), ledger.MakeTransferReference(), ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	aRecord, _ := ledger.NewRecord(
+		ledger.RecordId(1),
+		"Savings",
+		suite.testSavingsCategory,
+		quickMoney("USD", -50000),
+		suite.testRecordDate,
+		ledger.Transfer,
+		suite.testCurrentAccount.Id(),
+		suite.testSavingsAccount.Id(),
+		suite.testSavingsAccount.Type(),
+		ledger.MakeTransferReference(),
+		ledger.MustMakeUpdatedByUserId(suite.testUser.Id()),
+	)
 
 	// WHEN
 	tx, _ := suite.recordDao.BeginTx()
@@ -240,4 +338,5 @@ func (suite *RecordDaoTestSuite) Test_Given_aRecordWithAmountInDifferentCurrency
 	assert.EqualValues(suite.T(), ledger.Transfer, records[0].Type())
 	assert.EqualValues(suite.T(), "2021-07-05T00:00:00+0000", records[0].DateUTCString())
 	assert.EqualValues(suite.T(), ledger.AccountId(2), records[0].BeneficiaryId())
+	assert.EqualValues(suite.T(), ledger.AccountTypeSaving, records[0].BeneficiaryType())
 }

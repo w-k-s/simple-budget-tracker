@@ -15,14 +15,18 @@ import (
 type RecordType string
 
 const (
-	Income   RecordType = "INCOME"
-	Expense  RecordType = "EXPENSE"
+	// Recording amount credited to account
+	Income RecordType = "INCOME"
+	// Recording amount debited from account
+	Expense RecordType = "EXPENSE"
+	// Recording amount transferred between accounts (belonging to the same user)
 	Transfer RecordType = "TRANSFER"
 )
 
 const (
 	NoSourceAccount      = AccountId(0)
 	NoBeneficiaryAccount = AccountId(0)
+	NoBeneficiaryType    = AccountType("")
 	NoTransferReference  = TransferReference("")
 )
 
@@ -30,7 +34,7 @@ func NoTransfer() (AccountId, AccountId, TransferReference) {
 	return NoSourceAccount, NoBeneficiaryAccount, NoTransferReference
 }
 
-// TransferReference is used to link the sender and receiver records of a transfer
+// TransferReference is a value that's the same for both the credit and debit records of a transfer
 type TransferReference string
 
 func MakeTransferReference() TransferReference {
@@ -48,10 +52,11 @@ type Record struct {
 	recordType        RecordType
 	sourceAccountId   AccountId
 	beneficiaryId     AccountId
+	beneficiaryType   AccountType
 	transferReference TransferReference
 }
 
-// I did not thing the naming through :(
+// I did not think the naming through :(
 type RecordRecord interface {
 	Id() RecordId
 	Note() string
@@ -61,6 +66,7 @@ type RecordRecord interface {
 	RecordType() RecordType
 	SourceAccountId() AccountId
 	BeneficiaryId() AccountId
+	BeneficiaryType() AccountType
 	TransferReference() TransferReference
 	CreatedBy() UpdatedBy
 	CreatedAtUTC() time.Time
@@ -69,7 +75,19 @@ type RecordRecord interface {
 	Version() Version
 }
 
-func NewRecord(id RecordId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, sourceAccountId AccountId, beneficiaryId AccountId, transferReference TransferReference, updatedBy UpdatedBy) (Record, error) {
+func NewRecord(
+	id RecordId,
+	note string,
+	category Category,
+	amount Money,
+	dateUTC time.Time,
+	recordType RecordType,
+	sourceAccountId AccountId,
+	beneficiaryId AccountId,
+	beneficiaryType AccountType,
+	transferReference TransferReference,
+	updatedBy UpdatedBy,
+) (Record, error) {
 	var (
 		auditInfo auditInfo
 		err       error
@@ -79,7 +97,19 @@ func NewRecord(id RecordId, note string, category Category, amount Money, dateUT
 		return Record{}, err
 	}
 
-	return newRecord(id, note, category, amount, dateUTC, recordType, sourceAccountId, beneficiaryId, transferReference, auditInfo)
+	return newRecord(
+		id,
+		note,
+		category,
+		amount,
+		dateUTC,
+		recordType,
+		sourceAccountId,
+		beneficiaryId,
+		beneficiaryType,
+		transferReference,
+		auditInfo,
+	)
 }
 
 func NewRecordFromRecord(rr RecordRecord) (Record, error) {
@@ -98,10 +128,34 @@ func NewRecordFromRecord(rr RecordRecord) (Record, error) {
 		return Record{}, err
 	}
 
-	return newRecord(rr.Id(), rr.Note(), rr.Category(), rr.Amount(), rr.DateUTC(), rr.RecordType(), rr.SourceAccountId(), rr.BeneficiaryId(), rr.TransferReference(), auditInfo)
+	return newRecord(
+		rr.Id(),
+		rr.Note(),
+		rr.Category(),
+		rr.Amount(),
+		rr.DateUTC(),
+		rr.RecordType(),
+		rr.SourceAccountId(),
+		rr.BeneficiaryId(),
+		rr.BeneficiaryType(),
+		rr.TransferReference(),
+		auditInfo,
+	)
 }
 
-func newRecord(id RecordId, note string, category Category, amount Money, dateUTC time.Time, recordType RecordType, sourceAccountId, beneficiaryId AccountId, transferReference TransferReference, auditInfo auditInfo) (Record, error) {
+func newRecord(
+	id RecordId,
+	note string,
+	category Category,
+	amount Money,
+	dateUTC time.Time,
+	recordType RecordType,
+	sourceAccountId,
+	beneficiaryId AccountId,
+	beneficiaryType AccountType,
+	transferReference TransferReference,
+	auditInfo auditInfo,
+) (Record, error) {
 	errors := validate.Validate(
 		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
 		&validators.StringLengthInRange{Name: "Note", Field: note, Min: 0, Max: 50, Message: "Note can not be longer than 50 characters"},
@@ -109,7 +163,8 @@ func newRecord(id RecordId, note string, category Category, amount Money, dateUT
 		&amountValidator{Field: "Amount", Value: amount},
 		&validators.TimeIsPresent{Name: "Date", Field: dateUTC, Message: "Invalid date"},
 		&validators.StringInclusion{Name: "RecordType", Field: string(recordType), List: []string{"INCOME", "EXPENSE", "TRANSFER"}, Message: "recordType must be INCOME,EXPENSE or TRANSFER."},
-		&beneficiaryIdValidator{Field: "BeneficiaryId", BeneficiaryId: beneficiaryId, SourceAccountId: sourceAccountId, RecordType: recordType},
+		&beneficiaryIdValidator{BeneficiaryId: beneficiaryId, SourceAccountId: sourceAccountId, RecordType: recordType},
+		&beneficiaryTypeValidator{Field: string(beneficiaryType)},
 		&transferReferenceValidator{Value: transferReference, RecordType: recordType},
 	)
 
@@ -142,6 +197,7 @@ func newRecord(id RecordId, note string, category Category, amount Money, dateUT
 		recordType:        recordType,
 		sourceAccountId:   sourceAccountId,
 		beneficiaryId:     beneficiaryId,
+		beneficiaryType:   beneficiaryType,
 		transferReference: transferReference,
 	}
 
@@ -184,12 +240,20 @@ func (r Record) BeneficiaryId() AccountId {
 	return r.beneficiaryId
 }
 
+func (r Record) BeneficiaryType() AccountType {
+	return r.beneficiaryType
+}
+
 func (r Record) TransferReference() TransferReference {
 	return r.transferReference
 }
 
+func (r Record) IsTransferToSavingAccount() bool {
+	return r.recordType == Transfer && r.beneficiaryType == AccountTypeSaving
+}
+
 func (r Record) String() string {
-	return fmt.Sprintf("Record{id: %d, type: %s, amount: %s, category: %s, date: %s, sourceAccountId: %d, beneficiaryId: %d, transferReference: %s}",
+	return fmt.Sprintf("Record{id: %d, type: %s, amount: %s, category: %s, date: %s, sourceAccountId: %d, beneficiaryId: %d, beneficiaryType: %s, transferReference: %s}",
 		r.id,
 		r.recordType,
 		r.amount,
@@ -197,12 +261,12 @@ func (r Record) String() string {
 		r.DateUTCString(),
 		r.sourceAccountId,
 		r.beneficiaryId,
+		r.beneficiaryType,
 		r.transferReference,
 	)
 }
 
 type beneficiaryIdValidator struct {
-	Field           string
 	BeneficiaryId   AccountId
 	SourceAccountId AccountId
 	RecordType      RecordType
@@ -221,6 +285,22 @@ func (v *beneficiaryIdValidator) IsValid(errors *validate.Errors) {
 	if v.RecordType != Transfer && v.SourceAccountId > 0 {
 		errors.Add("sourceAccountId", fmt.Sprintf("sourceAccountId must be 0 when record type is %q", v.RecordType))
 	}
+}
+
+type beneficiaryTypeValidator struct {
+	Field      string
+	RecordType RecordType
+}
+
+func (v *beneficiaryTypeValidator) IsValid(errors *validate.Errors) {
+	if v.RecordType != Transfer {
+		return
+	}
+	validator := &accountTypeValidator{
+		Name:  "BeneficiaryType",
+		Field: v.Field,
+	}
+	validator.IsValid(errors)
 }
 
 type transferReferenceValidator struct {
@@ -266,7 +346,14 @@ func (v *amountValidator) IsValid(errors *validate.Errors) {
 
 type Records []Record
 
-func (rs Records) Total() (Money, error) {
+// ====== RECORD CALCULATIONS =============
+//  Each time a records calculation method is called, the entire slice is looped over.
+//  TODO: Calculate everything at once and cache.
+//  TODO++: Perform these calculations in a dao? e.g. PeriodDao
+// ========================================
+
+// Net Balance of given records = Total Income - Total Expenses
+func (rs Records) NetBalance() (Money, error) {
 	if rs.Len() == 0 {
 		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
 	}
@@ -284,6 +371,7 @@ func (rs Records) Total() (Money, error) {
 	return total, nil
 }
 
+// Total Expenses of given records = Total Expenses + Transfers of given records
 func (rs Records) TotalExpenses() (Money, error) {
 	if rs.Len() == 0 {
 		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
@@ -310,6 +398,7 @@ func (rs Records) TotalExpenses() (Money, error) {
 	return total, nil
 }
 
+// Total income of given records
 func (rs Records) TotalIncome() (Money, error) {
 	if rs.Len() == 0 {
 		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
@@ -319,8 +408,66 @@ func (rs Records) TotalIncome() (Money, error) {
 	var err error
 	for i := 0; i < rs.Len(); i++ {
 		record := rs[i]
-		if record.Amount().IsPositive() {
+		if record.recordType == Income {
 			total, err = total.Add(record.Amount())
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return total, nil
+}
+
+// Total saved
+func (rs Records) TotalSavings() (Money, error) {
+	if rs.Len() == 0 {
+		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
+	}
+
+	total, _ := NewMoney(rs[0].Amount().Currency().CurrencyCode(), 0)
+	var (
+		amountAbs Money
+		err       error
+	)
+
+	for i := 0; i < rs.Len(); i++ {
+		record := rs[i]
+
+		if record.IsTransferToSavingAccount() {
+			amountAbs, err = record.Amount().Abs()
+
+			if err != nil {
+				return nil, err
+			}
+			total, err = total.Add(amountAbs)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return total, nil
+}
+
+// Expenses - Savings
+func (rs Records) NetExpenses() (Money, error) {
+	// TODO
+	if rs.Len() == 0 {
+		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
+	}
+
+	total, _ := NewMoney(rs[0].Amount().Currency().CurrencyCode(), 0)
+	var (
+		amountAbs Money
+		err       error
+	)
+	for i := 0; i < rs.Len(); i++ {
+		record := rs[i]
+		if record.recordType == Expense {
+			amountAbs, err = record.Amount().Abs()
+			if err != nil {
+				return nil, err
+			}
+			total, err = total.Add(amountAbs)
 			if err != nil {
 				return nil, err
 			}

@@ -24,7 +24,7 @@ func (suite *AccountTestSuite) Test_GIVEN_invalidAccountId_WHEN_AccountIsCreated
 	accountId := AccountId(0)
 
 	// WHEN
-	account, err := NewAccount(accountId, "test", Current, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account, err := NewAccount(accountId, "test", AccountTypeCurrent, "AED", MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -37,7 +37,7 @@ func (suite *AccountTestSuite) Test_GIVEN_invalidAccountId_WHEN_AccountIsCreated
 func (suite *AccountTestSuite) Test_GIVEN_emptyAccountName_WHEN_AccountIsCreated_THEN_errorIsReturned() {
 
 	// WHEN
-	account, err := NewAccount(2, "", Current, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account, err := NewAccount(2, "", AccountTypeCurrent, "AED", MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -50,7 +50,7 @@ func (suite *AccountTestSuite) Test_GIVEN_emptyAccountName_WHEN_AccountIsCreated
 func (suite *AccountTestSuite) Test_GIVEN_noCurrency_WHEN_AccountIsCreated_THEN_errorIsReturned() {
 
 	// WHEN
-	account, err := NewAccount(2, "Main", Current, "", MustMakeUpdatedByUserId(UserId(1)))
+	account, err := NewAccount(2, "Main", AccountTypeCurrent, "", MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -63,7 +63,7 @@ func (suite *AccountTestSuite) Test_GIVEN_noCurrency_WHEN_AccountIsCreated_THEN_
 func (suite *AccountTestSuite) Test_GIVEN_aNonExistantCurrency_WHEN_AccountIsCreated_THEN_errorIsReturned() {
 
 	// WHEN
-	account, err := NewAccount(2, "Main", Current, "XXX", MustMakeUpdatedByUserId(UserId(1)))
+	account, err := NewAccount(2, "Main", AccountTypeCurrent, "XXX", MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -76,7 +76,7 @@ func (suite *AccountTestSuite) Test_GIVEN_aNonExistantCurrency_WHEN_AccountIsCre
 func (suite *AccountTestSuite) Test_GIVEN_validParameters_WHEN_AccountIsCreated_THEN_noErrorsAreReturned() {
 
 	// WHEN
-	account, err := NewAccount(2, "Main", Current, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account, err := NewAccount(2, "Main", AccountTypeCurrent, "AED", MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -93,7 +93,7 @@ func (suite *AccountTestSuite) Test_GIVEN_validParameters_WHEN_AccountIsCreated_
 func (suite *AccountTestSuite) Test_GIVEN_anAccount_WHEN_stringIsCalled_THEN_stringIsReadable() {
 
 	// WHEN
-	account, _ := NewAccount(2, "Main", Current, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account, _ := NewAccount(2, "Main", AccountTypeCurrent, "AED", MustMakeUpdatedByUserId(UserId(1)))
 
 	// THEN
 	assert.Equal(suite.T(), "Account{id: 2, name: Main, type: Current, currency: AED, balance: AED 0.00}", account.String())
@@ -102,8 +102,8 @@ func (suite *AccountTestSuite) Test_GIVEN_anAccount_WHEN_stringIsCalled_THEN_str
 func (suite *AccountTestSuite) Test_GIVEN_accounts_WHEN_namesIsCalled_THEN_sliceOfSortedAccountNamesIsReturned() {
 
 	// WHEN
-	account1, _ := NewAccount(1, "Current", Current, "AED", MustMakeUpdatedByUserId(UserId(1)))
-	account2, _ := NewAccount(1, "Savings", Saving, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account1, _ := NewAccount(1, "Current", AccountTypeCurrent, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account2, _ := NewAccount(1, "Savings", AccountTypeSaving, "AED", MustMakeUpdatedByUserId(UserId(1)))
 
 	accounts := Accounts{
 		account1,
@@ -117,8 +117,8 @@ func (suite *AccountTestSuite) Test_GIVEN_accounts_WHEN_namesIsCalled_THEN_slice
 func (suite *AccountTestSuite) Test_GIVEN_accounts_WHEN_sortIsCalled_THEN_accountsAreSortedInPlace() {
 
 	// WHEN
-	account1, _ := NewAccount(1, "Current", Current, "AED", MustMakeUpdatedByUserId(UserId(1)))
-	account2, _ := NewAccount(1, "Savings",Saving, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account1, _ := NewAccount(1, "Current", AccountTypeCurrent, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account2, _ := NewAccount(1, "Savings", AccountTypeSaving, "AED", MustMakeUpdatedByUserId(UserId(1)))
 
 	accounts := Accounts{
 		account2,
@@ -134,8 +134,8 @@ func (suite *AccountTestSuite) Test_GIVEN_accounts_WHEN_sortIsCalled_THEN_accoun
 func (suite *AccountTestSuite) Test_GIVEN_accounts_WHEN_stringIsCalled_THEN_stringOfEachAccountIsPrintedInAlphabeticalOrder() {
 
 	// WHEN
-	account1, _ := NewAccount(1, "Current", Current, "AED", MustMakeUpdatedByUserId(UserId(1)))
-	account2, _ := NewAccount(2, "Savings", Saving, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account1, _ := NewAccount(1, "Current", AccountTypeCurrent, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account2, _ := NewAccount(2, "Savings", AccountTypeSaving, "AED", MustMakeUpdatedByUserId(UserId(1)))
 
 	accounts := Accounts{
 		account2,
@@ -149,8 +149,8 @@ func (suite *AccountTestSuite) Test_GIVEN_accounts_WHEN_stringIsCalled_THEN_stri
 func (suite *AccountTestSuite) Test_GIVEN_anAccountName_WHEN_accountIsCreated_THEN_accountNameIsCapitalized() {
 
 	// WHEN
-	account1, _ := NewAccount(1, "current", Current, "AED", MustMakeUpdatedByUserId(UserId(1)))
-	account2, _ := NewAccount(2, "sAVINGS", Saving, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account1, _ := NewAccount(1, "current", AccountTypeCurrent, "AED", MustMakeUpdatedByUserId(UserId(1)))
+	account2, _ := NewAccount(2, "sAVINGS", AccountTypeSaving, "AED", MustMakeUpdatedByUserId(UserId(1)))
 
 	accounts := Accounts{
 		account2,

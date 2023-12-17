@@ -58,8 +58,8 @@ func (suite *AccountDaoTestSuite) Test_WHEN_NewAccountIdIsCalled_THEN_accountIdI
 
 func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedByUserId() {
 	// GIVEN
-	currentAccount, _ := ledger.NewAccount(1, "Current", ledger.Current, "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
-	lifeSavingsAccount, _ := ledger.NewAccount(2, "Life Savings", ledger.Saving, "EUR", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	currentAccount, _ := ledger.NewAccount(1, "Current", ledger.AccountTypeCurrent, "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	lifeSavingsAccount, _ := ledger.NewAccount(2, "Life Savings", ledger.AccountTypeSaving, "EUR", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
 
 	// WHEN
 	tx := suite.accountDao.MustBeginTx()
@@ -76,18 +76,18 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_TH
 
 	assert.EqualValues(suite.T(), ledger.AccountId(1), allAccounts[0].Id())
 	assert.EqualValues(suite.T(), "Current", allAccounts[0].Name())
-	assert.EqualValues(suite.T(), ledger.Current, allAccounts[0].Type())
+	assert.EqualValues(suite.T(), ledger.AccountTypeCurrent, allAccounts[0].Type())
 	assert.EqualValues(suite.T(), "AED", allAccounts[0].Currency())
 
 	assert.EqualValues(suite.T(), ledger.AccountId(2), allAccounts[1].Id())
 	assert.EqualValues(suite.T(), "Life Savings", allAccounts[1].Name())
-	assert.EqualValues(suite.T(), ledger.Saving, allAccounts[1].Type())
+	assert.EqualValues(suite.T(), ledger.AccountTypeSaving, allAccounts[1].Type())
 	assert.EqualValues(suite.T(), "EUR", allAccounts[1].Currency())
 }
 
 func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_THEN_accountCanBeRetrievedByAccountId() {
 	// GIVEN
-	currentAccount, _ := ledger.NewAccount(1, "Current", ledger.Current, "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	currentAccount, _ := ledger.NewAccount(1, "Current", ledger.AccountTypeCurrent, "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
 
 	// WHEN
 	tx := suite.accountDao.MustBeginTx()
@@ -104,14 +104,14 @@ func (suite *AccountDaoTestSuite) Test_Given_anAccount_WHEN_theAccountIsSaved_TH
 
 	assert.EqualValues(suite.T(), ledger.AccountId(1), account.Id())
 	assert.EqualValues(suite.T(), "Current", account.Name())
-	assert.EqualValues(suite.T(), ledger.Current, account.Type())
+	assert.EqualValues(suite.T(), ledger.AccountTypeCurrent, account.Type())
 	assert.EqualValues(suite.T(), "AED", account.Currency())
 }
 
 func (suite *AccountDaoTestSuite) Test_Given_twoAccounts_WHEN_theAccountsHaveTheSameName_THEN_onlyOneAccountIsSaved() {
 	// GIVEN
-	account1, _ := ledger.NewAccount(1, "Current", ledger.Current, "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
-	account2, _ := ledger.NewAccount(2, "Current", ledger.Current, "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	account1, _ := ledger.NewAccount(1, "Current", ledger.AccountTypeCurrent, "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
+	account2, _ := ledger.NewAccount(2, "Current", ledger.AccountTypeCurrent, "AED", ledger.MustMakeUpdatedByUserId(suite.testUser.Id()))
 
 	// WHEN
 	tx := suite.accountDao.MustBeginTx()
@@ -143,8 +143,8 @@ func (suite *AccountDaoTestSuite) Test_Given_twoUsersCreateTwoAccounts_WHEN_aUse
 		log.Fatalf("AccountDaoTestSuite: Test setup failed: %s", err)
 	}
 
-	currentAccountOfUser1, _ := ledger.NewAccount(1, "Current", ledger.Current, "AED", ledger.MustMakeUpdatedByUserId(user1.Id()))
-	currentAccountOfUser2, _ := ledger.NewAccount(2, "Current", ledger.Current, "EUR", ledger.MustMakeUpdatedByUserId(user2.Id()))
+	currentAccountOfUser1, _ := ledger.NewAccount(1, "Current", ledger.AccountTypeCurrent, "AED", ledger.MustMakeUpdatedByUserId(user1.Id()))
+	currentAccountOfUser2, _ := ledger.NewAccount(2, "Current", ledger.AccountTypeCurrent, "EUR", ledger.MustMakeUpdatedByUserId(user2.Id()))
 
 	tx := suite.accountDao.MustBeginTx()
 	_ = suite.accountDao.SaveTx(context.Background(), user1.Id(), ledger.Accounts{currentAccountOfUser1}, tx)

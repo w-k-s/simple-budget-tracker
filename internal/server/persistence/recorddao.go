@@ -24,6 +24,7 @@ type recordRecord struct {
 	recordType        ledger.RecordType
 	sourceAccountId   sql.NullInt64
 	beneficiaryId     sql.NullInt64
+	beneficiaryType   sql.NullString
 	transferReference sql.NullString
 	createdBy         string
 	createdAt         time.Time
@@ -82,6 +83,13 @@ func (rr recordRecord) BeneficiaryId() ledger.AccountId {
 		return ledger.AccountId(rr.beneficiaryId.Int64)
 	}
 	return ledger.NoBeneficiaryAccount
+}
+
+func (rr recordRecord) BeneficiaryType() ledger.AccountType {
+	if rr.beneficiaryType.Valid {
+		return ledger.AccountType(rr.beneficiaryType.String)
+	}
+	return ledger.NoBeneficiaryType
 }
 
 func (rr recordRecord) TransferReference() ledger.TransferReference {
@@ -177,10 +185,42 @@ func (d *DefaultRecordDao) SaveTx(ctx context.Context, accountId ledger.AccountI
 	amountMinorUnits, _ := r.Amount().MinorUnits()
 	_, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO budget.record 
-		(id, account_id, category_id, note, currency, amount_minor_units, date, type, source_account_id, beneficiary_id, transfer_reference, created_by, created_at, last_modified_by, last_modified_at, version) 
-		VALUES 
-		($1, $2, $3, $4, (SELECT currency FROM budget.account WHERE id = $5), $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
+		`INSERT INTO budget.record (
+			id, 
+			account_id, 
+			category_id, 
+			note, 
+			currency, 
+			amount_minor_units, 
+			date, type, 
+			source_account_id, 
+			beneficiary_id, 
+			beneficiary_type,
+			transfer_reference, 
+			created_by, 
+			created_at, 
+			last_modified_by, 
+			last_modified_at, 
+			version
+		) VALUES (
+			$1, 
+			$2, 
+			$3, 
+			$4, 
+			(SELECT currency FROM budget.account WHERE id = $5), 
+			$6, 
+			$7, 
+			$8, 
+			$9, 
+			$10, 
+			$11, 
+			$12, 
+			$13, 
+			$14, 
+			$15, 
+			$16,
+			$17
+		)`,
 		r.Id(),
 		accountId,
 		r.Category().Id(),
@@ -196,6 +236,10 @@ func (d *DefaultRecordDao) SaveTx(ctx context.Context, accountId ledger.AccountI
 		sql.NullInt64{
 			Int64: int64(r.BeneficiaryId()),
 			Valid: r.BeneficiaryId() != 0,
+		},
+		sql.NullString{
+			String: string(r.BeneficiaryType()),
+			Valid:  len(r.BeneficiaryType()) != 0,
 		},
 		sql.NullString{
 			String: string(r.TransferReference()),
@@ -256,6 +300,7 @@ func (d *DefaultRecordDao) Search(accountId ledger.AccountId, search dao.RecordS
 		"r.type",
 		"r.source_account_id",
 		"r.beneficiary_id",
+		"r.beneficiary_type",
 		"r.transfer_reference",
 		"r.created_by",
 		"r.created_at",
@@ -333,6 +378,7 @@ func (d *DefaultRecordDao) Search(accountId ledger.AccountId, search dao.RecordS
 			&rr.recordType,
 			&rr.sourceAccountId,
 			&rr.beneficiaryId,
+			&rr.beneficiaryType,
 			&rr.transferReference,
 			&rr.createdBy,
 			&rr.createdAt,
@@ -410,6 +456,7 @@ func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month le
 			r.type, 
 			r.source_account_id,
 			r.beneficiary_id,
+			r.beneficiary_type,
 			r.transfer_reference,
 			r.created_by,
 			r.created_at,
@@ -468,6 +515,7 @@ func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month le
 			&rr.recordType,
 			&rr.sourceAccountId,
 			&rr.beneficiaryId,
+			&rr.beneficiaryType,
 			&rr.transferReference,
 			&rr.createdBy,
 			&rr.createdAt,

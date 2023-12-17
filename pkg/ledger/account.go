@@ -14,8 +14,8 @@ type AccountId uint64
 type AccountType string
 
 const (
-	Current AccountType = "Current"
-	Saving AccountType = "Saving"
+	AccountTypeCurrent AccountType = "Current"
+	AccountTypeSaving  AccountType = "Saving"
 )
 
 type Account struct {
@@ -41,10 +41,10 @@ type AccountRecord interface {
 }
 
 func NewAccount(
-	id AccountId, 
-	name string, 
+	id AccountId,
+	name string,
 	accountType AccountType,
-	currency string, 
+	currency string,
 	createdBy UpdatedBy,
 ) (Account, error) {
 	var (
@@ -79,19 +79,36 @@ func NewAccountFromRecord(record AccountRecord) (Account, error) {
 }
 
 func newAccount(
-	id AccountId, 
-	name string, 
-	accountType AccountType, 
-	currency string, 
+	id AccountId,
+	name string,
+	accountType AccountType,
+	currency string,
 	currentBalanceMinorUnits int64,
-	 auditInfo auditInfo,
+	auditInfo auditInfo,
 ) (Account, error) {
 
 	errors := validate.Validate(
-		&validators.IntIsGreaterThan{Name: "Id", Field: int(id), Compared: 0, Message: "Id must be greater than 0"},
-		&validators.StringLengthInRange{Name: "Name", Field: name, Min: 1, Max: 25, Message: "Name must be 1 and 25 characters long"},
-		&validators.StringInclusion{Name: "Type", Field: string(accountType), List: []string{string(Saving), string(Current)}, Message: "Invalid Account Type"},
-		&currencyValidator{Name: "Currency", Value: currency},
+		&validators.IntIsGreaterThan{
+			Name:     "Id",
+			Field:    int(id),
+			Compared: 0,
+			Message:  "Id must be greater than 0",
+		},
+		&validators.StringLengthInRange{
+			Name:    "Name",
+			Field:   name,
+			Min:     1,
+			Max:     25,
+			Message: "Name must be 1 and 25 characters long",
+		},
+		&accountTypeValidator{
+			Name:  "AccountType",
+			Field: string(accountType),
+		},
+		&currencyValidator{
+			Name:  "Currency",
+			Value: currency,
+		},
 	)
 
 	var (
@@ -138,11 +155,11 @@ func (a Account) CurrentBalance() Money {
 }
 
 func (a Account) String() string {
-	return fmt.Sprintf("Account{id: %d, name: %s, type: %s, currency: %s, balance: %s}", 
-		a.id, 
-		a.name, 
+	return fmt.Sprintf("Account{id: %d, name: %s, type: %s, currency: %s, balance: %s}",
+		a.id,
+		a.name,
 		a.accountType,
-		a.currency, 
+		a.currency,
 		a.currentBalance.String(),
 	)
 }
@@ -184,4 +201,31 @@ func (v *currencyValidator) IsValid(errors *validate.Errors) {
 	if !IsValidCurrency(v.Value) {
 		errors.Add(strings.ToLower(v.Name), fmt.Sprintf("No such currency '%s'", v.Value))
 	}
+}
+
+type accountTypeValidator struct {
+	Name  string
+	Field string
+}
+
+func (v *accountTypeValidator) IsValid(errors *validate.Errors) {
+	if len(v.Field) == 0 {
+		errors.Add(strings.ToLower(v.Name), "accountType is required")
+		return
+	}
+	validAccountTypes := []string{
+		string(AccountTypeCurrent),
+		string(AccountTypeSaving),
+	}
+
+	validator := &validators.StringInclusion{
+		Name:  v.Name,
+		Field: v.Field,
+		List: []string{
+			string(AccountTypeCurrent),
+			string(AccountTypeSaving),
+		},
+		Message: fmt.Sprintf("account type must be one of %q", validAccountTypes),
+	}
+	validator.IsValid(errors)
 }

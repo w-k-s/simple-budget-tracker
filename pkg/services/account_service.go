@@ -144,7 +144,7 @@ func (svc accountService) GetAccounts(ctx context.Context) (AccountsResponse, er
 		response.Accounts = append(response.Accounts, AccountResponse{
 			Id:       uint64(account.Id()),
 			Name:     account.Name(),
-			Type: string(account.Type()),
+			Type:     string(account.Type()),
 			Currency: account.Currency(),
 		})
 	}
