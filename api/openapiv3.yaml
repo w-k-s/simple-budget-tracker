@@ -48,21 +48,17 @@ paths:
     post:
       summary: Create a new Account
       description: ""
-      parameters:
-        - in: header
-          name: Authorization
-          schema:
-            type: string
-          required: true
-          description: Numeric ID of the user to get
+      parameters: []
       operationId: Account
+      security:
+        - UserIdAuth: []
       responses:
         "201":
           description: Account created successfully
           content:
             application/json;charset=utf-8:
               schema:
-                $ref: "#/components/schemas/CreateAccountResponse"
+                $ref: "#/components/schemas/CreateAccountsResponse"
         "400":
           description: Validation Error
           content:
@@ -82,7 +78,43 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateAccountRequest"
+              $ref: "#/components/schemas/CreateAccountsRequest"
+        description: ""
+  /api/v1/categories:
+    post:
+      summary: Create categories
+      description: ""
+      parameters: []
+      operationId: CreateCategories
+      security:
+        - UserIdAuth: []
+      responses:
+        "201":
+          description: Categories created successfully
+          content:
+            application/json;charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/CreateCategoriesResponse"
+        "400":
+          description: Validation Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        default:
+          description: Unexpected Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+      tags:
+        - Category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCategoriesRequest"
         description: ""
   /health:
     get:
@@ -123,8 +155,18 @@ components:
       required:
         - email
         - id
+    CreateAccountsRequest:
+      description: Request obejct to create a accounts
+      title: CreateAccountsRequest
+      type: object
+      properties:
+        accounts:
+          description: Array of accounts
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateAccountRequest"
     CreateAccountRequest:
-      description: Request obejct to create a new account
+      description: Request obejct to create a accounts
       title: CreateAccountRequest
       type: object
       properties:
@@ -144,14 +186,21 @@ components:
         - name
         - type
         - currency
+    CreateAccountsResponse:
+      description: Response object when accounts created successfully
+      title: CreateAccountsResponse
+      type: object
+      properties:
+        accounts:
+          description: List of created accounts
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateAccountResponse"
     CreateAccountResponse:
       description: Response object when account created successfully
       title: CreateAccountResponse
       type: object
       properties:
-        name:
-          description: Name of the account
-          type: string
         type:
           description: Type of the account
           type: string
@@ -168,6 +217,50 @@ components:
         - name
         - type
         - currency
+        - id
+    CreateCategoriesRequest:
+      description: Request obejct to create categories
+      title: CreateCategoriesRequest
+      type: object
+      properties:
+        categories:
+          description: Array of categories
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateCategoryRequest"
+    CreateCategoryRequest:
+      description: Request obejct to create a category
+      title: CreateCategoryRequest
+      type: object
+      properties:
+        name:
+          description: Name of the category
+          type: string
+      required:
+        - name
+    CreateCategoriesResponse:
+      description: Response object when categories created successfully
+      title: CreateCategoriesResponse
+      type: object
+      properties:
+        accounts:
+          description: List of created categories
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateCategoryResponse"
+    CreateCategoryResponse:
+      description: Response object when category created successfully
+      title: CreateCategoryResponse
+      type: object
+      properties:
+        name:
+          description: Name of the category
+          type: string
+        id:
+          description: Unique id of the category
+          type: integer
+      required:
+        - name
         - id
     Problem:
       description: RFC-7807 Problem Object
@@ -205,8 +298,15 @@ components:
         - status
         - instance
         - detail
+  securitySchemes:
+    UserIdAuth:
+      type: apiKey
+      in: header
+      name: Authorization
 tags:
   - name: User
     description: A registered user
+  - name: Account
+    description: An Account
   - name: Health
     description: Health check endpoints
