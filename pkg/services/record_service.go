@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/ayush6624/go-chatgpt"
@@ -29,7 +28,7 @@ type CreateRecordRequest struct {
 		Beneficiary struct {
 			Id uint64 `json:"id"`
 		} `json:"beneficiary"`
-	} `json:"transfer"`
+	} `json:"transfer,omitempty"`
 }
 
 type CreateRecordPrompt struct{
@@ -401,21 +400,22 @@ func (svc recordService) CreateRecordRequestWithChatGPT(ctx context.Context, pro
 		Prompt: """%s""".
 		
 		Details:
-		- Note: this is what the money was spent on e.g. McDonalds
-		- Category: the category of the transaction. One of: '%s'.
-		- Amount: the value of the transaction. For expenses, this must be negative. By default the currency is: '%s'.
-		- DateUTC: The date of the transaction as yyyy-MM-dd'T'HH:mm:ssX.
-		- Type: One of INCOME, EXPENSE or TRANSFER.
-		- Transfer.Beneficiary.Id: Only set when the type is transfer. The id of the account the money is being transferred to. Available accounts are: '%s'
+		- Note: Required. this is what the money was spent on e.g. McDonalds
+		- Category: Required. the category of the transaction. One of: '%s'.
+		- Amount: Required. the value of the transaction. For expenses, this must be negative. By default the currency is: '%s'.
+		- Date: Required. The date of the transaction formatted as yyyy-MM-dd'T'HH:mm:ssX in UTC timezone. Default: '%s'.
+		- Type: Required. One of INCOME, EXPENSE or TRANSFER. Default: EXPENSE.
+		- Transfer.Beneficiary.Id: Remove transfer field if type is not TRANSFER. The id of the account the money is being transferred to. Available accounts are: '%s'
 		
 		Output:
 		- Output only the populated JSON.
-		- If there isn't enough information, respond with a json object with a field error and a value listing all missing details separated by commas.
+		- If required fields are blank, respond with a json object with a field error and a value listing all missing details separated by commas.
 		`,
 		string(jsonStructure),
 		prompt.Prompt,
 		categories.String(),
 		accounts[0].Currency(),
+		time.Now().UTC().Format("2006-01-02T15:04:05.999Z"),
 		accounts.String(),
 	)
 
@@ -429,10 +429,19 @@ func (svc recordService) CreateRecordRequestWithChatGPT(ctx context.Context, pro
 	if err != nil {
 		return CreateRecordRequest{}, fmt.Errorf("Failed to create GPT Client: %w", err)
 	}
+	
+	if len(res.Choices) == 0 {
+		return CreateRecordRequest{}, fmt.Errorf("No response from ChatGPT")
+	}
 
-	log.Printf("res: %v", res)
+	populatedRequest := CreateRecordRequest{}
+	
+	err = json.Unmarshal([]byte(res.Choices[0].Message.Content), &populatedRequest)
+	if err != nil {
+		return CreateRecordRequest{}, fmt.Errorf("Failed to parse GPT response: %w", err)
+	}
 
-	return CreateRecordRequest{}, nil
+	return populatedRequest, nil
 }
 
 func (svc recordService) GetRecords(ctx context.Context, accountId ledger.AccountId) (RecordsResponse, error) {
