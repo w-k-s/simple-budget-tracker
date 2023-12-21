@@ -114,24 +114,21 @@ func (svc accountService) CreateAccounts(ctx context.Context, request CreateAcco
 }
 
 func (svc accountService) GetAccounts(ctx context.Context) (AccountsResponse, error) {
-	var (
-		userId   ledger.UserId
-		tx       *sql.Tx
-		accounts []ledger.Account
-		err      error
-	)
-
-	if userId, err = RequireUserId(ctx); err != nil {
+	
+	userId, err := RequireUserId(ctx); 
+	if err != nil {
 		return AccountsResponse{}, err.(ledger.Error)
 	}
 
-	if tx, err = svc.accountDao.BeginTx(); err != nil {
+	tx, err := svc.accountDao.BeginTx(); 
+	if err != nil {
 		return AccountsResponse{}, err.(ledger.Error)
 	}
 
 	defer dao.DeferRollback(tx, fmt.Sprintf("GetAccounts: %d", userId))
 
-	if accounts, err = svc.accountDao.GetAccountsByUserId(ctx, userId, tx); err != nil {
+	accounts, err := svc.accountDao.GetAccountsByUserId(ctx, userId, tx); 
+	if err != nil {
 		return AccountsResponse{}, err.(ledger.Error)
 	}
 

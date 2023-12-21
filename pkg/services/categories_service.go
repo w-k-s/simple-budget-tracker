@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
@@ -44,17 +43,14 @@ func NewCategoriesService(categoryDao dao.CategoryDao) (CategoriesService, error
 }
 
 func (svc categoriesService) CreateCategories(ctx context.Context, request CreateCategoriesRequest) (CategoriesResponse, error) {
-	var (
-		userId ledger.UserId
-		tx     *sql.Tx
-		err    error
-	)
-
-	if userId, err = RequireUserId(ctx); err != nil {
+	
+	userId, err := RequireUserId(ctx); 
+	if err != nil {
 		return CategoriesResponse{}, err.(ledger.Error)
 	}
 
-	if tx, err = svc.categoryDao.BeginTx(); err != nil {
+	tx, err := svc.categoryDao.BeginTx(); 
+	if err != nil {
 		return CategoriesResponse{}, err.(ledger.Error)
 	}
 
@@ -106,24 +102,21 @@ func (svc categoriesService) CreateCategories(ctx context.Context, request Creat
 }
 
 func (svc categoriesService) GetCategories(ctx context.Context) (CategoriesResponse, error) {
-	var (
-		tx         *sql.Tx
-		userId     ledger.UserId
-		categories ledger.Categories
-		err        error
-	)
-
-	if userId, err = RequireUserId(ctx); err != nil {
+	
+	userId, err := RequireUserId(ctx); 
+	if err != nil {
 		return CategoriesResponse{}, err.(ledger.Error)
 	}
 
-	if tx, err = svc.categoryDao.BeginTx(); err != nil {
+	tx, err := svc.categoryDao.BeginTx(); 
+	if err != nil {
 		return CategoriesResponse{}, err.(ledger.Error)
 	}
 
 	defer dao.DeferRollback(tx, fmt.Sprintf("GetCategories: %d", userId))
 
-	if categories, err = svc.categoryDao.GetCategoriesForUser(ctx, userId, tx); err != nil {
+	categories, err := svc.categoryDao.GetCategoriesForUser(ctx, userId, tx); 
+	if err != nil {
 		return CategoriesResponse{}, err.(ledger.Error)
 	}
 

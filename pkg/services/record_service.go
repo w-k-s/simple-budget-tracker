@@ -446,18 +446,13 @@ func (svc recordService) CreateRecordRequestWithChatGPT(ctx context.Context, pro
 
 func (svc recordService) GetRecords(ctx context.Context, accountId ledger.AccountId) (RecordsResponse, error) {
 
-	var (
-		userId  ledger.UserId
-		records ledger.Records
-		tx      *sql.Tx
-		err     error
-	)
-
-	if userId, err = RequireUserId(ctx); err != nil {
+	userId, err := RequireUserId(ctx); 
+	if err != nil {
 		return RecordsResponse{}, err.(ledger.Error)
 	}
 
-	if tx, err = svc.recordDao.BeginTx(); err != nil {
+	tx, err := svc.recordDao.BeginTx(); 
+	if err != nil {
 		return RecordsResponse{}, err.(ledger.Error)
 	}
 
@@ -467,7 +462,8 @@ func (svc recordService) GetRecords(ctx context.Context, accountId ledger.Accoun
 		return RecordsResponse{}, err.(ledger.Error)
 	}
 
-	if records, err = svc.recordDao.GetRecordsForLastPeriod(ctx, accountId, tx); err != nil {
+	records, err := svc.recordDao.GetRecordsForLastPeriod(ctx, accountId, tx); 
+	if err != nil {
 		return RecordsResponse{}, err.(ledger.Error)
 	}
 
