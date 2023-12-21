@@ -79,10 +79,6 @@ func MustOpenCategoryDao(db *sql.DB) dao.CategoryDao {
 	return &DefaultCategoryDao{&RootDao{db}}
 }
 
-func (d DefaultCategoryDao) Close() error {
-	return d.db.Close()
-}
-
 func (d *DefaultCategoryDao) NewCategoryId(tx *sql.Tx) (ledger.CategoryId, error) {
 	var categoryId ledger.CategoryId
 	err := tx.QueryRow("SELECT nextval('budget.category_id')").Scan(&categoryId)

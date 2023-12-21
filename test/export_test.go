@@ -100,22 +100,6 @@ func TestMain(m *testing.M) {
 
 		log.Println("Cleaning up after tests")
 
-		if err := UserDao.Close(); err != nil {
-			log.Printf("Error closing UserDao: %s", err)
-		}
-
-		if err := AccountDao.Close(); err != nil {
-			log.Printf("Error closing AccountDao: %s", err)
-		}
-
-		if err := CategoryDao.Close(); err != nil {
-			log.Printf("Error closing CategoryDao: %s", err)
-		}
-
-		if err := RecordDao.Close(); err != nil {
-			log.Printf("Error closing RecordDao: %s", err)
-		}
-
 		if err := testPostgresContainer.Terminate(testContainerContext); err != nil {
 			log.Printf("Error closing Test Postgres Container: %s", err)
 		}

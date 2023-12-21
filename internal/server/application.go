@@ -41,7 +41,7 @@ func Init(config *cfg.Config) (*App, error) {
 		config.Database().ConnectionString(),
 	); 
 	if err != nil {
-		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", dataSourceName, driverName, err)
+		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", config.Database().ConnectionString(), config.Database().DriverName(), err)
 	}
 
 	userDao := dao.MustOpenUserDao(db)

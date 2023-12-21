@@ -97,10 +97,6 @@ func MustOpenAccountDao(db *sql.DB) dao.AccountDao {
 	return &DefaultAccountDao{&RootDao{db}}
 }
 
-func (d DefaultAccountDao) Close() error {
-	return d.db.Close()
-}
-
 func (d *DefaultAccountDao) NewAccountId(tx *sql.Tx) (ledger.AccountId, error) {
 	var accountId ledger.AccountId
 	err := d.db.QueryRow("SELECT nextval('budget.account_id')").Scan(&accountId)

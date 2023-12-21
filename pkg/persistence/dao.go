@@ -18,7 +18,6 @@ type UserDao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
 
-	Close() error
 	NewUserId() (ledger.UserId, error)
 
 	Save(u ledger.User) error
@@ -31,7 +30,6 @@ type AccountDao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
 
-	Close() error
 	NewAccountId(tx *sql.Tx) (ledger.AccountId, error)
 
 	SaveTx(ctx context.Context, id ledger.UserId, as ledger.Accounts, tx *sql.Tx) error
@@ -44,7 +42,6 @@ type CategoryDao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
 
-	Close() error
 	NewCategoryId(tx *sql.Tx) (ledger.CategoryId, error)
 
 	SaveTx(ctx context.Context, id ledger.UserId, c ledger.Categories, tx *sql.Tx) error
@@ -59,7 +56,6 @@ type RecordDao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
 
-	Close() error
 	NewRecordId(*sql.Tx) (ledger.RecordId, error)
 
 	SaveTx(ctx context.Context, id ledger.AccountId, r ledger.Record, tx *sql.Tx) error

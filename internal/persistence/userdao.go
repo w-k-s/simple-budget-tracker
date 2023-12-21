@@ -86,10 +86,6 @@ func MustOpenUserDao(db *sql.DB) dao.UserDao {
 	}
 }
 
-func (d DefaultUserDao) Close() error {
-	return d.db.Close()
-}
-
 func (d *DefaultUserDao) NewUserId() (ledger.UserId, error) {
 	var userId ledger.UserId
 	err := d.db.QueryRow("SELECT nextval('budget.user_id')").Scan(&userId)

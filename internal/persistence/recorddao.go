@@ -147,10 +147,6 @@ func MustOpenRecordDao(db *sql.DB) dao.RecordDao {
 	return &DefaultRecordDao{RootDao{db}}
 }
 
-func (d DefaultRecordDao) Close() error {
-	return d.db.Close()
-}
-
 func (d *DefaultRecordDao) NewRecordId(tx *sql.Tx) (ledger.RecordId, error) {
 	var recordId ledger.RecordId
 	err := tx.QueryRow("SELECT nextval('budget.record_id')").Scan(&recordId)
