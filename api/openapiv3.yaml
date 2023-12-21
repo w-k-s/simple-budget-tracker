@@ -116,6 +116,72 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateCategoriesRequest"
         description: ""
+    get:
+      summary: Get categories
+      description: ""
+      parameters: []
+      operationId: GetCategories
+      security:
+        - UserIdAuth: []
+      responses:
+        "200":
+          description: User Categories
+          content:
+            application/json;charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/CreateCategoriesResponse"
+        "400":
+          description: Validation Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        default:
+          description: Unexpected Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+      tags:
+        - Category
+  /api/v1/accounts/{accountId}/records/gpt:
+    post:
+      summary: Populate a create record request using natural text e.g. "spent $10 at mcdonalds"
+      description: ""
+      parameters:
+        - in: path
+          name: accountId
+          schema:
+            type: integer
+          required: true
+          description: Numeric ID of the account
+      operationId: CreateRecordWithGpt
+      security:
+        - UserIdAuth: []
+      responses:
+        "200":
+          description: Populated Create record request
+        "400":
+          description: Validation Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        default:
+          description: Unexpected Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+      tags:
+        - Records
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRecordPrompt"
+        description: ""
   /health:
     get:
       summary: Health check
@@ -262,6 +328,16 @@ components:
       required:
         - name
         - id
+    CreateRecordPrompt:
+      description: Request object containing a prompt to populate a CreateRecordRequest object using free text e.g. "Spent $10 at McDonalds"
+      title: CreateRecordPrompt
+      type: object
+      properties:
+        prompt:
+          description: Free text description of the transaction e.g. I spent $10 at McDonalds
+          type: string
+      required:
+        - prompt
     Problem:
       description: RFC-7807 Problem Object
       title: Problem

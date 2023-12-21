@@ -130,6 +130,7 @@ func (app *App) Router() *mux.Router {
 func (app *App) MustEncodeJson(w http.ResponseWriter, v interface{}, status int) {
 	encoder := json.NewEncoder(w)
 	encoder.SetEscapeHTML(true)
+	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 	if err := encoder.Encode(v); err != nil {
 		log.Fatalf("Failed to encode json '%v'. Reason: %s", v, err)
