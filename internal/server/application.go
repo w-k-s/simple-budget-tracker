@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
 	cfg "github.com/w-k-s/simple-budget-tracker/internal/config"
-	dao "github.com/w-k-s/simple-budget-tracker/internal/server/persistence"
+	dao "github.com/w-k-s/simple-budget-tracker/internal/persistence"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	svc "github.com/w-k-s/simple-budget-tracker/pkg/services"
 	_ "github.com/w-k-s/simple-budget-tracker/statik"
@@ -71,7 +71,7 @@ func Init(config *cfg.Config) (*App, error) {
 	if recordService, err = svc.NewRecordService(dao.MustOpenRecordDao(
 		config.Database().DriverName(),
 		config.Database().ConnectionString(),
-	), accountDao, categoryDao); err != nil {
+	), accountDao, categoryDao, config.Gpt().ApiKey()); err != nil {
 		return nil, fmt.Errorf("failed to initiaise record service. Reason: %w", err)
 	}
 
@@ -110,6 +110,8 @@ func (app *App) Router() *mux.Router {
 
 	records := r.PathPrefix("/api/v1/accounts/{accountId}/records").Subrouter()
 	records.HandleFunc("", app.CreateRecord).
+		Methods("POST")
+	records.HandleFunc("/gpt", app.CreateRecordRequestWithChatGPT).
 		Methods("POST")
 	records.HandleFunc("", app.GetRecords).
 		Methods("GET")

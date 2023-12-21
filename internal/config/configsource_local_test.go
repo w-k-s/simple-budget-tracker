@@ -48,8 +48,12 @@ func createTestConfigFile(content string, uri string) error {
 	return nil
 }
 
+func testConfigFilePath() string {
+	return "file://" + filepath.Join("/tmp/.budget", "config.toml")
+}
+
 func (suite *ConfigTestSuite) SetupTest() {
-	if err := createTestConfigFile(configFileContents, DefaultConfigFilePath()); err != nil {
+	if err := createTestConfigFile(configFileContents, testConfigFilePath()); err != nil {
 		log.Fatalf("Failed to create test config file. Reason: %s", err)
 	}
 }
@@ -57,7 +61,7 @@ func (suite *ConfigTestSuite) SetupTest() {
 // -- TEARDOWN
 
 func (suite *ConfigTestSuite) TearDownTest() {
-	path := strings.Replace(DefaultConfigFilePath(), "file://", "", 1)
+	path := strings.Replace(testConfigFilePath(), "file://", "", 1)
 	_ = os.Remove(path)
 }
 
@@ -65,7 +69,7 @@ func (suite *ConfigTestSuite) TearDownTest() {
 
 func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsNotProvided_WHEN_loadingConfig_THEN_configsLoadedFromDefaultPath() {
 	// WHEN
-	config, err := LoadConfig("", "", "", "")
+	config, err := LoadConfig(testConfigFilePath(), "", "", "")
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -87,11 +91,11 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsNotProvided_WHEN_loadin
 
 func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsNotProvided_WHEN_configFileDoesNotExistAtDefaultPath_THEN_errorIsReturned() {
 	// GIVEN
-	path := strings.Replace(DefaultConfigFilePath(), "file://", "", 1)
+	path := strings.Replace(testConfigFilePath(), "file://", "", 1)
 	_ = os.Remove(path)
 
 	// WHEN
-	config, err := LoadConfig("", "", "", "")
+	config, err := LoadConfig(testConfigFilePath(), "", "", "")
 
 	// THEN
 	assert.Nil(suite.T(), config)
@@ -129,10 +133,10 @@ host     = "localhost"
 port     = 5432
 sslmode  = "disable"
 `
-	assert.Nil(suite.T(), createTestConfigFile(customConfigFileContents, DefaultConfigFilePath()))
+	assert.Nil(suite.T(), createTestConfigFile(customConfigFileContents, testConfigFilePath()))
 
 	// WHEN
-	config, err := LoadConfig("", "", "", "")
+	config, err := LoadConfig(testConfigFilePath(), "", "", "")
 
 	// THEN
 	assert.Nil(suite.T(), err)
@@ -154,10 +158,10 @@ sslmode  = "disable"
 
 func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsProvided_WHEN_configFileIsEmpty_THEN_errorIsReturned() {
 	// GIVEN
-	assert.Nil(suite.T(), createTestConfigFile("", DefaultConfigFilePath()))
+	assert.Nil(suite.T(), createTestConfigFile("", testConfigFilePath()))
 
 	// WHEN
-	config, err := LoadConfig("", "", "", "")
+	config, err := LoadConfig(testConfigFilePath(), "", "", "")
 
 	// THEN
 	assert.NotNil(suite.T(), err)
@@ -179,10 +183,10 @@ func (suite *ConfigTestSuite) Test_GIVEN_configFilePathIsProvided_WHEN_configFil
 			"port":8080
 		}
 	}`
-	assert.Nil(suite.T(), createTestConfigFile(invalidToml, DefaultConfigFilePath()))
+	assert.Nil(suite.T(), createTestConfigFile(invalidToml, testConfigFilePath()))
 
 	// WHEN
-	config, err := LoadConfig("", "", "", "")
+	config, err := LoadConfig(testConfigFilePath(), "", "", "")
 
 	// THEN
 	assert.NotNil(suite.T(), err)

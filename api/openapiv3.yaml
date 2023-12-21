@@ -44,6 +44,46 @@ paths:
             schema:
               $ref: "#/components/schemas/CreateUserRequest"
         description: ""
+  /api/v1/accounts:
+    post:
+      summary: Create a new Account
+      description: ""
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+          required: true
+          description: Numeric ID of the user to get
+      operationId: Account
+      responses:
+        "201":
+          description: Account created successfully
+          content:
+            application/json;charset=utf-8:
+              schema:
+                $ref: "#/components/schemas/CreateAccountResponse"
+        "400":
+          description: Validation Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        default:
+          description: Unexpected Error
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+      tags:
+        - Account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAccountRequest"
+        description: ""
   /health:
     get:
       summary: Health check
@@ -82,6 +122,52 @@ components:
           type: integer
       required:
         - email
+        - id
+    CreateAccountRequest:
+      description: Request obejct to create a new account
+      title: CreateAccountRequest
+      type: object
+      properties:
+        name:
+          description: Name of the account
+          type: string
+        type:
+          description: Type of the account
+          type: string
+          enum:
+            - Current
+            - Saving
+        currency:
+          description: Currency of the account
+          type: string
+      required:
+        - name
+        - type
+        - currency
+    CreateAccountResponse:
+      description: Response object when account created successfully
+      title: CreateAccountResponse
+      type: object
+      properties:
+        name:
+          description: Name of the account
+          type: string
+        type:
+          description: Type of the account
+          type: string
+          enum:
+            - Current
+            - Saving
+        currency:
+          description: Currency of the account
+          type: string
+        id:
+          description: Unique id of the account
+          type: integer
+      required:
+        - name
+        - type
+        - currency
         - id
     Problem:
       description: RFC-7807 Problem Object

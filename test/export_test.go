@@ -13,8 +13,8 @@ import (
 	tc "github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	cfg "github.com/w-k-s/simple-budget-tracker/internal/config"
+	db "github.com/w-k-s/simple-budget-tracker/internal/persistence"
 	app "github.com/w-k-s/simple-budget-tracker/internal/server"
-	db "github.com/w-k-s/simple-budget-tracker/internal/server/persistence"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -74,6 +74,7 @@ func init() {
 			SetPort(containerPort.Int()).
 			SetName(testContainerDataSourceName).
 			Build(),
+		*cfg.NewGptConfig(""),
 	); err != nil {
 		log.Fatalf("Failed to configure application for tests. Reason: %s", err)
 	}

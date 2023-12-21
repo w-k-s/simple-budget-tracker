@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 
-	db "github.com/w-k-s/simple-budget-tracker/internal/server/persistence"
+	db "github.com/w-k-s/simple-budget-tracker/internal/persistence"
 )
 
 type MigrationsTestSuite struct {

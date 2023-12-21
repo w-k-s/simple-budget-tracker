@@ -19,12 +19,18 @@ import (
 type Config struct {
 	server ServerConfig
 	db     DBConfig
+	gpt    GptConfig
 }
 
-func NewConfig(serverConfig ServerConfig, dbConfig DBConfig) (*Config, error) {
+func NewConfig(
+	serverConfig ServerConfig, 
+	dbConfig DBConfig,
+	gptConfig GptConfig,
+) (*Config, error) {
 	config := &Config{
 		server: serverConfig,
 		db:     dbConfig,
+		gpt: 	gptConfig,
 	}
 
 	errors := validate.Validate(
@@ -53,6 +59,10 @@ func (c Config) Database() DBConfig {
 	return c.db
 }
 
+func (c Config) Gpt() GptConfig{
+	return c.gpt
+}
+
 func readToml(bytes []byte) (*Config, error) {
 	var mutableConfig struct {
 		Server struct {
@@ -69,6 +79,9 @@ func readToml(bytes []byte) (*Config, error) {
 			Name         string
 			SSLMode      string
 			MigrationDir string `toml:"migration_dir"`
+		}
+		Gpt struct {
+			ApiKey       string `toml:"api_key"`
 		}
 	}
 
@@ -92,6 +105,9 @@ func readToml(bytes []byte) (*Config, error) {
 			name:         mutableConfig.Database.Name,
 			sslMode:      mutableConfig.Database.SSLMode,
 			migrationDir: mutableConfig.Database.MigrationDir,
+		},
+		GptConfig{
+			apiKey: mutableConfig.Gpt.ApiKey,	
 		},
 	)
 }

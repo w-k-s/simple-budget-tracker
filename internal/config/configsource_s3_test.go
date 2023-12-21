@@ -30,7 +30,7 @@ func TestConfigS3TestSuite(t *testing.T) {
 var testS3Location = "s3://com.wks.budget/test/config.toml"
 
 func uploadTestConfigFile(content string, s3UriString string) error {
-	path := strings.Replace(DefaultConfigFilePath(), "file://", "", 1)
+	path := strings.Replace(testConfigFilePath(), "file://", "", 1)
 
 	if err := os.MkdirAll(filepath.Dir(path), 0777); err != nil {
 		return fmt.Errorf("Failed to create path '%s'. Reason: %w", path, err)

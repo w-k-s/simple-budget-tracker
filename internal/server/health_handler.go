@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	cfg "github.com/w-k-s/simple-budget-tracker/internal/config"
-	dao "github.com/w-k-s/simple-budget-tracker/internal/server/persistence"
+	dao "github.com/w-k-s/simple-budget-tracker/internal/persistence"
 )
 
 type status bool

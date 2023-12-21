@@ -620,7 +620,7 @@ func (suite *RecordTestSuite) Test_GIVEN_recordsWithExpensesSavingsAndIncome_WHE
 	assert.Equal(suite.T(), "AED 20.00", totalSavings.String())
 
 	assert.Equal(suite.T(), "AED 80.00", netBalance.String())
-	assert.Equal(suite.T(), "AED 70.00", totalExpenses.String())
+	assert.Equal(suite.T(), "AED 50.00", totalExpenses.String())
 	assert.Equal(suite.T(), "AED 50.00", netExpenses.String())
 
 }

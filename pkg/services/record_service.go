@@ -3,9 +3,12 @@ package services
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
+	"github.com/ayush6624/go-chatgpt"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -27,6 +30,10 @@ type CreateRecordRequest struct {
 			Id uint64 `json:"id"`
 		} `json:"beneficiary"`
 	} `json:"transfer"`
+}
+
+type CreateRecordPrompt struct{
+	Prompt string `json:"prompt"`
 }
 
 type RecordResponse struct {
@@ -173,15 +180,22 @@ func makeRecordsResponse(records ledger.Records) (RecordsResponse, error) {
 type RecordService interface {
 	CreateRecord(ctx context.Context, request CreateRecordRequest) (RecordResponse, error)
 	GetRecords(ctx context.Context, accountId ledger.AccountId) (RecordsResponse, error)
+	CreateRecordRequestWithChatGPT(ctx context.Context, prompt CreateRecordPrompt) (CreateRecordRequest, error)
 }
 
 type recordService struct {
 	recordDao   dao.RecordDao
 	accountDao  dao.AccountDao
 	categoryDao dao.CategoryDao
+	gptApiKey   string
 }
 
-func NewRecordService(recordDao dao.RecordDao, accountDao dao.AccountDao, categoryDao dao.CategoryDao) (RecordService, error) {
+func NewRecordService(
+	recordDao dao.RecordDao, 
+	accountDao dao.AccountDao, 
+	categoryDao dao.CategoryDao,
+	gptApiKey string,
+) (RecordService, error) {
 	if recordDao == nil {
 		return nil, fmt.Errorf("can not create record service. recordDao is nil")
 	}
@@ -196,6 +210,7 @@ func NewRecordService(recordDao dao.RecordDao, accountDao dao.AccountDao, catego
 		recordDao:   recordDao,
 		accountDao:  accountDao,
 		categoryDao: categoryDao,
+		gptApiKey: gptApiKey,
 	}, nil
 }
 
@@ -337,6 +352,87 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 	}
 
 	return makeRecordResponse(record, account)
+}
+
+func (svc recordService) CreateRecordRequestWithChatGPT(ctx context.Context, prompt CreateRecordPrompt) (CreateRecordRequest, error){
+	if len(svc.gptApiKey) == 0{
+		return CreateRecordRequest{}, fmt.Errorf("ChatGPT API Key not configured")
+	}
+
+	var(
+		userId ledger.UserId
+		err error
+	)
+	
+	userId, err = RequireUserId(ctx)
+	if err != nil {
+		return CreateRecordRequest{}, err.(ledger.Error)
+	}
+
+	tx, err := svc.categoryDao.BeginTx()
+	if err != nil{
+		return CreateRecordRequest{}, err.(ledger.Error)
+	}
+	defer dao.DeferRollback(tx, fmt.Sprintf("CreateRecordRequestWithChatGPT: %d", userId))
+
+	// Get User Categories Names
+	categories, err := svc.categoryDao.GetCategoriesForUser(ctx, userId, tx)
+	if err != nil{
+		return CreateRecordRequest{}, err.(ledger.Error)
+	}
+
+	// Get User Account Names
+	accounts, err := svc.accountDao.GetAccountsByUserId(ctx, userId, tx)
+	if err != nil{
+		return CreateRecordRequest{}, err.(ledger.Error)
+	}
+	
+	jsonStructure, err := json.Marshal(CreateRecordRequest{})
+	if err != nil{
+		return CreateRecordRequest{}, fmt.Errorf("Failed to marshal empty create record request")
+	}
+
+	// Create Prompt
+	gptRequest := fmt.Sprintf(`
+		Populate the fields in JSON structure using the provided prompt.
+		The prompt describes an income, expense or a transfer of money from one account to another.
+
+		JSON Structure: """%s"""
+		Prompt: """%s""".
+		
+		Details:
+		- Note: this is what the money was spent on e.g. McDonalds
+		- Category: the category of the transaction. One of: '%s'.
+		- Amount: the value of the transaction. For expenses, this must be negative. By default the currency is: '%s'.
+		- DateUTC: The date of the transaction as yyyy-MM-dd'T'HH:mm:ssX.
+		- Type: One of INCOME, EXPENSE or TRANSFER.
+		- Transfer.Beneficiary.Id: Only set when the type is transfer. The id of the account the money is being transferred to. Available accounts are: '%s'
+		
+		Output:
+		- Output only the populated JSON.
+		- If there isn't enough information, respond with a json object with a field error and a value listing all missing details separated by commas.
+		`,
+		string(jsonStructure),
+		prompt.Prompt,
+		categories.String(),
+		accounts[0].Currency(),
+		accounts.String(),
+	)
+
+	// Send Request to Chat-GPT
+	client, err := chatgpt.NewClient(svc.gptApiKey)
+	if err != nil {
+		return CreateRecordRequest{}, fmt.Errorf("Failed to create GPT Client")
+	}
+	
+	res, err := client.SimpleSend(ctx, gptRequest)
+	if err != nil {
+		return CreateRecordRequest{}, fmt.Errorf("Failed to create GPT Client: %w", err)
+	}
+
+	log.Printf("res: %v", res)
+
+	return CreateRecordRequest{}, nil
 }
 
 func (svc recordService) GetRecords(ctx context.Context, accountId ledger.AccountId) (RecordsResponse, error) {

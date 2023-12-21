@@ -16,11 +16,13 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.0-beta.3
 	github.com/rakyll/statik v0.1.7
 	github.com/serenize/snaker v0.0.0-20201027110005-a7ad2135616e // indirect
-	github.com/stretchr/testify v1.7.1-0.20210427113832-6241f9ab9942
+	github.com/stretchr/testify v1.8.2
 	github.com/testcontainers/testcontainers-go v0.11.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	schneider.vip/problem v1.6.0
 )
+
+require github.com/ayush6624/go-chatgpt v0.3.0
 
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20170929234023-d6e3b3328b78 // indirect
@@ -61,5 +63,5 @@ require (
 	google.golang.org/grpc v1.33.2 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

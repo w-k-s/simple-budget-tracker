@@ -178,8 +178,8 @@ func (as Accounts) Names() []string {
 func (as Accounts) String() string {
 	sort.Sort(as)
 	strs := make([]string, 0, len(as))
-	for _, category := range as {
-		strs = append(strs, category.String())
+	for _, account := range as {
+		strs = append(strs, account.String())
 	}
 	return fmt.Sprintf("Accounts{%s}", strings.Join(strs, ", "))
 }

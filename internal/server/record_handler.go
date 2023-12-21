@@ -37,6 +37,33 @@ func (a *App) CreateRecord(w http.ResponseWriter, req *http.Request) {
 	a.MustEncodeJson(w, resp, http.StatusCreated)
 }
 
+func (a *App) CreateRecordRequestWithChatGPT(w http.ResponseWriter, req *http.Request) {
+
+	var (
+		accountId           ledger.AccountId
+		prompt				svc.CreateRecordPrompt
+		err                 error
+		ok                  bool
+	)
+
+	if accountId, ok = a.getAccountIdOrBadRequest(w, req); !ok {
+		return
+	}
+
+	if ok = a.DecodeJsonOrSendBadRequest(w, req, &prompt); !ok {
+		return
+	}
+
+	req = req.WithContext(svc.SetAccountId(req.Context(), accountId))
+	resp, err := a.RecordService.CreateRecordRequestWithChatGPT(req.Context(), prompt)
+	if err != nil{
+		a.MustEncodeProblem(w, req, err)
+		return
+	}
+
+	a.MustEncodeJson(w, resp, http.StatusCreated)
+}
+
 func (a *App) GetRecords(w http.ResponseWriter, req *http.Request) {
 	var (
 		accountId ledger.AccountId
