@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -35,43 +36,40 @@ func Init(config *cfg.Config) (*App, error) {
 		return nil, fmt.Errorf("configuration is required. Got %v", nil)
 	}
 
-	var (
-		userService       svc.UserService
-		accountService    svc.AccountService
-		categoriesService svc.CategoriesService
-		recordService     svc.RecordService
-		err               error
-	)
-
-	accountDao := dao.MustOpenAccountDao(
+	db, err := sql.Open(
 		config.Database().DriverName(),
 		config.Database().ConnectionString(),
-	)
+	); 
+	if err != nil {
+		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", dataSourceName, driverName, err)
+	}
 
-	categoryDao := dao.MustOpenCategoryDao(
-		config.Database().DriverName(),
-		config.Database().ConnectionString(),
-	)
-
-	if userService, err = svc.NewUserService(dao.MustOpenUserDao(
-		config.Database().DriverName(),
-		config.Database().ConnectionString(),
-	)); err != nil {
+	userDao := dao.MustOpenUserDao(db)
+	userService, err := svc.NewUserService(userDao); 
+	if err != nil {
 		return nil, fmt.Errorf("failed to initiaise user service. Reason: %w", err)
 	}
 
-	if accountService, err = svc.NewAccountService(accountDao); err != nil {
+	accountDao := dao.MustOpenAccountDao(db)
+	accountService, err := svc.NewAccountService(accountDao); 
+	if err != nil {
 		return nil, fmt.Errorf("failed to initiaise account service. Reason: %w", err)
 	}
 
-	if categoriesService, err = svc.NewCategoriesService(categoryDao); err != nil {
+	categoryDao := dao.MustOpenCategoryDao(db)
+	categoriesService, err := svc.NewCategoriesService(categoryDao); 
+	if err != nil {
 		return nil, fmt.Errorf("failed to initiaise categories service. Reason: %w", err)
 	}
 
-	if recordService, err = svc.NewRecordService(dao.MustOpenRecordDao(
-		config.Database().DriverName(),
-		config.Database().ConnectionString(),
-	), accountDao, categoryDao, config.Gpt().ApiKey()); err != nil {
+	recordDao := dao.MustOpenRecordDao(db)
+	recordService, err := svc.NewRecordService(
+		recordDao, 
+		accountDao, 
+		categoryDao, 
+		config.Gpt().ApiKey(),
+	); 
+	if err != nil {
 		return nil, fmt.Errorf("failed to initiaise record service. Reason: %w", err)
 	}
 

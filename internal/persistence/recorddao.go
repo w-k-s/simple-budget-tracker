@@ -143,12 +143,7 @@ type DefaultRecordDao struct {
 	RootDao
 }
 
-func MustOpenRecordDao(driverName, dataSourceName string) dao.RecordDao {
-	var db *sql.DB
-	var err error
-	if db, err = sql.Open(driverName, dataSourceName); err != nil {
-		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", dataSourceName, driverName, err)
-	}
+func MustOpenRecordDao(db *sql.DB) dao.RecordDao {
 	return &DefaultRecordDao{RootDao{db}}
 }
 

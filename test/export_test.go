@@ -85,10 +85,10 @@ func init() {
 		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", testContainerDriverName, testContainerDataSourceName, err)
 	}
 
-	UserDao = db.MustOpenUserDao(testContainerDriverName, testContainerDataSourceName)
-	AccountDao = db.MustOpenAccountDao(testContainerDriverName, testContainerDataSourceName)
-	CategoryDao = db.MustOpenCategoryDao(testContainerDriverName, testContainerDataSourceName)
-	RecordDao = db.MustOpenRecordDao(testContainerDriverName, testContainerDataSourceName)
+	UserDao = db.MustOpenUserDao(TestDB)
+	AccountDao = db.MustOpenAccountDao(TestDB)
+	CategoryDao = db.MustOpenCategoryDao(TestDB)
+	RecordDao = db.MustOpenRecordDao(TestDB)
 
 	if TestApp, err = app.Init(TestConfig); err != nil {
 		log.Fatalf("Failed to initialize application for tests. Reason: %s", err)

@@ -93,12 +93,7 @@ type DefaultAccountDao struct {
 	*RootDao
 }
 
-func MustOpenAccountDao(driverName, dataSourceName string) dao.AccountDao {
-	var db *sql.DB
-	var err error
-	if db, err = sql.Open(driverName, dataSourceName); err != nil {
-		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", dataSourceName, driverName, err)
-	}
+func MustOpenAccountDao(db *sql.DB) dao.AccountDao {
 	return &DefaultAccountDao{&RootDao{db}}
 }
 

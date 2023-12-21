@@ -75,12 +75,7 @@ type DefaultCategoryDao struct {
 	*RootDao
 }
 
-func MustOpenCategoryDao(driverName, dataSourceName string) dao.CategoryDao {
-	var db *sql.DB
-	var err error
-	if db, err = sql.Open(driverName, dataSourceName); err != nil {
-		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", dataSourceName, driverName, err)
-	}
+func MustOpenCategoryDao(db *sql.DB) dao.CategoryDao {
 	return &DefaultCategoryDao{&RootDao{db}}
 }
 

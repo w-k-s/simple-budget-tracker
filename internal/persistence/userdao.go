@@ -80,12 +80,7 @@ type DefaultUserDao struct {
 	*RootDao
 }
 
-func MustOpenUserDao(driverName, dataSourceName string) dao.UserDao {
-	var db *sql.DB
-	var err error
-	if db, err = sql.Open(driverName, dataSourceName); err != nil {
-		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", dataSourceName, driverName, err)
-	}
+func MustOpenUserDao(db *sql.DB) dao.UserDao {
 	return &DefaultUserDao{
 		&RootDao{db},
 	}
