@@ -12,15 +12,6 @@ type ServerConfig struct {
 	maxHeaderBytes int
 }
 
-func makeServerConfig(b *serverConfigBuilder) ServerConfig {
-	return ServerConfig{
-		b.port,
-		b.readTimeout,
-		b.writeTimeout,
-		b.maxHeaderBytes,
-	}
-}
-
 func (s ServerConfig) Port() int {
 	return s.port
 }
@@ -86,5 +77,10 @@ func (b *serverConfigBuilder) SetMaxHeaderBytes(maxHeaderBytes int) *serverConfi
 }
 
 func (b *serverConfigBuilder) Build() ServerConfig {
-	return makeServerConfig(b)
+	return ServerConfig{
+		b.port,
+		b.readTimeout,
+		b.writeTimeout,
+		b.maxHeaderBytes,
+	}
 }

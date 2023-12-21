@@ -15,8 +15,6 @@ var (
 	awsAccessKey   string
 	awsSecretKey   string
 	awsRegion      string
-	config         *cfg.Config
-	handler        *app.App
 )
 
 func init() {
@@ -38,16 +36,18 @@ func main() {
 	// This results in a panic.
 	flag.Parse()
 
-	var err error
-	if err = cfg.ConfigureLogging(); err != nil {
+	err := cfg.ConfigureLogging(); 
+	if err != nil {
 		log.Fatalf("failed to configure logging. Reason: %s", err)
 	}
 
-	if config, err = cfg.LoadConfig(configFilePath, awsAccessKey, awsSecretKey, awsRegion); err != nil {
+	config, err := cfg.LoadConfig(configFilePath, awsAccessKey, awsSecretKey, awsRegion); 
+	if err != nil {
 		log.Fatalf("failed to load config file. Reason: %s", err)
 	}
 
-	if handler, err = app.Init(config); err != nil {
+	handler, err := app.Init(config); 
+	if err != nil {
 		log.Fatalf("failed to init application. Reason: %s", err)
 	}
 

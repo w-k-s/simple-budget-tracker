@@ -14,18 +14,6 @@ type DBConfig struct {
 	migrationDir string
 }
 
-func makeDBConfig(b *dbConfigBuilder) DBConfig {
-	return DBConfig{
-		b.username,
-		b.password,
-		b.host,
-		b.port,
-		b.name,
-		b.sslMode,
-		b.migrationDir,
-	}
-}
-
 func (d DBConfig) Username() string {
 	return d.username
 }
@@ -129,5 +117,13 @@ func (b *dbConfigBuilder) SetMigrationDirectory(migrationDir string) *dbConfigBu
 }
 
 func (b *dbConfigBuilder) Build() DBConfig {
-	return makeDBConfig(b)
+	return DBConfig{
+		b.username,
+		b.password,
+		b.host,
+		b.port,
+		b.name,
+		b.sslMode,
+		b.migrationDir,
+	}
 }
