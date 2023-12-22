@@ -79,8 +79,6 @@ func init() {
 		log.Fatalf("Failed to configure application for tests. Reason: %s", err)
 	}
 
-	db.MustRunMigrations(TestConfig.Database())
-
 	if TestDB, err = sql.Open(testContainerDriverName, testContainerDataSourceName); err != nil {
 		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", testContainerDriverName, testContainerDataSourceName, err)
 	}

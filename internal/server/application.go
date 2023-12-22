@@ -32,8 +32,14 @@ func (app *App) Config() *cfg.Config {
 }
 
 func Init(config *cfg.Config) (*App, error) {
+
 	if config == nil {
 		return nil, fmt.Errorf("configuration is required. Got %v", nil)
+	}
+
+	err := cfg.ConfigureLogging(); 
+	if err != nil {
+		log.Fatalf("failed to configure logging. Reason: %s", err)
 	}
 
 	db, err := sql.Open(
@@ -43,6 +49,7 @@ func Init(config *cfg.Config) (*App, error) {
 	if err != nil {
 		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", config.Database().ConnectionString(), config.Database().DriverName(), err)
 	}
+	dao.MustRunMigrations(db, config.Database())
 
 	userDao := dao.MustOpenUserDao(db)
 	userService, err := svc.NewUserService(userDao); 

@@ -2,12 +2,12 @@ package main
 
 import (
 	"flag"
-	"log"
+
 	"net/http"
 
 	cfg "github.com/w-k-s/simple-budget-tracker/internal/config"
-	db "github.com/w-k-s/simple-budget-tracker/internal/persistence"
 	app "github.com/w-k-s/simple-budget-tracker/internal/server"
+	"github.com/w-k-s/simple-budget-tracker/log"
 )
 
 var (
@@ -36,11 +36,6 @@ func main() {
 	// This results in a panic.
 	flag.Parse()
 
-	err := cfg.ConfigureLogging(); 
-	if err != nil {
-		log.Fatalf("failed to configure logging. Reason: %s", err)
-	}
-
 	config, err := cfg.LoadConfig(configFilePath, awsAccessKey, awsSecretKey, awsRegion); 
 	if err != nil {
 		log.Fatalf("failed to load config file. Reason: %s", err)
@@ -50,10 +45,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to init application. Reason: %s", err)
 	}
-
-	db.MustRunMigrations(
-		config.Database(),
-	)
 
 	s := &http.Server{
 		Addr:           config.Server().ListenAddress(),

@@ -22,7 +22,7 @@ func TestMigrationsTestSuite(t *testing.T) {
 
 func (suite *MigrationsTestSuite) Test_WHEN_migrationsAreRunForASecondTime_THEN_noUpdateErrorIsIgnored() {
 	// WHEN
-	err := db.RunMigrations(TestConfig.Database())
+	err := db.RunMigrations(TestDB, TestConfig.Database())
 
 	// THEN
 	assert.Nil(suite.T(), err)

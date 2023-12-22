@@ -3,17 +3,17 @@ package persistence
 import (
 	"database/sql"
 	"fmt"
-	"log"
+
+	"github.com/w-k-s/simple-budget-tracker/log"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/lib/pq"
 	"github.com/w-k-s/simple-budget-tracker/internal/config"
 )
 
-func RunMigrations(dbConfig config.DBConfig) error {
+func RunMigrations(db *sql.DB, dbConfig config.DBConfig) error {
 	driverName := dbConfig.DriverName()
 	migrationsDirectory := dbConfig.MigrationDirectory()
 
@@ -21,31 +21,22 @@ func RunMigrations(dbConfig config.DBConfig) error {
 		return fmt.Errorf("invalid migrations directory: '%s'. Must be an absolute path", migrationsDirectory)
 	}
 
-	var (
-		db         *sql.DB
-		driver     database.Driver
-		migrations *migrate.Migrate
-		err        error
-	)
-
-	if db, err = sql.Open(driverName, dbConfig.ConnectionString()); err != nil {
-		return fmt.Errorf("failed to open connection. Reason: %w", err)
-	}
-
 	db.SetMaxIdleConns(0) // Required, otherwise pinging will result in EOF
-
-	if err = PingWithBackOff(db); err != nil {
+	err := PingWithBackOff(db); 
+	if err != nil {
 		return fmt.Errorf("failed to ping database. Reason: %w", err)
 	}
 
-	if driver, err = postgres.WithInstance(db, &postgres.Config{
+	driver, err := postgres.WithInstance(db, &postgres.Config{
 		DatabaseName: dbConfig.Name(),
 		SchemaName:   dbConfig.Schema(),
-	}); err != nil {
+	}); 
+	if err != nil {
 		return fmt.Errorf("failed to create instance of psql driver. Reason: %w", err)
 	}
 
-	if migrations, err = migrate.NewWithDatabaseInstance(migrationsDirectory, driverName, driver); err != nil {
+	migrations, err := migrate.NewWithDatabaseInstance(migrationsDirectory, driverName, driver); 
+	if err != nil {
 		return fmt.Errorf("failed to load migrations from %s. Reason: %w", migrationsDirectory, err)
 	}
 
@@ -56,8 +47,8 @@ func RunMigrations(dbConfig config.DBConfig) error {
 	return nil
 }
 
-func MustRunMigrations(dbConfig config.DBConfig) {
-	if err := RunMigrations(dbConfig); err != nil {
+func MustRunMigrations(db *sql.DB, dbConfig config.DBConfig) {
+	if err := RunMigrations(db, dbConfig); err != nil {
 		log.Fatalf("Failed to run migrations. Reason: %s", err)
 	}
 }
