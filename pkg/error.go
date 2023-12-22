@@ -1,7 +1,6 @@
-package ledger
+package pkg
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"sort"
@@ -9,6 +8,186 @@ import (
 
 	"github.com/gobuffalo/validate"
 )
+
+type ValidationError struct {
+	code   ErrorCode
+	title  string
+	detail string
+	cause  error
+	fields map[string]string
+}
+
+func (i ValidationError) Unwrap() error {
+	return i.cause
+}
+
+func (i ValidationError) Error() string {
+
+	sb := strings.Builder{}
+
+	if len(i.detail) > 0 {
+		sb.WriteString(i.detail)
+		if !strings.HasSuffix(i.detail, ".") {
+			sb.WriteString(".")
+		}
+	}
+
+	if i.cause != nil {
+		cause := i.cause.Error()
+		sb.WriteString(" Reason: ")
+		sb.WriteString(cause)
+
+		if !strings.HasSuffix(cause, ".") {
+			sb.WriteString(".")
+		}
+	}
+
+	if len(i.fields) > 0 {
+		fieldErrors := []string{}
+		for _, fieldError := range i.fields {
+			fieldErrors = append(fieldErrors, fieldError)
+		}
+		sort.Strings(fieldErrors)
+
+		sb.WriteString(strings.Join(fieldErrors, ","))
+	}
+
+	return sb.String()
+}
+
+func (i ValidationError) Code() uint64 {
+	return uint64(i.code)
+}
+
+func (i ValidationError) Title() string {
+	return i.title
+}
+
+func (i ValidationError) Detail() string {
+	return i.detail
+}
+
+func (i ValidationError) InvalidFields() map[string]string {
+	return i.fields
+}
+
+func (i ValidationError) StatusCode() int {
+	return i.code.status()
+}
+
+func ValidationErrorWithErrors(
+	code ErrorCode,
+	message string,
+	errors *validate.Errors,
+) error {
+	if !errors.HasAny() {
+		return nil
+	}
+
+	flatErrors := map[string]string{}
+	for field, violations := range errors.Errors {
+		flatErrors[field] = strings.Join(violations, ", ")
+	}
+
+	return ValidationError{
+		code:   code,
+		title:  code.name(),
+		detail: message,
+		cause:  nil,
+		fields: flatErrors,
+	}
+}
+
+func ValidationErrorWithFields(
+	code ErrorCode,
+	message string,
+	err error,
+	errors map[string]string,
+) error {
+
+	return ValidationError{
+		code:   code,
+		title:  code.name(),
+		detail: message,
+		cause:  nil,
+		fields: errors,
+	}
+}
+
+func ValidationErrorWithError(
+	code ErrorCode,
+	message string,
+	err error,
+) error {
+
+	return ValidationError{
+		code:   code,
+		title:  code.name(),
+		detail: message,
+		cause:  err,
+		fields: nil,
+	}
+}
+
+type SystemError struct {
+	code   ErrorCode
+	title  string
+	detail string
+	cause  error
+}
+
+func NewSystemError(
+	code ErrorCode,
+	message string,
+	cause error,
+) error {
+	return SystemError{
+		code:   code,
+		title:  code.name(),
+		detail: message,
+		cause:  cause,
+	}
+}
+
+func (s SystemError) Unwrap() error {
+	return s.cause
+}
+
+func (s SystemError) Error() string {
+	sb := strings.Builder{}
+
+	if len(s.detail) > 0 {
+		sb.WriteString(s.detail)
+		if !strings.HasSuffix(s.detail, ".") {
+			sb.WriteString(".")
+		}
+	}
+
+	if s.cause != nil {
+		sb.WriteString(" Reason: ")
+		sb.WriteString(s.cause.Error())
+	}
+
+	return sb.String()
+}
+
+func (s SystemError) Code() uint64 {
+	return uint64(s.code)
+}
+
+func (s SystemError) Title() string {
+	return s.title
+}
+
+func (s SystemError) Detail() string {
+	return s.detail
+}
+
+func (s SystemError) StatusCode() int {
+	return s.code.status()
+}
+
+// --
 
 type ErrorCode uint64
 
@@ -66,7 +245,7 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrServiceAccountIdRequired:    "SERVICE_REQUIRED_ACCOUNT_ID",
 }
 
-func (c ErrorCode) Name() string {
+func (c ErrorCode) name() string {
 	var name string
 	var ok bool
 	if name, ok = errorCodeNames[c]; !ok {
@@ -75,7 +254,7 @@ func (c ErrorCode) Name() string {
 	return name
 }
 
-func (c ErrorCode) Status() int {
+func (c ErrorCode) status() int {
 	switch c {
 	case ErrUserIdDuplicated:
 		fallthrough
@@ -131,71 +310,4 @@ func (c ErrorCode) Status() int {
 	default:
 		return http.StatusInternalServerError
 	}
-}
-
-type Error interface {
-	Code() ErrorCode
-	Cause() error
-	Error() string
-	Fields() map[string]string
-}
-
-type internalError struct {
-	code    ErrorCode
-	cause   error
-	message string
-	fields  map[string]string
-}
-
-func (e internalError) Code() ErrorCode {
-	return e.code
-}
-
-func (e internalError) Cause() error {
-	return e.cause
-}
-
-func (e internalError) Error() string {
-	return e.message
-}
-
-func (e internalError) Fields() map[string]string {
-	return e.fields
-}
-
-func NewError(code ErrorCode, message string, cause error) Error {
-	return &internalError{
-		code:    code,
-		cause:   fmt.Errorf("%w", cause),
-		message: message,
-		fields:  map[string]string{},
-	}
-}
-
-func NewErrorWithFields(code ErrorCode, message string, cause error, fields map[string]string) Error {
-	return &internalError{
-		code:    code,
-		cause:   fmt.Errorf("%w", cause),
-		message: message,
-		fields:  fields,
-	}
-}
-
-func makeCoreValidationError(code ErrorCode, errors *validate.Errors) error {
-	if !errors.HasAny() {
-		return nil
-	}
-
-	flatErrors := map[string]string{}
-	for field, violations := range errors.Errors {
-		flatErrors[field] = strings.Join(violations, ", ")
-	}
-
-	listErrors := []string{}
-	for _, violations := range flatErrors {
-		listErrors = append(listErrors, violations)
-	}
-	sort.Strings(listErrors)
-
-	return NewErrorWithFields(code, strings.Join(listErrors, ", "), nil, flatErrors)
 }

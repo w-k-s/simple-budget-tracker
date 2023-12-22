@@ -9,6 +9,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -126,9 +127,8 @@ func (suite *AccountDaoTestSuite) Test_Given_twoAccounts_WHEN_theAccountsHaveThe
 	assert.Nil(suite.T(), err1)
 	assert.NotNil(suite.T(), err2)
 
-	coreError := err2.(ledger.Error)
-	assert.Equal(suite.T(), ledger.ErrAccountNameDuplicated, coreError.Code())
-	assert.Equal(suite.T(), "Acccount named \"Current\" already exists", coreError.Error())
+	assert.Equal(suite.T(), pkg.ErrAccountNameDuplicated, errorCode(err2, 0))
+	assert.Equal(suite.T(), "Acccount named \"Current\" already exists", err2.Error())
 }
 
 func (suite *AccountDaoTestSuite) Test_Given_twoUsersCreateTwoAccounts_WHEN_aUserTriesToRetrieveTheAccountOfTheOtherUserByAccountId_THEN_accountIsNotFound() {
@@ -159,7 +159,6 @@ func (suite *AccountDaoTestSuite) Test_Given_twoUsersCreateTwoAccounts_WHEN_aUse
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), ledger.Account{}, account)
 
-	coreError := err.(ledger.Error)
-	assert.Equal(suite.T(), ledger.ErrAccountNotFound, coreError.Code())
-	assert.Equal(suite.T(), "Account not found", coreError.Error())
+	assert.Equal(suite.T(), pkg.ErrAccountNotFound, errorCode(err, 0))
+	assert.Equal(suite.T(), "Account not found", err.Error())
 }

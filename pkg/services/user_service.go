@@ -43,21 +43,21 @@ func (u userService) CreateUser(request CreateUserRequest) (CreateUserResponse, 
 		err    error
 	)
 	if tx, err = u.userDao.BeginTx(); err != nil {
-		return CreateUserResponse{}, err.(ledger.Error)
+		return CreateUserResponse{}, err
 	}
 	defer dao.DeferRollback(tx, "CreateUser: "+request.Email)
 
 	if userId, err = u.userDao.NewUserId(); err != nil {
-		return CreateUserResponse{}, err.(ledger.Error)
+		return CreateUserResponse{}, err
 	}
 	if user, err = ledger.NewUserWithEmailString(userId, request.Email); err != nil {
-		return CreateUserResponse{}, err.(ledger.Error)
+		return CreateUserResponse{}, err
 	}
 	if err = u.userDao.SaveTx(user, tx); err != nil {
-		return CreateUserResponse{}, err.(ledger.Error)
+		return CreateUserResponse{}, err
 	}
 	if err = dao.Commit(tx); err != nil {
-		return CreateUserResponse{}, err.(ledger.Error)
+		return CreateUserResponse{}, err
 	}
 	return CreateUserResponse{
 		Id:    userId,

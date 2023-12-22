@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type AccountTestSuite struct {
@@ -29,9 +30,9 @@ func (suite *AccountTestSuite) Test_GIVEN_invalidAccountId_WHEN_AccountIsCreated
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Account{}, account)
-	assert.Equal(suite.T(), ErrAccountValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "Id must be greater than 0", err.(Error).Error())
-	assert.Equal(suite.T(), "Id must be greater than 0", err.(Error).Fields()["id"])
+	assert.Equal(suite.T(), pkg.ErrAccountValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "Id must be greater than 0", err.Error())
+	assert.Equal(suite.T(), "Id must be greater than 0", errorFields(err)["id"])
 }
 
 func (suite *AccountTestSuite) Test_GIVEN_emptyAccountName_WHEN_AccountIsCreated_THEN_errorIsReturned() {
@@ -42,9 +43,9 @@ func (suite *AccountTestSuite) Test_GIVEN_emptyAccountName_WHEN_AccountIsCreated
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Account{}, account)
-	assert.Equal(suite.T(), ErrAccountValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.(Error).Error())
-	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.(Error).Fields()["name"])
+	assert.Equal(suite.T(), pkg.ErrAccountValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.Error())
+	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", errorFields(err)["name"])
 }
 
 func (suite *AccountTestSuite) Test_GIVEN_noCurrency_WHEN_AccountIsCreated_THEN_errorIsReturned() {
@@ -55,9 +56,9 @@ func (suite *AccountTestSuite) Test_GIVEN_noCurrency_WHEN_AccountIsCreated_THEN_
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Account{}, account)
-	assert.Equal(suite.T(), ErrAccountValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "currency is required", err.(Error).Error())
-	assert.Equal(suite.T(), "currency is required", err.(Error).Fields()["currency"])
+	assert.Equal(suite.T(), pkg.ErrAccountValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "currency is required", err.Error())
+	assert.Equal(suite.T(), "currency is required", errorFields(err)["currency"])
 }
 
 func (suite *AccountTestSuite) Test_GIVEN_aNonExistantCurrency_WHEN_AccountIsCreated_THEN_errorIsReturned() {
@@ -68,9 +69,9 @@ func (suite *AccountTestSuite) Test_GIVEN_aNonExistantCurrency_WHEN_AccountIsCre
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Account{}, account)
-	assert.Equal(suite.T(), ErrAccountValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "No such currency 'XXX'", err.(Error).Error())
-	assert.Equal(suite.T(), "No such currency 'XXX'", err.(Error).Fields()["currency"])
+	assert.Equal(suite.T(), pkg.ErrAccountValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "No such currency 'XXX'", err.Error())
+	assert.Equal(suite.T(), "No such currency 'XXX'", errorFields(err)["currency"])
 }
 
 func (suite *AccountTestSuite) Test_GIVEN_validParameters_WHEN_AccountIsCreated_THEN_noErrorsAreReturned() {

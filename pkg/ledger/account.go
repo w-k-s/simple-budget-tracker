@@ -8,6 +8,7 @@ import (
 
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type AccountId uint64
@@ -111,16 +112,13 @@ func newAccount(
 		},
 	)
 
-	var (
-		currentBalance Money
-		err            error
-	)
-
-	if err = makeCoreValidationError(ErrAccountValidation, errors); err != nil {
+	err := pkg.ValidationErrorWithErrors(pkg.ErrAccountValidation, "", errors)
+	if err != nil {
 		return Account{}, err
 	}
 
-	if currentBalance, err = NewMoney(currency, currentBalanceMinorUnits); err != nil {
+	currentBalance, err := NewMoney(currency, currentBalanceMinorUnits)
+	if err != nil {
 		return Account{}, err
 	}
 

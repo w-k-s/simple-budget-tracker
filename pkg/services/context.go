@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 )
 
@@ -19,7 +20,7 @@ func RequireUserId(ctx context.Context) (ledger.UserId, error) {
 		ok     bool
 	)
 	if userId, ok = ctx.Value(CtxUserId).(ledger.UserId); !ok {
-		return 0, ledger.NewError(ledger.ErrServiceUserIdRequired, "User id is required", nil)
+		return 0, pkg.NewSystemError(pkg.ErrServiceUserIdRequired, "User id is required", nil)
 	}
 	return userId, nil
 }
@@ -34,7 +35,7 @@ func RequireAccountId(ctx context.Context) (ledger.AccountId, error) {
 		ok        bool
 	)
 	if accountId, ok = ctx.Value(CtxAccountId).(ledger.AccountId); !ok {
-		return 0, ledger.NewError(ledger.ErrServiceUserIdRequired, "User id is required", nil)
+		return 0, pkg.NewSystemError(pkg.ErrServiceUserIdRequired, "User id is required", nil)
 	}
 	return accountId, nil
 }

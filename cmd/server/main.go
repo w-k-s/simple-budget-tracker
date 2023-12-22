@@ -36,12 +36,12 @@ func main() {
 	// This results in a panic.
 	flag.Parse()
 
-	config, err := cfg.LoadConfig(configFilePath, awsAccessKey, awsSecretKey, awsRegion); 
+	config, err := cfg.LoadConfig(configFilePath, awsAccessKey, awsSecretKey, awsRegion)
 	if err != nil {
 		log.Fatalf("failed to load config file. Reason: %s", err)
 	}
 
-	handler, err := app.Init(config); 
+	handler, err := app.Init(config)
 	if err != nil {
 		log.Fatalf("failed to init application. Reason: %s", err)
 	}

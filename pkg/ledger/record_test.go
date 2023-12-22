@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type RecordTestSuite struct {
@@ -51,9 +52,9 @@ func (suite *RecordTestSuite) Test_GIVEN_invalidRecordId_WHEN_RecordIsCreated_TH
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "Id must be greater than 0", err.(Error).Error())
-	assert.Equal(suite.T(), "Id must be greater than 0", err.(Error).Fields()["id"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "Id must be greater than 0", err.Error())
+	assert.Equal(suite.T(), "Id must be greater than 0", errorFields(err)["id"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_emptyNote_WHEN_RecordIsCreated_THEN_recordIsCreated() {
@@ -110,9 +111,9 @@ func (suite *RecordTestSuite) Test_GIVEN_noteExceeds50Characters_WHEN_RecordIsCr
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "Note can not be longer than 50 characters", err.(Error).Error())
-	assert.Equal(suite.T(), "Note can not be longer than 50 characters", err.(Error).Fields()["note"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "Note can not be longer than 50 characters", err.Error())
+	assert.Equal(suite.T(), "Note can not be longer than 50 characters", errorFields(err)["note"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_nilCategory_WHEN_RecordIsCreated_THEN_errorIsReturned() {
@@ -138,9 +139,9 @@ func (suite *RecordTestSuite) Test_GIVEN_nilCategory_WHEN_RecordIsCreated_THEN_e
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "Category is required", err.(Error).Error())
-	assert.Equal(suite.T(), "Category is required", err.(Error).Fields()["category"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "Category is required", err.Error())
+	assert.Equal(suite.T(), "Category is required", errorFields(err)["category"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_nilTime_WHEN_RecordIsCreated_THEN_errorIsReturned() {
@@ -165,9 +166,9 @@ func (suite *RecordTestSuite) Test_GIVEN_nilTime_WHEN_RecordIsCreated_THEN_error
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "Invalid date", err.(Error).Error())
-	assert.Equal(suite.T(), "Invalid date", err.(Error).Fields()["date"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "Invalid date", err.Error())
+	assert.Equal(suite.T(), "Invalid date", errorFields(err)["date"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_nilAmount_WHEN_RecordIsCreated_THEN_errorIsReturned() {
@@ -193,9 +194,9 @@ func (suite *RecordTestSuite) Test_GIVEN_nilAmount_WHEN_RecordIsCreated_THEN_err
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "Amount is required", err.(Error).Error())
-	assert.Equal(suite.T(), "Amount is required", err.(Error).Fields()["amount"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "Amount is required", err.Error())
+	assert.Equal(suite.T(), "Amount is required", errorFields(err)["amount"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_invalidExpenseType_WHEN_RecordIsCreated_THEN_errorIsReturned() {
@@ -219,9 +220,9 @@ func (suite *RecordTestSuite) Test_GIVEN_invalidExpenseType_WHEN_RecordIsCreated
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "recordType must be INCOME,EXPENSE or TRANSFER.", err.(Error).Error())
-	assert.Equal(suite.T(), "recordType must be INCOME,EXPENSE or TRANSFER.", err.(Error).Fields()["record_type"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "recordType must be INCOME,EXPENSE or TRANSFER.", err.Error())
+	assert.Equal(suite.T(), "recordType must be INCOME,EXPENSE or TRANSFER.", errorFields(err)["record_type"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutBeneficiaryId_WHEN_RecordIsCreated_THEN_errorIsReturned() {
@@ -246,9 +247,9 @@ func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutBeneficiaryId_
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "beneficiaryId can not be <= 0 when record type is TRANSFER", err.(Error).Error())
-	assert.Equal(suite.T(), "beneficiaryId can not be <= 0 when record type is TRANSFER", err.(Error).Fields()["beneficiaryId"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "beneficiaryId can not be <= 0 when record type is TRANSFER", err.Error())
+	assert.Equal(suite.T(), "beneficiaryId can not be <= 0 when record type is TRANSFER", errorFields(err)["beneficiaryId"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutSourceAccountId_WHEN_RecordIsCreated_THEN_errorIsReturned() {
@@ -274,9 +275,9 @@ func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutSourceAccountI
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "sourceAccountId can not be <= 0 when record type is TRANSFER", err.(Error).Error())
-	assert.Equal(suite.T(), "sourceAccountId can not be <= 0 when record type is TRANSFER", err.(Error).Fields()["sourceAccountId"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "sourceAccountId can not be <= 0 when record type is TRANSFER", err.Error())
+	assert.Equal(suite.T(), "sourceAccountId can not be <= 0 when record type is TRANSFER", errorFields(err)["sourceAccountId"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutTranferReference_WHEN_RecordIsCreated_THEN_errorIsReturned() {
@@ -302,9 +303,9 @@ func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithoutTranferReferen
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "transferReference can not be empty when record type is TRANSFER", err.(Error).Error())
-	assert.Equal(suite.T(), "transferReference can not be empty when record type is TRANSFER", err.(Error).Fields()["transferReference"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "transferReference can not be empty when record type is TRANSFER", err.Error())
+	assert.Equal(suite.T(), "transferReference can not be empty when record type is TRANSFER", errorFields(err)["transferReference"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_transferRecordTypeWithBeneficiaryId_WHEN_RecordIsCreated_THEN_recordIsCreated() {
@@ -338,9 +339,9 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithBeneficiaryId_WHEN
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "beneficiaryId must be 0 when record type is \"EXPENSE\"", err.(Error).Error())
-	assert.Equal(suite.T(), "beneficiaryId must be 0 when record type is \"EXPENSE\"", err.(Error).Fields()["beneficiaryId"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "beneficiaryId must be 0 when record type is \"EXPENSE\"", err.Error())
+	assert.Equal(suite.T(), "beneficiaryId must be 0 when record type is \"EXPENSE\"", errorFields(err)["beneficiaryId"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithSourceAccountId_WHEN_RecordIsCreated_THEN_errorIsReturned() {
@@ -354,9 +355,9 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithSourceAccountId_WH
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "sourceAccountId must be 0 when record type is \"EXPENSE\"", err.(Error).Error())
-	assert.Equal(suite.T(), "sourceAccountId must be 0 when record type is \"EXPENSE\"", err.(Error).Fields()["sourceAccountId"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "sourceAccountId must be 0 when record type is \"EXPENSE\"", err.Error())
+	assert.Equal(suite.T(), "sourceAccountId must be 0 when record type is \"EXPENSE\"", errorFields(err)["sourceAccountId"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithTransferReference_WHEN_RecordIsCreated_THEN_errorIsReturned() {
@@ -370,9 +371,9 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithTransferReference_
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "transferReference must be empty when record type is EXPENSE", err.(Error).Error())
-	assert.Equal(suite.T(), "transferReference must be empty when record type is EXPENSE", err.(Error).Fields()["transferReference"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "transferReference must be empty when record type is EXPENSE", err.Error())
+	assert.Equal(suite.T(), "transferReference must be empty when record type is EXPENSE", errorFields(err)["transferReference"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithZeroAmount_WHEN_RecordIsCreated_THEN_errorReturned() {
@@ -387,9 +388,9 @@ func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithZeroAmount_WHEN_Re
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Record{}, record)
-	assert.Equal(suite.T(), ErrRecordValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "amount must not be zero", err.(Error).Error())
-	assert.Equal(suite.T(), "amount must not be zero", err.(Error).Fields()["amount"])
+	assert.Equal(suite.T(), pkg.ErrRecordValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "amount must not be zero", err.Error())
+	assert.Equal(suite.T(), "amount must not be zero", errorFields(err)["amount"])
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_expenseRecordTypeWithPositiveAmount_WHEN_RecordIsCreated_THEN_recordCreatedWithNegativeAmount() {
@@ -558,8 +559,8 @@ func (suite *RecordTestSuite) Test_GIVEN_recordsOfDifferentCurrency_WHEN_records
 	// THEN
 	assert.Nil(suite.T(), total)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrAmountMismatchingCurrencies, err.(Error).Code())
-	assert.Equal(suite.T(), "Can not sum mismatching currencies", err.(Error).Error())
+	assert.Equal(suite.T(), pkg.ErrAmountMismatchingCurrencies, errorCode(err, 0))
+	assert.Equal(suite.T(), "Can not sum mismatching currencies", err.Error())
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_emptyRecords_WHEN_recordsAreTotaled_THEN_errorIsReturned() {
@@ -570,8 +571,8 @@ func (suite *RecordTestSuite) Test_GIVEN_emptyRecords_WHEN_recordsAreTotaled_THE
 	// THEN
 	assert.Nil(suite.T(), total)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrAmountTotalOfEmptySet, err.(Error).Code())
-	assert.Equal(suite.T(), "No amounts to total", err.(Error).Error())
+	assert.Equal(suite.T(), pkg.ErrAmountTotalOfEmptySet, errorCode(err, 0))
+	assert.Equal(suite.T(), "No amounts to total", err.Error())
 }
 
 func (suite *RecordTestSuite) Test_GIVEN_recordsWithExpensesSavingsAndIncome_WHEN_calculatons_THEN_calculationsAreCorrect() {
@@ -692,6 +693,6 @@ func (suite *RecordTestSuite) Test_GIVEN_emptyRecords_WHEN_determiningRecordPeri
 	assert.Equal(suite.T(), time.Time{}, from)
 	assert.Equal(suite.T(), time.Time{}, to)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrRecordsPeriodOfEmptySet, err.(Error).Code())
-	assert.Equal(suite.T(), "Can not determine records period for empty set", err.(Error).Error())
+	assert.Equal(suite.T(), pkg.ErrRecordsPeriodOfEmptySet, errorCode(err, 0))
+	assert.Equal(suite.T(), "Can not determine records period for empty set", err.Error())
 }

@@ -155,6 +155,15 @@ func AddAuthorizationHeader(r *http.Request, userId ledger.UserId) {
 	r.Header.Add("Authorization", fmt.Sprintf("%d", userId))
 }
 
+func errorCode(err error, defaultValue uint64) uint64 {
+	if errWithCode, ok := err.(interface {
+		Code() uint64
+	}); ok {
+		return errWithCode.Code()
+	}
+	return defaultValue
+}
+
 type UserAndAccounts map[ledger.UserId][]ledger.AccountId
 
 func (u UserAndAccounts) First() ledger.UserId {

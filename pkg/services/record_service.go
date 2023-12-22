@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ayush6624/go-chatgpt"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -31,7 +32,7 @@ type CreateRecordRequest struct {
 	} `json:"transfer,omitempty"`
 }
 
-type CreateRecordPrompt struct{
+type CreateRecordPrompt struct {
 	Prompt string `json:"prompt"`
 }
 
@@ -144,17 +145,17 @@ func makeRecordsResponse(records ledger.Records) (RecordsResponse, error) {
 	)
 
 	if totalIncome, err = moneyToAmountResponse(records.TotalIncome()); err != nil {
-		return RecordsResponse{}, err.(ledger.Error)
+		return RecordsResponse{}, err
 	}
 	if totalExpenses, err = moneyToAmountResponse(records.TotalExpenses()); err != nil {
-		return RecordsResponse{}, err.(ledger.Error)
+		return RecordsResponse{}, err
 	}
 	if totalSavings, err = moneyToAmountResponse(records.TotalSavings()); err != nil {
-		return RecordsResponse{}, err.(ledger.Error)
+		return RecordsResponse{}, err
 	}
 
 	if from, to, err = records.Period(); err != nil {
-		return RecordsResponse{}, err.(ledger.Error)
+		return RecordsResponse{}, err
 	}
 
 	var recordsResponse RecordsResponse
@@ -168,7 +169,7 @@ func makeRecordsResponse(records ledger.Records) (RecordsResponse, error) {
 		var recordResponse RecordResponse
 
 		if recordResponse, err = makeRecordResponse(record, ledger.Account{}); err != nil {
-			return RecordsResponse{}, err.(ledger.Error)
+			return RecordsResponse{}, err
 		}
 
 		recordsResponse.Records = append(recordsResponse.Records, recordResponse)
@@ -190,8 +191,8 @@ type recordService struct {
 }
 
 func NewRecordService(
-	recordDao dao.RecordDao, 
-	accountDao dao.AccountDao, 
+	recordDao dao.RecordDao,
+	accountDao dao.AccountDao,
 	categoryDao dao.CategoryDao,
 	gptApiKey string,
 ) (RecordService, error) {
@@ -209,7 +210,7 @@ func NewRecordService(
 		recordDao:   recordDao,
 		accountDao:  accountDao,
 		categoryDao: categoryDao,
-		gptApiKey: gptApiKey,
+		gptApiKey:   gptApiKey,
 	}, nil
 }
 
@@ -222,15 +223,15 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 	)
 
 	if userId, err = RequireUserId(ctx); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
+		return RecordResponse{}, err
 	}
 
 	if accountId, err = RequireAccountId(ctx); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
+		return RecordResponse{}, err
 	}
 
 	if tx, err = svc.recordDao.BeginTx(); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
+		return RecordResponse{}, err
 	}
 
 	defer dao.DeferRollback(tx, fmt.Sprintf("CreateRecord: %d", userId))
@@ -246,15 +247,15 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 
 	// TODO: Check account belongs to user id
 	if recordId, err = svc.recordDao.NewRecordId(tx); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
+		return RecordResponse{}, err
 	}
 
 	if category, err = svc.categoryDao.GetCategoryById(ctx, ledger.CategoryId(request.Category.Id), userId, tx); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
+		return RecordResponse{}, err
 	}
 
 	if amount, err = ledger.NewMoney(request.Amount.Currency, int64(request.Amount.Value)); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
+		return RecordResponse{}, err
 	}
 
 	transferReference := ledger.NoTransferReference
@@ -263,11 +264,11 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 	if ledger.RecordType(request.Type) == ledger.Transfer {
 
 		if amount, err = amount.Negate(); err != nil {
-			return RecordResponse{}, err.(ledger.Error)
+			return RecordResponse{}, err
 		}
 
 		if beneficiaryAccount, err = svc.accountDao.GetAccountById(ctx, ledger.AccountId(request.Transfer.Beneficiary.Id), userId, tx); err != nil {
-			return RecordResponse{}, err.(ledger.Error)
+			return RecordResponse{}, err
 		}
 
 		transferReference = ledger.MakeTransferReference()
@@ -275,7 +276,7 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 	}
 
 	if date, err = time.Parse(time.RFC3339, request.DateUTC); err != nil {
-		return RecordResponse{}, ledger.NewError(ledger.ErrRecordValidation, fmt.Sprintf("Date '%s' does not match format '%s'", request.DateUTC, time.RFC3339), err)
+		return RecordResponse{}, pkg.ValidationErrorWithFields(pkg.ErrRecordValidation, fmt.Sprintf("Date '%s' does not match format '%s'", request.DateUTC, time.RFC3339), nil, nil)
 	}
 
 	if record, err = ledger.NewRecord(
@@ -291,12 +292,12 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 		transferReference,
 		ledger.MustMakeUpdatedByUserId(userId),
 	); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
+		return RecordResponse{}, err
 	}
 
 	// Save Record(s)
 	if err = svc.recordDao.SaveTx(ctx, accountId, record, tx); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
+		return RecordResponse{}, err
 	}
 
 	// In case of transfer, credit receiving account
@@ -308,11 +309,11 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 		)
 
 		if credit, err = amount.Abs(); err != nil {
-			return RecordResponse{}, err.(ledger.Error)
+			return RecordResponse{}, err
 		}
 
 		if transferId, err = svc.recordDao.NewRecordId(tx); err != nil {
-			return RecordResponse{}, err.(ledger.Error)
+			return RecordResponse{}, err
 		}
 
 		if transfer, err = ledger.NewRecord(
@@ -328,66 +329,66 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 			transferReference,
 			ledger.MustMakeUpdatedByUserId(userId),
 		); err != nil {
-			return RecordResponse{}, err.(ledger.Error)
+			return RecordResponse{}, err
 		}
 
 		if err = svc.recordDao.SaveTx(ctx, ledger.AccountId(request.Transfer.Beneficiary.Id), transfer, tx); err != nil {
-			return RecordResponse{}, err.(ledger.Error)
+			return RecordResponse{}, err
 		}
 	}
 
 	// Update last used category
 	if err = svc.categoryDao.UpdateCategoryLastUsed(ctx, category.Id(), date.In(time.UTC), tx); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
+		return RecordResponse{}, err
 	}
 
 	// Get account balance
 	if account, err = svc.accountDao.GetAccountById(ctx, accountId, userId, tx); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
+		return RecordResponse{}, err
 	}
 
 	if err = dao.Commit(tx); err != nil {
-		return RecordResponse{}, err.(ledger.Error)
+		return RecordResponse{}, err
 	}
 
 	return makeRecordResponse(record, account)
 }
 
-func (svc recordService) CreateRecordRequestWithChatGPT(ctx context.Context, prompt CreateRecordPrompt) (CreateRecordRequest, error){
-	if len(svc.gptApiKey) == 0{
+func (svc recordService) CreateRecordRequestWithChatGPT(ctx context.Context, prompt CreateRecordPrompt) (CreateRecordRequest, error) {
+	if len(svc.gptApiKey) == 0 {
 		return CreateRecordRequest{}, fmt.Errorf("ChatGPT API Key not configured")
 	}
 
-	var(
+	var (
 		userId ledger.UserId
-		err error
+		err    error
 	)
-	
+
 	userId, err = RequireUserId(ctx)
 	if err != nil {
-		return CreateRecordRequest{}, err.(ledger.Error)
+		return CreateRecordRequest{}, err
 	}
 
 	tx, err := svc.categoryDao.BeginTx()
-	if err != nil{
-		return CreateRecordRequest{}, err.(ledger.Error)
+	if err != nil {
+		return CreateRecordRequest{}, err
 	}
 	defer dao.DeferRollback(tx, fmt.Sprintf("CreateRecordRequestWithChatGPT: %d", userId))
 
 	// Get User Categories Names
 	categories, err := svc.categoryDao.GetCategoriesForUser(ctx, userId, tx)
-	if err != nil{
-		return CreateRecordRequest{}, err.(ledger.Error)
+	if err != nil {
+		return CreateRecordRequest{}, err
 	}
 
 	// Get User Account Names
 	accounts, err := svc.accountDao.GetAccountsByUserId(ctx, userId, tx)
-	if err != nil{
-		return CreateRecordRequest{}, err.(ledger.Error)
+	if err != nil {
+		return CreateRecordRequest{}, err
 	}
-	
+
 	jsonStructure, err := json.Marshal(CreateRecordRequest{})
-	if err != nil{
+	if err != nil {
 		return CreateRecordRequest{}, fmt.Errorf("Failed to marshal empty create record request")
 	}
 
@@ -424,18 +425,18 @@ func (svc recordService) CreateRecordRequestWithChatGPT(ctx context.Context, pro
 	if err != nil {
 		return CreateRecordRequest{}, fmt.Errorf("Failed to create GPT Client")
 	}
-	
+
 	res, err := client.SimpleSend(ctx, gptRequest)
 	if err != nil {
 		return CreateRecordRequest{}, fmt.Errorf("Failed to create GPT Client: %w", err)
 	}
-	
+
 	if len(res.Choices) == 0 {
 		return CreateRecordRequest{}, fmt.Errorf("No response from ChatGPT")
 	}
 
 	populatedRequest := CreateRecordRequest{}
-	
+
 	err = json.Unmarshal([]byte(res.Choices[0].Message.Content), &populatedRequest)
 	if err != nil {
 		return CreateRecordRequest{}, fmt.Errorf("Failed to parse GPT response: %w", err)
@@ -446,25 +447,25 @@ func (svc recordService) CreateRecordRequestWithChatGPT(ctx context.Context, pro
 
 func (svc recordService) GetRecords(ctx context.Context, accountId ledger.AccountId) (RecordsResponse, error) {
 
-	userId, err := RequireUserId(ctx); 
+	userId, err := RequireUserId(ctx)
 	if err != nil {
-		return RecordsResponse{}, err.(ledger.Error)
+		return RecordsResponse{}, err
 	}
 
-	tx, err := svc.recordDao.BeginTx(); 
+	tx, err := svc.recordDao.BeginTx()
 	if err != nil {
-		return RecordsResponse{}, err.(ledger.Error)
+		return RecordsResponse{}, err
 	}
 
 	defer dao.DeferRollback(tx, fmt.Sprintf("GetRecords: %d", userId))
 
 	if _, err = svc.accountDao.GetAccountById(ctx, accountId, userId, tx); err != nil {
-		return RecordsResponse{}, err.(ledger.Error)
+		return RecordsResponse{}, err
 	}
 
-	records, err := svc.recordDao.GetRecordsForLastPeriod(ctx, accountId, tx); 
+	records, err := svc.recordDao.GetRecordsForLastPeriod(ctx, accountId, tx)
 	if err != nil {
-		return RecordsResponse{}, err.(ledger.Error)
+		return RecordsResponse{}, err
 	}
 
 	return makeRecordsResponse(records)

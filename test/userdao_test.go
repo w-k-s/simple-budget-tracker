@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -71,8 +72,7 @@ func (suite *UserDaoTestSuite) Test_Given_aUserId_WHEN_noUserWithThatIdExists_TH
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), ledger.User{}, theUser)
 
-	coreError := err.(ledger.Error)
-	assert.EqualValues(suite.T(), coreError.Code(), ledger.ErrUserNotFound)
+	assert.EqualValues(suite.T(), pkg.ErrUserNotFound, errorCode(err, 0))
 }
 
 func (suite *UserDaoTestSuite) Test_Given_twoUsers_WHEN_theUsersHaveTheSameEmail_THEN_onlyOneUserIsSaved() {
@@ -88,6 +88,5 @@ func (suite *UserDaoTestSuite) Test_Given_twoUsers_WHEN_theUsersHaveTheSameEmail
 	assert.Nil(suite.T(), err1)
 	assert.NotNil(suite.T(), err2)
 
-	coreError := err2.(ledger.Error)
-	assert.Equal(suite.T(), uint64(1005), uint64(coreError.Code()))
+	assert.Equal(suite.T(), uint64(1005), errorCode(err2, 0))
 }

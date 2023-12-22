@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/bojanz/currency"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 func IsValidCurrency(currencyCode string) bool {
@@ -60,7 +61,7 @@ func (i internalMoney) IsNegative() bool {
 
 func (i internalMoney) Add(m Money) (Money, error) {
 	if i.Currency().CurrencyCode() != m.Currency().CurrencyCode() {
-		return nil, NewError(ErrAmountMismatchingCurrencies, "Can not sum mismatching currencies", nil)
+		return nil, pkg.ValidationErrorWithFields(pkg.ErrAmountMismatchingCurrencies, "Can not sum mismatching currencies", nil, nil)
 	}
 	var (
 		leftMinorUnits  int64
@@ -82,7 +83,7 @@ func (i internalMoney) Abs() (Money, error) {
 		var minorUnits int64
 		var err error
 		if minorUnits, err = i.MinorUnits(); err != nil {
-			return nil, NewError(ErrAmountOverflow, "The number is too large to be represented", err)
+			return nil, pkg.ValidationErrorWithError(pkg.ErrAmountOverflow, "The number is too large to be represented", err)
 		}
 		return NewMoney(i.Currency().CurrencyCode(), -1*minorUnits)
 	}
@@ -94,7 +95,7 @@ func (i internalMoney) Negate() (Money, error) {
 		var minorUnits int64
 		var err error
 		if minorUnits, err = i.MinorUnits(); err != nil {
-			return nil, NewError(ErrAmountOverflow, "The number is too large to be represented", err)
+			return nil, pkg.ValidationErrorWithError(pkg.ErrAmountOverflow, "The number is too large to be represented", err)
 		}
 		return NewMoney(i.Currency().CurrencyCode(), -1*minorUnits)
 	}
@@ -113,9 +114,9 @@ func NewMoney(currencyCode string, amountMinorUnits int64) (Money, error) {
 	amount, err := currency.NewAmountFromInt64(amountMinorUnits, currencyCode)
 	if err != nil {
 		if _, ok := err.(currency.InvalidCurrencyCodeError); ok {
-			return nil, NewErrorWithFields(ErrCurrencyInvalidCode, err.Error(), err, map[string]string{"code": currencyCode})
+			return nil, pkg.ValidationErrorWithFields(pkg.ErrCurrencyInvalidCode, err.Error(), err, map[string]string{"code": currencyCode})
 		}
-		return nil, NewErrorWithFields(ErrUnknown, "Invalid Monetary amount", err, map[string]string{"code": currencyCode, "amount": strconv.FormatInt(amountMinorUnits, 10)})
+		return nil, pkg.ValidationErrorWithFields(pkg.ErrUnknown, "Invalid Monetary amount", err, map[string]string{"code": currencyCode, "amount": strconv.FormatInt(amountMinorUnits, 10)})
 	}
 	return &internalMoney{amount}, nil
 }

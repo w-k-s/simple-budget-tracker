@@ -22,7 +22,7 @@ func RunMigrations(db *sql.DB, dbConfig config.DBConfig) error {
 	}
 
 	db.SetMaxIdleConns(0) // Required, otherwise pinging will result in EOF
-	err := PingWithBackOff(db); 
+	err := PingWithBackOff(db)
 	if err != nil {
 		return fmt.Errorf("failed to ping database. Reason: %w", err)
 	}
@@ -30,12 +30,12 @@ func RunMigrations(db *sql.DB, dbConfig config.DBConfig) error {
 	driver, err := postgres.WithInstance(db, &postgres.Config{
 		DatabaseName: dbConfig.Name(),
 		SchemaName:   dbConfig.Schema(),
-	}); 
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create instance of psql driver. Reason: %w", err)
 	}
 
-	migrations, err := migrate.NewWithDatabaseInstance(migrationsDirectory, driverName, driver); 
+	migrations, err := migrate.NewWithDatabaseInstance(migrationsDirectory, driverName, driver)
 	if err != nil {
 		return fmt.Errorf("failed to load migrations from %s. Reason: %w", migrationsDirectory, err)
 	}

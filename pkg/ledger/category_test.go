@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type CategoryTestSuite struct {
@@ -29,9 +30,9 @@ func (suite *CategoryTestSuite) Test_GIVEN_invalidCategoryId_WHEN_CategoryIsCrea
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Category{}, category)
-	assert.Equal(suite.T(), ErrCategoryValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "Id must be greater than 0", err.(Error).Error())
-	assert.Equal(suite.T(), "Id must be greater than 0", err.(Error).Fields()["id"])
+	assert.Equal(suite.T(), pkg.ErrCategoryValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "Id must be greater than 0", err.Error())
+	assert.Equal(suite.T(), "Id must be greater than 0", errorFields(err)["id"])
 }
 
 func (suite *CategoryTestSuite) Test_GIVEN_emptyCategoryName_WHEN_CategoryIsCreated_THEN_errorIsReturned() {
@@ -42,9 +43,9 @@ func (suite *CategoryTestSuite) Test_GIVEN_emptyCategoryName_WHEN_CategoryIsCrea
 	// THEN
 	assert.NotNil(suite.T(), err)
 	assert.Equal(suite.T(), Category{}, category)
-	assert.Equal(suite.T(), ErrCategoryValidation, err.(Error).Code())
-	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.(Error).Error())
-	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.(Error).Fields()["name"])
+	assert.Equal(suite.T(), pkg.ErrCategoryValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", err.Error())
+	assert.Equal(suite.T(), "Name must be 1 and 25 characters long", errorFields(err)["name"])
 }
 
 func (suite *CategoryTestSuite) Test_GIVEN_validParameters_WHEN_CategoryIsCreated_THEN_noErrorsAreReturned() {

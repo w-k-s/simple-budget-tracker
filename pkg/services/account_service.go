@@ -55,11 +55,11 @@ func (svc accountService) CreateAccounts(ctx context.Context, request CreateAcco
 	)
 
 	if userId, err = RequireUserId(ctx); err != nil {
-		return AccountsResponse{}, err.(ledger.Error)
+		return AccountsResponse{}, err
 	}
 
 	if tx, err = svc.accountDao.BeginTx(); err != nil {
-		return AccountsResponse{}, err.(ledger.Error)
+		return AccountsResponse{}, err
 	}
 
 	defer dao.DeferRollback(tx, fmt.Sprintf("CreateAccounts: %d", userId))
@@ -74,7 +74,7 @@ func (svc accountService) CreateAccounts(ctx context.Context, request CreateAcco
 		)
 		// TODO: limit number of accounts that can be created
 		if accountId, err = svc.accountDao.NewAccountId(tx); err != nil {
-			return AccountsResponse{}, err.(ledger.Error)
+			return AccountsResponse{}, err
 		}
 
 		if account, err = ledger.NewAccount(
@@ -84,7 +84,7 @@ func (svc accountService) CreateAccounts(ctx context.Context, request CreateAcco
 			accountReq.Currency,
 			ledger.MustMakeUpdatedByUserId(userId),
 		); err != nil {
-			return AccountsResponse{}, err.(ledger.Error)
+			return AccountsResponse{}, err
 		}
 
 		accounts = append(accounts, account)
@@ -92,11 +92,11 @@ func (svc accountService) CreateAccounts(ctx context.Context, request CreateAcco
 
 	// Save Accounts
 	if err = svc.accountDao.SaveTx(ctx, userId, accounts, tx); err != nil {
-		return AccountsResponse{}, err.(ledger.Error)
+		return AccountsResponse{}, err
 	}
 
 	if err = dao.Commit(tx); err != nil {
-		return AccountsResponse{}, err.(ledger.Error)
+		return AccountsResponse{}, err
 	}
 
 	// Return response
@@ -114,26 +114,26 @@ func (svc accountService) CreateAccounts(ctx context.Context, request CreateAcco
 }
 
 func (svc accountService) GetAccounts(ctx context.Context) (AccountsResponse, error) {
-	
-	userId, err := RequireUserId(ctx); 
+
+	userId, err := RequireUserId(ctx)
 	if err != nil {
-		return AccountsResponse{}, err.(ledger.Error)
+		return AccountsResponse{}, err
 	}
 
-	tx, err := svc.accountDao.BeginTx(); 
+	tx, err := svc.accountDao.BeginTx()
 	if err != nil {
-		return AccountsResponse{}, err.(ledger.Error)
+		return AccountsResponse{}, err
 	}
 
 	defer dao.DeferRollback(tx, fmt.Sprintf("GetAccounts: %d", userId))
 
-	accounts, err := svc.accountDao.GetAccountsByUserId(ctx, userId, tx); 
+	accounts, err := svc.accountDao.GetAccountsByUserId(ctx, userId, tx)
 	if err != nil {
-		return AccountsResponse{}, err.(ledger.Error)
+		return AccountsResponse{}, err
 	}
 
 	if err = dao.Commit(tx); err != nil {
-		return AccountsResponse{}, err.(ledger.Error)
+		return AccountsResponse{}, err
 	}
 
 	response := AccountsResponse{}

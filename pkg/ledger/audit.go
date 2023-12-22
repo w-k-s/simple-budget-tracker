@@ -9,6 +9,7 @@ import (
 
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type UpdatedBy struct {
@@ -20,7 +21,7 @@ func ParseUpdatedBy(updatedBy string) (UpdatedBy, error) {
 	for _, pairs := range parts {
 		pair := strings.Split(pairs, ":")
 		if len(pair) != 2 {
-			return UpdatedBy{}, NewError(ErrAuditUpdatedByBadFormat, fmt.Sprintf("Invalid createdBy/modifiedBy provided: %q", updatedBy), nil)
+			return UpdatedBy{}, pkg.ValidationErrorWithFields(pkg.ErrAuditUpdatedByBadFormat, fmt.Sprintf("Invalid createdBy/modifiedBy provided: %q", updatedBy), nil, nil)
 		}
 		key := strings.TrimSpace(pair[0])
 		value := strings.TrimSpace(pair[1])
@@ -30,12 +31,12 @@ func ParseUpdatedBy(updatedBy string) (UpdatedBy, error) {
 				err    error
 			)
 			if userId, err = strconv.Atoi(value); err != nil {
-				return UpdatedBy{}, NewError(ErrAuditUpdatedByBadFormat, fmt.Sprintf("Invalid createdBy/modifiedBy provided: %q", updatedBy), err)
+				return UpdatedBy{}, pkg.ValidationErrorWithFields(pkg.ErrAuditUpdatedByBadFormat, fmt.Sprintf("Invalid createdBy/modifiedBy provided: %q", updatedBy), err, nil)
 			}
 			return MakeUpdatedByUserId(UserId(userId))
 		}
 	}
-	return UpdatedBy{}, NewError(ErrAuditUpdatedByBadFormat, fmt.Sprintf("Unknown createdBy/modifiedBy provided: %q", updatedBy), nil)
+	return UpdatedBy{}, pkg.ValidationErrorWithFields(pkg.ErrAuditUpdatedByBadFormat, fmt.Sprintf("Unknown createdBy/modifiedBy provided: %q", updatedBy), nil, nil)
 }
 
 func (u UpdatedBy) String() string {
@@ -44,7 +45,7 @@ func (u UpdatedBy) String() string {
 
 func MakeUpdatedByUserId(userId UserId) (UpdatedBy, error) {
 	if userId <= 0 {
-		return UpdatedBy{}, NewError(ErrAuditValidation, "userId must be greater than 0", nil)
+		return UpdatedBy{}, pkg.ValidationErrorWithFields(pkg.ErrAuditValidation, "userId must be greater than 0", nil, nil)
 	}
 	return UpdatedBy{fmt.Sprintf("UserId: %d", userId)}, nil
 }
@@ -125,7 +126,7 @@ func makeAuditForModification(
 	)
 
 	var err error
-	if err = makeCoreValidationError(ErrAuditValidation, errors); err != nil {
+	if err = pkg.ValidationErrorWithErrors(pkg.ErrAuditValidation, "", errors); err != nil {
 		return auditInfo{}, err
 	}
 

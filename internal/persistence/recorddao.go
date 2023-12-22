@@ -10,6 +10,7 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -152,7 +153,7 @@ func (d *DefaultRecordDao) NewRecordId(tx *sql.Tx) (ledger.RecordId, error) {
 	err := tx.QueryRow("SELECT nextval('budget.record_id')").Scan(&recordId)
 	if err != nil {
 		log.Printf("Failed to assign record id. Reason; %s", err)
-		return 0, ledger.NewError(ledger.ErrDatabaseState, "Failed to assign record id", err)
+		return 0, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to assign record id", err)
 	}
 	return recordId, err
 }
@@ -250,7 +251,7 @@ func (d *DefaultRecordDao) SaveTx(ctx context.Context, accountId ledger.AccountI
 	)
 	if err != nil {
 		log.Printf("Failed to save record %v. Reason: %s", r, err)
-		return ledger.NewError(ledger.ErrDatabaseState, "Failed to save record", err)
+		return pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to save record", err)
 	}
 	return nil
 }
@@ -478,7 +479,7 @@ func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month le
 		if err == sql.ErrNoRows {
 			return ledger.Records{}, nil
 		}
-		return nil, ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Records for account id %d not found", queryId), err)
+		return nil, pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("Records for account id %d not found", queryId), err)
 	}
 	defer rows.Close()
 

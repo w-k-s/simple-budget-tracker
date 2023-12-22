@@ -13,6 +13,7 @@ import (
 	"github.com/rakyll/statik/fs"
 	cfg "github.com/w-k-s/simple-budget-tracker/internal/config"
 	dao "github.com/w-k-s/simple-budget-tracker/internal/persistence"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	svc "github.com/w-k-s/simple-budget-tracker/pkg/services"
 	_ "github.com/w-k-s/simple-budget-tracker/statik"
@@ -37,7 +38,7 @@ func Init(config *cfg.Config) (*App, error) {
 		return nil, fmt.Errorf("configuration is required. Got %v", nil)
 	}
 
-	err := cfg.ConfigureLogging(); 
+	err := cfg.ConfigureLogging()
 	if err != nil {
 		log.Fatalf("failed to configure logging. Reason: %s", err)
 	}
@@ -45,37 +46,37 @@ func Init(config *cfg.Config) (*App, error) {
 	db, err := sql.Open(
 		config.Database().DriverName(),
 		config.Database().ConnectionString(),
-	); 
+	)
 	if err != nil {
 		log.Fatalf("Failed to connect to data source: %q with driver driver: %q. Reason: %s", config.Database().ConnectionString(), config.Database().DriverName(), err)
 	}
 	dao.MustRunMigrations(db, config.Database())
 
 	userDao := dao.MustOpenUserDao(db)
-	userService, err := svc.NewUserService(userDao); 
+	userService, err := svc.NewUserService(userDao)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiaise user service. Reason: %w", err)
 	}
 
 	accountDao := dao.MustOpenAccountDao(db)
-	accountService, err := svc.NewAccountService(accountDao); 
+	accountService, err := svc.NewAccountService(accountDao)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiaise account service. Reason: %w", err)
 	}
 
 	categoryDao := dao.MustOpenCategoryDao(db)
-	categoriesService, err := svc.NewCategoriesService(categoryDao); 
+	categoriesService, err := svc.NewCategoriesService(categoryDao)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiaise categories service. Reason: %w", err)
 	}
 
 	recordDao := dao.MustOpenRecordDao(db)
 	recordService, err := svc.NewRecordService(
-		recordDao, 
-		accountDao, 
-		categoryDao, 
+		recordDao,
+		accountDao,
+		categoryDao,
 		config.Gpt().ApiKey(),
-	); 
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initiaise record service. Reason: %w", err)
 	}
@@ -146,7 +147,7 @@ func (app *App) DecodeJsonOrSendBadRequest(w http.ResponseWriter, req *http.Requ
 	decoder := json.NewDecoder(req.Body)
 	decoder.UseNumber()
 	if err := decoder.Decode(v); err != nil {
-		app.MustEncodeProblem(w, req, ledger.NewError(ledger.ErrRequestUnmarshallingFailed, "Failed to parse request", err))
+		app.MustEncodeProblem(w, req, pkg.NewSystemError(pkg.ErrRequestUnmarshallingFailed, "Failed to parse request", err))
 		return false
 	}
 	return true
@@ -156,34 +157,67 @@ func (app *App) MustEncodeProblem(w http.ResponseWriter, req *http.Request, err 
 
 	log.Printf("Error: %s", err.Error())
 
-	title := ledger.ErrUnknown.Name()
-	code := ledger.ErrUnknown
-	detail := err.Error()
 	opts := []problem.Option{}
-	status := ledger.ErrUnknown.Status()
-
-	if coreError, ok := err.(ledger.Error); ok {
-		title = coreError.Code().Name()
-		code = coreError.Code()
-		detail = coreError.Error()
-		status = coreError.Code().Status()
-
-		for key, value := range coreError.Fields() {
-			opts = append(opts, problem.Custom(key, value))
-		}
+	for key, value := range errorFields(err) {
+		opts = append(opts, problem.Custom(key, value))
 	}
 
-	if _, problemError := problem.New(
-		problem.Type(fmt.Sprintf("/api/v1/problems/%d", code)),
-		problem.Status(status),
+	p := problem.New(
+		problem.Type(fmt.Sprintf("/api/v1/problems/%d", errorCode(err))),
+		problem.Status(errorStatus(err)),
 		problem.Instance(req.URL.Path),
-		problem.Title(title),
-		problem.Detail(detail),
-	).
-		Append(opts...).
-		WriteTo(w); problemError != nil {
-		log.Printf("Failed to encode problem '%v'. Reason: %s", err, problemError)
+		problem.Title(errorTitle(err)),
+		problem.Detail(errorDetail(err)),
+	)
+	p.Append(opts...)
+	if _, encodingError := p.WriteTo(w); encodingError != nil {
+		log.Printf("Failed to encode problem '%v'. Reason: %s", err, encodingError)
 	}
+}
+
+func errorTitle(err error) string {
+	if errorWithTitle, ok := err.(interface {
+		Title() string
+	}); ok {
+		return errorWithTitle.Title()
+	}
+	return ""
+}
+
+func errorCode(err error) uint64 {
+	if errorWithCode, ok := err.(interface {
+		Code() uint64
+	}); ok {
+		return errorWithCode.Code()
+	}
+	return 0
+}
+
+func errorStatus(err error) int {
+	if errorWithStatus, ok := err.(interface {
+		StatusCode() int
+	}); ok {
+		return errorWithStatus.StatusCode()
+	}
+	return 500
+}
+
+func errorDetail(err error) string {
+	if errorWithDetails, ok := err.(interface {
+		Detail() string
+	}); ok {
+		return errorWithDetails.Detail()
+	}
+	return ""
+}
+
+func errorFields(err error) map[string]string {
+	if errWithFields, ok := err.(interface {
+		Fields() map[string]string
+	}); ok {
+		return errWithFields.Fields()
+	}
+	return map[string]string{}
 }
 
 func (a *App) AuthenticationMiddleware(h http.Handler) http.Handler {

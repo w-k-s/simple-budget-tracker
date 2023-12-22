@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -102,7 +103,7 @@ func (d *DefaultAccountDao) NewAccountId(tx *sql.Tx) (ledger.AccountId, error) {
 	err := d.db.QueryRow("SELECT nextval('budget.account_id')").Scan(&accountId)
 	if err != nil {
 		log.Printf("Failed to assign account id. Reason; %s", err)
-		return 0, ledger.NewError(ledger.ErrDatabaseState, "Failed to assign account id", err)
+		return 0, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to assign account id", err)
 	}
 	return accountId, err
 }
@@ -116,9 +117,9 @@ func (d *DefaultAccountDao) SaveTx(ctx context.Context, userId ledger.UserId, a 
 				if a.Len() == 1 {
 					message = fmt.Sprintf("Acccount named %q already exists", a.Names()[0])
 				}
-				return ledger.NewError(ledger.ErrAccountNameDuplicated, message, err)
+				return pkg.ValidationErrorWithError(pkg.ErrAccountNameDuplicated, message, err)
 			}
-			return ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Failed to save accounts %q", a.Names()), err)
+			return pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("Failed to save accounts %q", a.Names()), err)
 		}
 		return nil
 	}
@@ -191,7 +192,7 @@ func (d *DefaultAccountDao) GetAccountsByUserId(ctx context.Context, queryId led
 	)
 	if err != nil {
 		log.Printf("Error querying for accounts for user %d. Reason: %s", queryId, err)
-		return nil, ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Accounts for user id %d not found", queryId), err)
+		return nil, pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("Accounts for user id %d not found", queryId), err)
 	}
 	defer rows.Close()
 
@@ -245,9 +246,9 @@ func (d *DefaultAccountDao) GetAccountById(ctx context.Context, queryId ledger.A
 	if err != nil {
 		log.Printf("Failed to load account id %d for user %d. Reason: %s", queryId, userId, err)
 		if err == sql.ErrNoRows {
-			return ledger.Account{}, ledger.NewError(ledger.ErrAccountNotFound, "Account not found", err)
+			return ledger.Account{}, pkg.ValidationErrorWithError(pkg.ErrAccountNotFound, "Account not found", err)
 		}
-		return ledger.Account{}, ledger.NewError(ledger.ErrDatabaseState, "Error loading account", err)
+		return ledger.Account{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Error loading account", err)
 	}
 
 	return ledger.NewAccountFromRecord(ar)

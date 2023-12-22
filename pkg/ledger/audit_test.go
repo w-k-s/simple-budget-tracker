@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type AuditTestSuite struct {
@@ -31,7 +32,7 @@ func (suite *AuditTestSuite) Test_GIVEN_editedByIsCreated_WHEN_userIdIsZero_THEN
 	// THEN
 	assert.Equal(suite.T(), UpdatedBy{}, updatedBy)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrAuditValidation, err.(Error).Code())
+	assert.Equal(suite.T(), pkg.ErrAuditValidation, errorCode(err, 0))
 	assert.Equal(suite.T(), "userId must be greater than 0", err.Error())
 }
 
@@ -42,7 +43,7 @@ func (suite *AuditTestSuite) Test_GIVEN_auditableIsCreated_WHEN_createdAtIsNotPr
 	// THEN
 	assert.Equal(suite.T(), auditInfo{}, audit)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrAuditValidation, err.(Error).Code())
+	assert.Equal(suite.T(), pkg.ErrAuditValidation, errorCode(err, 0))
 	assert.Equal(suite.T(), "CreatedAt is required", err.Error())
 }
 
@@ -84,7 +85,7 @@ func (suite *AuditTestSuite) Test_GIVEN_auditableIsCreated_WHEN_versionIsZero_TH
 	// THEN
 	assert.Equal(suite.T(), auditInfo{}, audit)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrAuditValidation, err.(Error).Code())
+	assert.Equal(suite.T(), pkg.ErrAuditValidation, errorCode(err, 0))
 	assert.Equal(suite.T(), "Version must be greater than 0", err.Error())
 }
 
@@ -95,7 +96,7 @@ func (suite *AuditTestSuite) Test_GIVEN_blankUpdatedByString_WHEN_parsed_THEN_er
 	// THEN
 	assert.Equal(suite.T(), UpdatedBy{}, updatedBy)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrAuditUpdatedByBadFormat, err.(Error).Code())
+	assert.Equal(suite.T(), pkg.ErrAuditUpdatedByBadFormat, errorCode(err, 0))
 	assert.Equal(suite.T(), "Invalid createdBy/modifiedBy provided: \"\"", err.Error())
 }
 
@@ -106,7 +107,7 @@ func (suite *AuditTestSuite) Test_GIVEN_blankPairsInUpdatedByString_WHEN_parsed_
 	// THEN
 	assert.Equal(suite.T(), UpdatedBy{}, updatedBy)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrAuditUpdatedByBadFormat, err.(Error).Code())
+	assert.Equal(suite.T(), pkg.ErrAuditUpdatedByBadFormat, errorCode(err, 0))
 	assert.Equal(suite.T(), "Invalid createdBy/modifiedBy provided: \";\"", err.Error())
 }
 
@@ -117,7 +118,7 @@ func (suite *AuditTestSuite) Test_GIVEN_pairWithOnlyKeyInUpdatedByString_WHEN_pa
 	// THEN
 	assert.Equal(suite.T(), UpdatedBy{}, updatedBy)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrAuditUpdatedByBadFormat, err.(Error).Code())
+	assert.Equal(suite.T(), pkg.ErrAuditUpdatedByBadFormat, errorCode(err, 0))
 	assert.Equal(suite.T(), "Unknown createdBy/modifiedBy provided: \":\"", err.Error())
 }
 
@@ -128,7 +129,7 @@ func (suite *AuditTestSuite) Test_GIVEN_userIdKeyWithInvalidUserIdInUpdatedByStr
 	// THEN
 	assert.Equal(suite.T(), UpdatedBy{}, updatedBy)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrAuditUpdatedByBadFormat, err.(Error).Code())
+	assert.Equal(suite.T(), pkg.ErrAuditUpdatedByBadFormat, errorCode(err, 0))
 	assert.Equal(suite.T(), "Invalid createdBy/modifiedBy provided: \"UserId: Hello\"", err.Error())
 }
 
@@ -139,7 +140,7 @@ func (suite *AuditTestSuite) Test_GIVEN_userIdKeyWithBlankUserIdInUpdatedByStrin
 	// THEN
 	assert.Equal(suite.T(), UpdatedBy{}, updatedBy)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrAuditUpdatedByBadFormat, err.(Error).Code())
+	assert.Equal(suite.T(), pkg.ErrAuditUpdatedByBadFormat, errorCode(err, 0))
 	assert.Equal(suite.T(), "Invalid createdBy/modifiedBy provided: \"UserId: \"", err.Error())
 }
 

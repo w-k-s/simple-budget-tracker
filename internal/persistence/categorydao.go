@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -84,7 +85,7 @@ func (d *DefaultCategoryDao) NewCategoryId(tx *sql.Tx) (ledger.CategoryId, error
 	err := tx.QueryRow("SELECT nextval('budget.category_id')").Scan(&categoryId)
 	if err != nil {
 		log.Printf("Failed to assign category id. Reason; %s", err)
-		return 0, ledger.NewError(ledger.ErrDatabaseState, "Failed to assign category id", err)
+		return 0, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to assign category id", err)
 	}
 	return categoryId, err
 }
@@ -98,9 +99,9 @@ func (d *DefaultCategoryDao) SaveTx(ctx context.Context, userId ledger.UserId, c
 				if c.Len() == 1 {
 					message = fmt.Sprintf("Category named %q already exists", c.Names()[0])
 				}
-				return ledger.NewError(ledger.ErrCategoryNameDuplicated, message, err)
+				return pkg.ValidationErrorWithError(pkg.ErrCategoryNameDuplicated, message, err)
 			}
-			return ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Failed to save categories %q", c.Names()), err)
+			return pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("Failed to save categories %q", c.Names()), err)
 		}
 		return nil
 	}
@@ -169,7 +170,7 @@ func (d *DefaultCategoryDao) GetCategoriesForUser(ctx context.Context, userId le
 			u.id = $1`, userId,
 	)
 	if err != nil {
-		return nil, ledger.NewError(ledger.ErrCategoriesNotFound, fmt.Sprintf("Categories for user id %d not found", userId), err)
+		return nil, pkg.NewSystemError(pkg.ErrCategoriesNotFound, fmt.Sprintf("Categories for user id %d not found", userId), err)
 	}
 	defer rows.Close()
 
@@ -218,9 +219,9 @@ func (d *DefaultCategoryDao) GetCategoryById(ctx context.Context, categoryId led
 	).Scan(&cr.id, &cr.name, &cr.createdBy, &cr.createdAt, &cr.modifiedBy, &cr.modifiedAt, &cr.version)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return ledger.Category{}, ledger.NewError(ledger.ErrCategoriesNotFound, fmt.Sprintf("Category with id %d not found", categoryId), err)
+			return ledger.Category{}, pkg.ValidationErrorWithError(pkg.ErrCategoriesNotFound, fmt.Sprintf("Category with id %d not found", categoryId), err)
 		}
-		return ledger.Category{}, ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Category with id %d not found", categoryId), err)
+		return ledger.Category{}, pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("Category with id %d not found", categoryId), err)
 	}
 
 	return ledger.NewCategoryFromRecord(cr)
@@ -240,7 +241,7 @@ func (d *DefaultCategoryDao) UpdateCategoryLastUsed(ctx context.Context, categor
 	)
 	if err != nil {
 		log.Printf("Failed to update last used for category id %d. Reason: %s", categoryId, err)
-		return ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("Failed to update last used for category id %d", categoryId), err)
+		return pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("Failed to update last used for category id %d", categoryId), err)
 	}
 
 	return nil

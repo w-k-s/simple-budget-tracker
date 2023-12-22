@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type MoneyTestSuite struct {
@@ -24,9 +25,9 @@ func (suite *MoneyTestSuite) Test_GIVEN_blankCurrencyCode_WHEN_AmountIsCreated_T
 	// THEN
 	assert.Nil(suite.T(), money)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrCurrencyInvalidCode, err.(Error).Code())
-	assert.Equal(suite.T(), "invalid currency code \"\"", err.(Error).Error())
-	assert.Equal(suite.T(), "", err.(Error).Fields()["code"])
+	assert.Equal(suite.T(), pkg.ErrCurrencyInvalidCode, errorCode(err, 0))
+	assert.Equal(suite.T(), "invalid currency code \"\"", err.Error())
+	assert.Equal(suite.T(), "", errorFields(err)["code"])
 }
 
 func (suite *MoneyTestSuite) Test_GIVEN_invalidCurrency_WHEN_currencyIsCreated_THEN_errorIsReturned() {
@@ -37,9 +38,9 @@ func (suite *MoneyTestSuite) Test_GIVEN_invalidCurrency_WHEN_currencyIsCreated_T
 	// THEN
 	assert.Nil(suite.T(), money)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrCurrencyInvalidCode, err.(Error).Code())
-	assert.Equal(suite.T(), "invalid currency code \"III\"", err.(Error).Error())
-	assert.Equal(suite.T(), "III", err.(Error).Fields()["code"])
+	assert.Equal(suite.T(), pkg.ErrCurrencyInvalidCode, errorCode(err, 0))
+	assert.Equal(suite.T(), "invalid currency code \"III\"", err.Error())
+	assert.Equal(suite.T(), "III", errorFields(err)["code"])
 }
 
 func (suite *MoneyTestSuite) Test_GIVEN_negativeAmount_WHEN_moneyIsCreated_THEN_amountIsNegative() {
@@ -173,6 +174,6 @@ func (suite *MoneyTestSuite) Test_GIVEN_amountsOfDifferentCurrency_WHEN_adding_T
 	// THEN
 	assert.Nil(suite.T(), total)
 	assert.NotNil(suite.T(), err)
-	assert.Equal(suite.T(), ErrAmountMismatchingCurrencies, err.(Error).Code())
-	assert.Equal(suite.T(), "Can not sum mismatching currencies", err.(Error).Error())
+	assert.Equal(suite.T(), pkg.ErrAmountMismatchingCurrencies, errorCode(err, 0))
+	assert.Equal(suite.T(), "Can not sum mismatching currencies", err.Error())
 }

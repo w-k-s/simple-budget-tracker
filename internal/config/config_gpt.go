@@ -16,7 +16,7 @@ func (g GptConfig) ApiKey() string {
 	return g.apiKey
 }
 
-func (g GptConfig) IsEnabled() bool{
+func (g GptConfig) IsEnabled() bool {
 	return len(g.apiKey) > 0
 }
 

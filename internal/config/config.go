@@ -18,14 +18,14 @@ type Config struct {
 }
 
 func NewConfig(
-	serverConfig ServerConfig, 
+	serverConfig ServerConfig,
 	dbConfig DBConfig,
 	gptConfig GptConfig,
 ) (*Config, error) {
 	config := &Config{
 		server: serverConfig,
 		db:     dbConfig,
-		gpt: 	gptConfig,
+		gpt:    gptConfig,
 	}
 
 	errors := validate.Validate(
@@ -54,7 +54,7 @@ func (c Config) Database() DBConfig {
 	return c.db
 }
 
-func (c Config) Gpt() GptConfig{
+func (c Config) Gpt() GptConfig {
 	return c.gpt
 }
 
@@ -76,7 +76,7 @@ func readToml(bytes []byte) (*Config, error) {
 			MigrationDir string `toml:"migration_dir"`
 		}
 		Gpt struct {
-			ApiKey       string `toml:"api_key"`
+			ApiKey string `toml:"api_key"`
 		}
 	}
 
@@ -102,7 +102,7 @@ func readToml(bytes []byte) (*Config, error) {
 			migrationDir: mutableConfig.Database.MigrationDir,
 		},
 		GptConfig{
-			apiKey: mutableConfig.Gpt.ApiKey,	
+			apiKey: mutableConfig.Gpt.ApiKey,
 		},
 	)
 }

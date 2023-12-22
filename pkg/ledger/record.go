@@ -10,6 +10,7 @@ import (
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
 	"github.com/google/uuid"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type RecordType string
@@ -168,8 +169,8 @@ func newRecord(
 		&transferReferenceValidator{Value: transferReference, RecordType: recordType},
 	)
 
-	var err error
-	if err = makeCoreValidationError(ErrRecordValidation, errors); err != nil {
+	err := pkg.ValidationErrorWithErrors(pkg.ErrRecordValidation, "", errors)
+	if err != nil {
 		return Record{}, err
 	}
 
@@ -355,7 +356,7 @@ type Records []Record
 // Net Balance of given records = Total Income - Total Expenses
 func (rs Records) NetBalance() (Money, error) {
 	if rs.Len() == 0 {
-		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
+		return nil, pkg.ValidationErrorWithFields(pkg.ErrAmountTotalOfEmptySet, "No amounts to total", nil, nil)
 	}
 
 	var (
@@ -374,7 +375,7 @@ func (rs Records) NetBalance() (Money, error) {
 // Total Expenses of given records = Total Expenses + Transfers of given records
 func (rs Records) TotalExpenses() (Money, error) {
 	if rs.Len() == 0 {
-		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
+		return nil, pkg.ValidationErrorWithFields(pkg.ErrAmountTotalOfEmptySet, "No amounts to total", nil, nil)
 	}
 
 	var (
@@ -401,7 +402,7 @@ func (rs Records) TotalExpenses() (Money, error) {
 // Total income of given records
 func (rs Records) TotalIncome() (Money, error) {
 	if rs.Len() == 0 {
-		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
+		return nil, pkg.ValidationErrorWithFields(pkg.ErrAmountTotalOfEmptySet, "No amounts to total", nil, nil)
 	}
 
 	total, _ := NewMoney(rs[0].Amount().Currency().CurrencyCode(), 0)
@@ -421,7 +422,7 @@ func (rs Records) TotalIncome() (Money, error) {
 // Total saved
 func (rs Records) TotalSavings() (Money, error) {
 	if rs.Len() == 0 {
-		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
+		return nil, pkg.ValidationErrorWithFields(pkg.ErrAmountTotalOfEmptySet, "No amounts to total", nil, nil)
 	}
 
 	total, _ := NewMoney(rs[0].Amount().Currency().CurrencyCode(), 0)
@@ -452,7 +453,7 @@ func (rs Records) TotalSavings() (Money, error) {
 func (rs Records) NetExpenses() (Money, error) {
 	// TODO
 	if rs.Len() == 0 {
-		return nil, NewError(ErrAmountTotalOfEmptySet, "No amounts to total", nil)
+		return nil, pkg.ValidationErrorWithFields(pkg.ErrAmountTotalOfEmptySet, "No amounts to total", nil, nil)
 	}
 
 	total, _ := NewMoney(rs[0].Amount().Currency().CurrencyCode(), 0)
@@ -478,7 +479,7 @@ func (rs Records) NetExpenses() (Money, error) {
 
 func (rs Records) Period() (time.Time, time.Time, error) {
 	if len(rs) == 0 {
-		return time.Time{}, time.Time{}, NewError(ErrRecordsPeriodOfEmptySet, "Can not determine records period for empty set", nil)
+		return time.Time{}, time.Time{}, pkg.ValidationErrorWithFields(pkg.ErrRecordsPeriodOfEmptySet, "Can not determine records period for empty set", nil, nil)
 	}
 
 	var (

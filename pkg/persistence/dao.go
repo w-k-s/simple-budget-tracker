@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 )
 
@@ -88,7 +89,7 @@ func Commit(tx *sql.Tx) error {
 		log.Fatal("Commit should not be passed a nil transaction")
 	}
 	if err := tx.Commit(); err != nil && err != sql.ErrTxDone {
-		return ledger.NewError(ledger.ErrDatabaseConnectivity, "Failed to save changes", err)
+		return pkg.NewSystemError(pkg.ErrDatabaseConnectivity, "Failed to save changes", err)
 	}
 	return nil
 }

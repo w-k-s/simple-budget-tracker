@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/mail"
 	"time"
+
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type UserId uint64
@@ -42,7 +44,7 @@ func NewUser(id UserId, email *mail.Address) (User, error) {
 func NewUserWithEmailString(id UserId, emailString string) (User, error) {
 	email, err := mail.ParseAddress(emailString)
 	if err != nil {
-		return User{}, NewError(ErrUserEmailInvalid, err.Error(), err)
+		return User{}, pkg.ValidationErrorWithFields(pkg.ErrUserEmailInvalid, "", err, nil)
 	}
 	return NewUser(id, email)
 }

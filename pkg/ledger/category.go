@@ -8,6 +8,7 @@ import (
 
 	"github.com/gobuffalo/validate"
 	"github.com/gobuffalo/validate/validators"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type CategoryId uint64
@@ -63,7 +64,7 @@ func newCategory(id CategoryId, name string, auditInfo auditInfo) (Category, err
 	)
 
 	var err error
-	if err = makeCoreValidationError(ErrCategoryValidation, errors); err != nil {
+	if err = pkg.ValidationErrorWithErrors(pkg.ErrCategoryValidation, "", errors); err != nil {
 		return Category{}, err
 	}
 

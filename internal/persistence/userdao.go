@@ -7,6 +7,7 @@ import (
 	"net/mail"
 	"time"
 
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -91,7 +92,7 @@ func (d *DefaultUserDao) NewUserId() (ledger.UserId, error) {
 	err := d.db.QueryRow("SELECT nextval('budget.user_id')").Scan(&userId)
 	if err != nil {
 		log.Printf("Failed to assign user id. Reason; %s", err)
-		return 0, ledger.NewError(ledger.ErrDatabaseState, "Failed to assign user id", err)
+		return 0, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to assign user id", err)
 	}
 	return userId, err
 }
@@ -117,9 +118,9 @@ func (d *DefaultUserDao) SaveTx(u ledger.User, tx *sql.Tx) error {
 	if err != nil {
 		log.Printf("Failed to save user %v. Reason: %s", u, err)
 		if message, ok := d.isDuplicateKeyError(err); ok {
-			return ledger.NewError(ledger.ErrUserEmailDuplicated, message, err)
+			return pkg.ValidationErrorWithError(pkg.ErrUserEmailDuplicated, message, err)
 		}
-		return ledger.NewError(ledger.ErrDatabaseState, "Failed to save user", err)
+		return pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to save user", err)
 	}
 	return nil
 }
@@ -130,9 +131,9 @@ func (d *DefaultUserDao) GetUserById(queryId ledger.UserId) (ledger.User, error)
 		Scan(&ur.id, &ur.email, &ur.createdBy, &ur.createdAt, &ur.modifiedBy, &ur.modifiedAt, &ur.version)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return ledger.User{}, ledger.NewError(ledger.ErrUserNotFound, fmt.Sprintf("User with id %d not found", queryId), err)
+			return ledger.User{}, pkg.ValidationErrorWithError(pkg.ErrUserNotFound, fmt.Sprintf("User with id %d not found", queryId), err)
 		}
-		return ledger.User{}, ledger.NewError(ledger.ErrDatabaseState, fmt.Sprintf("User with id %d not found", queryId), err)
+		return ledger.User{}, pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("User with id %d not found", queryId), err)
 	}
 
 	return ledger.NewUserFromRecord(ur)

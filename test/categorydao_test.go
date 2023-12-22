@@ -9,6 +9,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -120,7 +121,6 @@ func (suite *CategoryDaoTestSuite) Test_Given_twoCategoriesPerUsers_WHEN_oneUser
 	assert.Nil(suite.T(), err1)
 	assert.NotNil(suite.T(), err2)
 
-	coreError := err2.(ledger.Error)
-	assert.Equal(suite.T(), ledger.ErrCategoryNameDuplicated, coreError.Code())
-	assert.Equal(suite.T(), "Category names must be unique. One of these is duplicated: Shopping, Shopping", coreError.Error())
+	assert.Equal(suite.T(), pkg.ErrCategoryNameDuplicated, errorCode(err2, 0))
+	assert.Equal(suite.T(), "Category names must be unique. One of these is duplicated: Shopping, Shopping", err2.Error())
 }

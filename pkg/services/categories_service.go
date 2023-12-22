@@ -43,15 +43,15 @@ func NewCategoriesService(categoryDao dao.CategoryDao) (CategoriesService, error
 }
 
 func (svc categoriesService) CreateCategories(ctx context.Context, request CreateCategoriesRequest) (CategoriesResponse, error) {
-	
-	userId, err := RequireUserId(ctx); 
+
+	userId, err := RequireUserId(ctx)
 	if err != nil {
-		return CategoriesResponse{}, err.(ledger.Error)
+		return CategoriesResponse{}, err
 	}
 
-	tx, err := svc.categoryDao.BeginTx(); 
+	tx, err := svc.categoryDao.BeginTx()
 	if err != nil {
-		return CategoriesResponse{}, err.(ledger.Error)
+		return CategoriesResponse{}, err
 	}
 
 	defer dao.DeferRollback(tx, fmt.Sprintf("CreateCategories: %d", userId))
@@ -66,7 +66,7 @@ func (svc categoriesService) CreateCategories(ctx context.Context, request Creat
 		)
 		// TODO: limit number of accounts that can be created
 		if categoryId, err = svc.categoryDao.NewCategoryId(tx); err != nil {
-			return CategoriesResponse{}, err.(ledger.Error)
+			return CategoriesResponse{}, err
 		}
 
 		if category, err = ledger.NewCategory(
@@ -74,7 +74,7 @@ func (svc categoriesService) CreateCategories(ctx context.Context, request Creat
 			categoryReq.Name,
 			ledger.MustMakeUpdatedByUserId(userId),
 		); err != nil {
-			return CategoriesResponse{}, err.(ledger.Error)
+			return CategoriesResponse{}, err
 		}
 
 		categories = append(categories, category)
@@ -82,11 +82,11 @@ func (svc categoriesService) CreateCategories(ctx context.Context, request Creat
 
 	// Save Categories
 	if err = svc.categoryDao.SaveTx(ctx, userId, categories, tx); err != nil {
-		return CategoriesResponse{}, err.(ledger.Error)
+		return CategoriesResponse{}, err
 	}
 
 	if err = dao.Commit(tx); err != nil {
-		return CategoriesResponse{}, err.(ledger.Error)
+		return CategoriesResponse{}, err
 	}
 
 	// Return response
@@ -102,26 +102,26 @@ func (svc categoriesService) CreateCategories(ctx context.Context, request Creat
 }
 
 func (svc categoriesService) GetCategories(ctx context.Context) (CategoriesResponse, error) {
-	
-	userId, err := RequireUserId(ctx); 
+
+	userId, err := RequireUserId(ctx)
 	if err != nil {
-		return CategoriesResponse{}, err.(ledger.Error)
+		return CategoriesResponse{}, err
 	}
 
-	tx, err := svc.categoryDao.BeginTx(); 
+	tx, err := svc.categoryDao.BeginTx()
 	if err != nil {
-		return CategoriesResponse{}, err.(ledger.Error)
+		return CategoriesResponse{}, err
 	}
 
 	defer dao.DeferRollback(tx, fmt.Sprintf("GetCategories: %d", userId))
 
-	categories, err := svc.categoryDao.GetCategoriesForUser(ctx, userId, tx); 
+	categories, err := svc.categoryDao.GetCategoriesForUser(ctx, userId, tx)
 	if err != nil {
-		return CategoriesResponse{}, err.(ledger.Error)
+		return CategoriesResponse{}, err
 	}
 
 	if err = dao.Commit(tx); err != nil {
-		return CategoriesResponse{}, err.(ledger.Error)
+		return CategoriesResponse{}, err
 	}
 
 	response := CategoriesResponse{}

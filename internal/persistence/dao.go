@@ -8,7 +8,7 @@ import (
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/lib/pq"
-	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type RootDao struct {
@@ -21,7 +21,7 @@ func (r *RootDao) BeginTx() (*sql.Tx, error) {
 		err error
 	)
 	if tx, err = r.db.Begin(); err != nil {
-		return nil, ledger.NewError(ledger.ErrDatabaseState, "Failed to begin transaction", err)
+		return nil, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to begin transaction", err)
 	}
 	return tx, nil
 }

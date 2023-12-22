@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	svc "github.com/w-k-s/simple-budget-tracker/pkg/services"
 )
@@ -40,10 +41,10 @@ func (a *App) CreateRecord(w http.ResponseWriter, req *http.Request) {
 func (a *App) CreateRecordRequestWithChatGPT(w http.ResponseWriter, req *http.Request) {
 
 	var (
-		accountId           ledger.AccountId
-		prompt				svc.CreateRecordPrompt
-		err                 error
-		ok                  bool
+		accountId ledger.AccountId
+		prompt    svc.CreateRecordPrompt
+		err       error
+		ok        bool
 	)
 
 	if accountId, ok = a.getAccountIdOrBadRequest(w, req); !ok {
@@ -56,7 +57,7 @@ func (a *App) CreateRecordRequestWithChatGPT(w http.ResponseWriter, req *http.Re
 
 	req = req.WithContext(svc.SetAccountId(req.Context(), accountId))
 	resp, err := a.RecordService.CreateRecordRequestWithChatGPT(req.Context(), prompt)
-	if err != nil{
+	if err != nil {
 		a.MustEncodeProblem(w, req, err)
 		return
 	}
@@ -97,10 +98,11 @@ func (a *App) getAccountIdOrBadRequest(w http.ResponseWriter, req *http.Request)
 
 	params := mux.Vars(req)
 	if accountId, err = strconv.ParseUint(params["accountId"], 10, 64); err != nil {
-		a.MustEncodeProblem(w, req, ledger.NewErrorWithFields(
-			ledger.ErrServiceAccountIdRequired,
+		a.MustEncodeProblem(w, req, pkg.ValidationErrorWithFields(
+			pkg.ErrServiceAccountIdRequired,
 			"Invalid or no account Id provided",
-			err, map[string]string{"accountId": req.URL.Query().Get("accountId")},
+			err,
+			map[string]string{"accountId": req.URL.Query().Get("accountId")},
 		))
 		return 0, false
 	}
