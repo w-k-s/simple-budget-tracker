@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS budget.account_budgets(
         ON UPDATE CASCADE 
         ON DELETE CASCADE,
     CONSTRAINT fk_account_budgets_budget_id FOREIGN KEY(budget_id) REFERENCES budget.budget(id)
-        ON UPDATE CASCADE,
+        ON UPDATE CASCADE
         ON DELETE CASCADE
 );
 
