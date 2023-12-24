@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
@@ -48,17 +47,14 @@ func NewAccountService(accountDao dao.AccountDao) (AccountService, error) {
 }
 
 func (svc accountService) CreateAccounts(ctx context.Context, request CreateAccountsRequest) (AccountsResponse, error) {
-	var (
-		userId ledger.UserId
-		tx     *sql.Tx
-		err    error
-	)
 
-	if userId, err = RequireUserId(ctx); err != nil {
+	userId, err := RequireUserId(ctx); 
+	if err != nil {
 		return AccountsResponse{}, err
 	}
 
-	if tx, err = svc.accountDao.BeginTx(); err != nil {
+	tx, err := svc.accountDao.BeginTx(); 
+	if err != nil {
 		return AccountsResponse{}, err
 	}
 

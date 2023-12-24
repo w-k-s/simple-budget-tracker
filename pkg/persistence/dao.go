@@ -75,6 +75,14 @@ type RecordSearch struct {
 	BeneficiaryAccountNames []string
 }
 
+type BudgetDao interface {
+	BeginTx() (*sql.Tx, error)
+	MustBeginTx() *sql.Tx
+
+	SaveTx(ctx context.Context, id ledger.UserId, budget ledger.Budget, tx *sql.Tx) error
+	GetBudgetById(ctx context.Context, id ledger.BudgetId, userId ledger.UserId, tx *sql.Tx) (ledger.Budget, error)
+}
+
 func DeferRollback(tx *sql.Tx, reference string) {
 	if tx == nil {
 		return

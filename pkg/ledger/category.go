@@ -98,6 +98,14 @@ func (cs Categories) Names() []string {
 	return names
 }
 
+func (cs Categories) MayById() map[CategoryId]Category{
+	m := map[CategoryId]Category{}
+	for _,c := range cs{
+		m[c.id] = c
+	}
+	return m
+}
+
 func (cs Categories) String() string {
 	sort.Sort(cs)
 	strs := make([]string, 0, len(cs))
