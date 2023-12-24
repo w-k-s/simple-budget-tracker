@@ -216,6 +216,7 @@ const (
 	ErrRequestUnmarshallingFailed
 	ErrServiceUserIdRequired
 	ErrServiceAccountIdRequired
+	ErrBudgetValidation
 )
 
 var errorCodeNames = map[ErrorCode]string{
@@ -243,6 +244,7 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrRequestUnmarshallingFailed:  "REQUEST_UNMARSHALLING_FAILED",
 	ErrServiceUserIdRequired:       "SERVICE_REQUIRED_USER_ID",
 	ErrServiceAccountIdRequired:    "SERVICE_REQUIRED_ACCOUNT_ID",
+	ErrBudgetValidation:            "BUDGET_VALIDATION_FAILED",
 }
 
 func (c ErrorCode) name() string {

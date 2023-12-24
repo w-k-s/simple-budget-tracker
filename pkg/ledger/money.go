@@ -2,9 +2,12 @@ package ledger
 
 import (
 	"fmt"
+	"log"
 	"strconv"
+	"strings"
 
 	"github.com/bojanz/currency"
+	"github.com/gobuffalo/validate"
 	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
@@ -27,7 +30,10 @@ type Money interface {
 	Add(m Money) (Money, error)
 	Abs() (Money, error)
 	Negate() (Money, error)
+
 	MinorUnits() (int64, error)
+	MustMinorUnits() int64
+
 	String() string
 }
 
@@ -106,6 +112,14 @@ func (i internalMoney) MinorUnits() (int64, error) {
 	return i.amount.Int64()
 }
 
+func (i internalMoney) MustMinorUnits() int64 {
+	minorUnits, err := i.amount.Int64()
+	if err != nil {
+		log.Fatalf("Failed to convert '%v' to minor units", i.amount)
+	}
+	return minorUnits
+}
+
 func (i internalMoney) String() string {
 	return fmt.Sprintf("%s %s", i.amount.CurrencyCode(), i.amount.Number())
 }
@@ -119,4 +133,24 @@ func NewMoney(currencyCode string, amountMinorUnits int64) (Money, error) {
 		return nil, pkg.ValidationErrorWithFields(pkg.ErrUnknown, "Invalid Monetary amount", err, map[string]string{"code": currencyCode, "amount": strconv.FormatInt(amountMinorUnits, 10)})
 	}
 	return &internalMoney{amount}, nil
+}
+
+func MustMoney(m Money, err error) Money {
+	if err != nil {
+		log.Fatal(err)
+	}
+	return m
+}
+
+type amountPositiveOrZeroValidator struct {
+	Name    string
+	Field   Money
+	Message string
+}
+
+func (v *amountPositiveOrZeroValidator) IsValid(errors *validate.Errors) {
+	amount := v.Field.MustMinorUnits()
+	if amount < 0 {
+		errors.Add(strings.ToLower(v.Name), v.Message)
+	}
 }

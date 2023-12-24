@@ -12,6 +12,7 @@ import (
 )
 
 type AccountId uint64
+type AccountIds []AccountId
 type AccountType string
 
 const (

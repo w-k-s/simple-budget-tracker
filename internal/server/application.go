@@ -213,9 +213,9 @@ func errorDetail(err error) string {
 
 func errorFields(err error) map[string]string {
 	if errWithFields, ok := err.(interface {
-		Fields() map[string]string
+		InvalidFields() map[string]string
 	}); ok {
-		return errWithFields.Fields()
+		return errWithFields.InvalidFields()
 	}
 	return map[string]string{}
 }
