@@ -32,15 +32,15 @@ func (i ValidationError) Error() string {
 		}
 	}
 
-	if i.cause != nil {
-		cause := i.cause.Error()
-		sb.WriteString(" Reason: ")
-		sb.WriteString(cause)
+	// if i.cause != nil {
+	// 	cause := i.cause.Error()
+	// 	sb.WriteString(" Reason: ")
+	// 	sb.WriteString(cause)
 
-		if !strings.HasSuffix(cause, ".") {
-			sb.WriteString(".")
-		}
-	}
+	// 	if !strings.HasSuffix(cause, ".") {
+	// 		sb.WriteString(".")
+	// 	}
+	// }
 
 	if len(i.fields) > 0 {
 		fieldErrors := []string{}

@@ -4,7 +4,7 @@ run: doc-gen
 test:
 	mkdir -p ~/.budget/migrations.d/
 	cp migrations/*.sql ~/.budget/migrations.d/
-	go test -v -coverprofile=coverage.txt -coverpkg=test/...,./... ./...
+	go test -json -coverprofile=coverage.txt -coverpkg=test/...,./... ./... | tparse -all
 fmt:
 	gofmt -w */**.go
 

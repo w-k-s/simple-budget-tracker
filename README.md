@@ -26,6 +26,13 @@ brew upgrade golangci-lint
 
 For other operating systems, refer to the `golangci-lint`'s [documentation](https://golangci-lint.run/usage/install/#local-installation)
 
+**tparse**
+
+To prettify the unit test output, tparse is used. This can be installed by running:
+```
+go install github.com/mfridman/tparse@latest
+```
+
 **Dependencies**
 
 To install dependencies, run
