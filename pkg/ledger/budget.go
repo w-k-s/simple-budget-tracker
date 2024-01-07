@@ -49,14 +49,11 @@ type CategoryBudget struct {
 	categoryId CategoryId
 	// The maximum amount allowed to be spent for the associated category in a time period.
 	maxLimit Money
-	// The actual amount spent for the associated category in a time period.
-	amountSpent Money
 }
 
 func NewCategoryBudget(
 	categoryId CategoryId,
 	maxLimit Money,
-	amountSpent Money,
 ) (CategoryBudget, error) {
 
 	errors := validate.Validate(
@@ -71,11 +68,6 @@ func NewCategoryBudget(
 			Field:   maxLimit,
 			Message: "MaxLimit must be greater than or equal to 0",
 		},
-		&amountPositiveOrZeroValidator{
-			Name:    "amountSpent",
-			Field:   maxLimit,
-			Message: "amountSpent must be greater than or equal to 0",
-		},
 	)
 
 	err := pkg.ValidationErrorWithErrors(pkg.ErrBudgetValidation, "", errors)
@@ -84,9 +76,8 @@ func NewCategoryBudget(
 	}
 
 	return CategoryBudget{
-		categoryId:  categoryId,
-		maxLimit:    maxLimit,
-		amountSpent: amountSpent,
+		categoryId: categoryId,
+		maxLimit:   maxLimit,
 	}, nil
 }
 
@@ -105,20 +96,10 @@ func (cb CategoryBudget) MaxLimit() Money {
 	return cb.maxLimit
 }
 
-func (cb CategoryBudget) AmountSpent() Money {
-	return cb.amountSpent
-}
-
-func (cb CategoryBudget) Exceeded() bool {
-	return cb.amountSpent.MustMinorUnits() > cb.maxLimit.MustMinorUnits()
-}
-
 func (cb CategoryBudget) String() string {
-	return fmt.Sprintf("CategoryBudget{Category: %d, Max: %s, Spent: %s, Exceeded: %t}",
+	return fmt.Sprintf("CategoryBudget{Category: %d, Max: %s}",
 		cb.categoryId,
 		cb.maxLimit,
-		cb.amountSpent,
-		cb.Exceeded(),
 	)
 }
 
@@ -127,14 +108,13 @@ type CategoryBudgets []CategoryBudget
 func (a CategoryBudgets) Len() int           { return len(a) }
 func (a CategoryBudgets) Less(i, j int) bool { return a[i].categoryId < a[j].categoryId }
 func (a CategoryBudgets) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+
 func (cb CategoryBudgets) String() string {
 	sb := strings.Builder{}
 	sb.WriteString("CategoryBudgets{")
 	for i, c := range cb {
 		sb.WriteString(strconv.FormatUint(uint64(c.categoryId), 10))
 		sb.WriteString(": ")
-		sb.WriteString(c.amountSpent.String())
-		sb.WriteString(" / ")
 		sb.WriteString(c.maxLimit.String())
 		if i != len(cb)-1 {
 			sb.WriteString(", ")
@@ -283,6 +263,10 @@ func newBudget(
 			Name:  "periodType",
 			Field: string(periodType),
 		},
+		&categoryBudgetsHaveSameCurrency{
+			Name:  "categoryBudgets",
+			Field: categoryBudgets,
+		},
 		&validators.IntIsGreaterThan{
 			Name:     "categoryBudgets",
 			Field:    len(categoryBudgets),
@@ -303,4 +287,24 @@ func newBudget(
 		periodType:      periodType,
 		categoryBudgets: categoryBudgets,
 	}, nil
+}
+
+type categoryBudgetsHaveSameCurrency struct {
+	Name  string
+	Field CategoryBudgets
+}
+
+func (v *categoryBudgetsHaveSameCurrency) IsValid(errors *validate.Errors) {
+	if len(v.Field) == 0 {
+		// Not in scope for this validator
+		return
+	}
+
+	currency := v.Field[0].maxLimit.Currency()
+	for _, cb := range v.Field {
+		if cb.maxLimit.Currency() != currency {
+			errors.Add(strings.ToLower(v.Name), "categoryBudgets must have the same currency")
+			return
+		}
+	}
 }

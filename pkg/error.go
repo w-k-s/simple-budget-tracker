@@ -217,6 +217,7 @@ const (
 	ErrServiceUserIdRequired
 	ErrServiceAccountIdRequired
 	ErrBudgetValidation
+	ErrBudgetNotFound
 )
 
 var errorCodeNames = map[ErrorCode]string{
@@ -245,6 +246,7 @@ var errorCodeNames = map[ErrorCode]string{
 	ErrServiceUserIdRequired:       "SERVICE_REQUIRED_USER_ID",
 	ErrServiceAccountIdRequired:    "SERVICE_REQUIRED_ACCOUNT_ID",
 	ErrBudgetValidation:            "BUDGET_VALIDATION_FAILED",
+	ErrBudgetNotFound:              "BUDGET_NOT_FOUND",
 }
 
 func (c ErrorCode) name() string {
@@ -295,6 +297,8 @@ func (c ErrorCode) status() int {
 	case ErrAccountNotFound:
 		fallthrough
 	case ErrCategoriesNotFound:
+		fallthrough
+	case ErrBudgetNotFound:
 		return http.StatusNotFound
 
 	case ErrDatabaseConnectivity:

@@ -45,6 +45,20 @@ func (i internalCurrency) CurrencyCode() string {
 	return i.code
 }
 
+func MakeCurrency(currencyCode string) (Currency, error) {
+	if IsValidCurrency(currencyCode) {
+		return internalCurrency{currencyCode}, nil
+	}
+	return nil, pkg.ValidationErrorWithError(pkg.ErrCurrencyInvalidCode, "Invalid currency code", nil)
+}
+
+func MustMakeCurrency(currency Currency, err error) Currency {
+	if err != nil {
+		log.Fatal(err)
+	}
+	return currency
+}
+
 type internalMoney struct {
 	amount currency.Amount
 }

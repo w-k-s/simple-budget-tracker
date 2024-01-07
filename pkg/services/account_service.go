@@ -48,12 +48,12 @@ func NewAccountService(accountDao dao.AccountDao) (AccountService, error) {
 
 func (svc accountService) CreateAccounts(ctx context.Context, request CreateAccountsRequest) (AccountsResponse, error) {
 
-	userId, err := RequireUserId(ctx); 
+	userId, err := RequireUserId(ctx)
 	if err != nil {
 		return AccountsResponse{}, err
 	}
 
-	tx, err := svc.accountDao.BeginTx(); 
+	tx, err := svc.accountDao.BeginTx()
 	if err != nil {
 		return AccountsResponse{}, err
 	}

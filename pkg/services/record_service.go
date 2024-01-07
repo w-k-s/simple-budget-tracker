@@ -271,6 +271,8 @@ func (svc recordService) CreateRecord(ctx context.Context, request CreateRecordR
 			return RecordResponse{}, err
 		}
 
+		// TODO: Check that beneficiary account has the same currency as source account.
+
 		transferReference = ledger.MakeTransferReference()
 		sourceAccountId = accountId
 	}

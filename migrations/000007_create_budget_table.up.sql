@@ -1,17 +1,21 @@
+CREATE SEQUENCE IF NOT EXISTS budget.budget_id;
 CREATE TABLE IF NOT EXISTS budget.budget(
    id BIGINT NOT NULL,
+   user_id BIGINT NOT NULL,
    period VARCHAR(20) NOT NULL,
    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
    created_by VARCHAR (255) NOT NULL,
    last_modified_at TIMESTAMP WITH TIME ZONE,
    last_modified_by VARCHAR (255),
    version BIGINT NOT NULL,
-   CONSTRAINT pk_budget_id PRIMARY KEY(id)
+   CONSTRAINT pk_budget_id PRIMARY KEY(id),
+   CONSTRAINT fk_budget_user FOREIGN KEY(user_id) REFERENCES budget.user(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS budget.budget_per_category(
     budget_id BIGINT NOT NULL,
     category_id BIGINT NOT NULL,
+    currency VARCHAR(3) NOT NULL,
     amount_minor_units BIGINT NOT NULL,
     CONSTRAINT fk_budget_per_category_budget_id FOREIGN KEY(budget_id) REFERENCES budget.budget(id) 
         ON UPDATE CASCADE 

@@ -98,9 +98,9 @@ func (cs Categories) Names() []string {
 	return names
 }
 
-func (cs Categories) MayById() map[CategoryId]Category{
+func (cs Categories) MapById() map[CategoryId]Category {
 	m := map[CategoryId]Category{}
-	for _,c := range cs{
+	for _, c := range cs {
 		m[c.id] = c
 	}
 	return m

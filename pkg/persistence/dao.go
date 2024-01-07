@@ -10,11 +10,13 @@ import (
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 )
 
+// Deprecated: Use DaoFactory instead
 type Dao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
 }
 
+// Deprecated: Use DaoFactory instead
 type UserDao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
@@ -27,6 +29,7 @@ type UserDao interface {
 	GetUserById(id ledger.UserId) (ledger.User, error)
 }
 
+// Deprecated: Use DaoFactory instead
 type AccountDao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
@@ -37,8 +40,16 @@ type AccountDao interface {
 
 	GetAccountsByUserId(ctx context.Context, id ledger.UserId, tx *sql.Tx) (ledger.Accounts, error)
 	GetAccountById(ctx context.Context, id ledger.AccountId, userId ledger.UserId, tx *sql.Tx) (ledger.Account, error)
+
+	GetCurrenciesOfAccounts(
+		context.Context,
+		ledger.AccountIds,
+		ledger.UserId,
+		*sql.Tx,
+	) (map[ledger.AccountId]ledger.Currency, error)
 }
 
+// Deprecated: Use DaoFactory instead
 type CategoryDao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
@@ -53,6 +64,7 @@ type CategoryDao interface {
 	UpdateCategoryLastUsed(ctx context.Context, id ledger.CategoryId, lastUsed time.Time, tx *sql.Tx) error
 }
 
+// Deprecated: Use DaoFactory instead
 type RecordDao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
@@ -76,13 +88,21 @@ type RecordSearch struct {
 }
 
 type BudgetDao interface {
-	BeginTx() (*sql.Tx, error)
-	MustBeginTx() *sql.Tx
-
-	SaveTx(ctx context.Context, id ledger.UserId, budget ledger.Budget, tx *sql.Tx) error
-	GetBudgetById(ctx context.Context, id ledger.BudgetId, userId ledger.UserId, tx *sql.Tx) (ledger.Budget, error)
+	Save(ctx context.Context, id ledger.UserId, budget ledger.Budget) error
+	GetBudgetById(
+		ctx context.Context,
+		id ledger.BudgetId,
+		userId ledger.UserId,
+	) (ledger.Budget, error)
 }
 
+type Factory interface {
+	BeginTx() (*sql.Tx, error)
+
+	GetBudgetDao(*sql.Tx) BudgetDao
+}
+
+// Deprecated: Use DaoFactory instead
 func DeferRollback(tx *sql.Tx, reference string) {
 	if tx == nil {
 		return
@@ -92,6 +112,7 @@ func DeferRollback(tx *sql.Tx, reference string) {
 	}
 }
 
+// Deprecated: Use DaoFactory instead
 func Commit(tx *sql.Tx) error {
 	if tx == nil {
 		log.Fatal("Commit should not be passed a nil transaction")

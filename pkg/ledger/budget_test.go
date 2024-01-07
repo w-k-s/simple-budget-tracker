@@ -26,8 +26,8 @@ func (suite *BudgetTestSuite) SetupTest() {
 	billsLimit := MustMoney(NewMoney("AED", 1000_00))
 
 	suite.testCategoryBudgets = []CategoryBudget{
-		MustCategoryBudget(NewCategoryBudget(shopping.id, shoppingLimit, MustMoney(NewMoney("AED", 0)))),
-		MustCategoryBudget(NewCategoryBudget(bills.id, billsLimit, MustMoney(NewMoney("AED", 0)))),
+		MustCategoryBudget(NewCategoryBudget(shopping.id, shoppingLimit)),
+		MustCategoryBudget(NewCategoryBudget(bills.id, billsLimit)),
 	}
 }
 
@@ -87,6 +87,31 @@ func (suite *BudgetTestSuite) Test_GIVEN_noLimits_WHEN_CreatingBudget_THEN_error
 	assert.Equal(suite.T(), pkg.ErrBudgetValidation, errorCode(err, 0))
 	assert.Equal(suite.T(), "Category Budgets can not be empty", err.Error())
 	assert.Equal(suite.T(), "Category Budgets can not be empty", errorFields(err)["category_budgets"])
+}
+
+func (suite *BudgetTestSuite) Test_GIVEN_differentCurrencies_WHEN_CreatingBudget_THEN_errorIsReturned() {
+	// GIVEN
+	shoppingLimit := MustMoney(NewMoney("AED", 2000_00))
+	billsLimit := MustMoney(NewMoney("USD", 1000_00))
+
+	// WHEN
+	budget, err := NewBudget(
+		1,
+		AccountIds{1},
+		BudgetPeriodTypeMonth,
+		CategoryBudgets{
+			MustCategoryBudget(NewCategoryBudget(CategoryId(1), shoppingLimit)),
+			MustCategoryBudget(NewCategoryBudget(CategoryId(2), billsLimit)),
+		},
+		MustMakeUpdatedByUserId(1),
+	)
+
+	// THEN
+	assert.NotNil(suite.T(), err)
+	assert.Equal(suite.T(), Budget{}, budget)
+	assert.Equal(suite.T(), pkg.ErrBudgetValidation, errorCode(err, 0))
+	assert.Equal(suite.T(), "Category Budgets must have the same currency", err.Error())
+	assert.Equal(suite.T(), "Category Budgets must have the same currency", errorFields(err)["category_budgets"])
 }
 
 func (suite *BudgetTestSuite) Test_GIVEN_validParameters_WHEN_AccountIsCreated_THEN_noErrorsAreReturned() {
