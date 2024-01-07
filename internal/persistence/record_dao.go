@@ -10,7 +10,6 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -152,8 +151,7 @@ func (d *DefaultRecordDao) NewRecordId(tx *sql.Tx) (ledger.RecordId, error) {
 	var recordId ledger.RecordId
 	err := tx.QueryRow("SELECT nextval('budget.record_id')").Scan(&recordId)
 	if err != nil {
-		log.Printf("Failed to assign record id. Reason; %s", err)
-		return 0, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to assign record id", err)
+		return 0, fmt.Errorf("Failed to assign record id", err)
 	}
 	return recordId, err
 }
@@ -250,8 +248,7 @@ func (d *DefaultRecordDao) SaveTx(ctx context.Context, accountId ledger.AccountI
 		r.Version(),
 	)
 	if err != nil {
-		log.Printf("Failed to save record %v. Reason: %s", r, err)
-		return pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to save record", err)
+		return fmt.Errorf("Failed to save record. Reason: %w", err)
 	}
 	return nil
 }
@@ -475,11 +472,10 @@ func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month le
 		fromDate.Format("2006-01-02"),
 		toDate.Format("2006-01-02"),
 	)
-	if err != nil {
-		if err == sql.ErrNoRows {
+	if err == sql.ErrNoRows {
 			return ledger.Records{}, nil
-		}
-		return nil, pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("Records for account id %d not found", queryId), err)
+	} else if err != nil {
+		return nil, fmt.Errorf("Records for account id %d not found. Reason: %w", queryId, err)
 	}
 	defer rows.Close()
 

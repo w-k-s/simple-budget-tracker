@@ -103,7 +103,7 @@ func (d *DefaultAccountDao) NewAccountId(tx *sql.Tx) (ledger.AccountId, error) {
 	err := d.db.QueryRow("SELECT nextval('budget.account_id')").Scan(&accountId)
 	if err != nil {
 		log.Printf("Failed to assign account id. Reason; %s", err)
-		return 0, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to assign account id", err)
+		return 0, fmt.Errorf("Failed to assign account id: %w", err)
 	}
 	return accountId, err
 }
@@ -291,7 +291,7 @@ func (d *DefaultAccountDao) GetCurrenciesOfAccounts(
 	)
 	if err != nil {
 		log.Printf("Error querying for accounts for user %d. Reason: %s", userid, err)
-		return nil, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to query database", err)
+		return nil, fmt.Errorf("Failed to query database: %w", err)
 	}
 	defer rows.Close()
 

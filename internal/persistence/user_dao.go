@@ -92,7 +92,7 @@ func (d *DefaultUserDao) NewUserId() (ledger.UserId, error) {
 	err := d.db.QueryRow("SELECT nextval('budget.user_id')").Scan(&userId)
 	if err != nil {
 		log.Printf("Failed to assign user id. Reason; %s", err)
-		return 0, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to assign user id", err)
+		return 0, fmt.Errorf("Failed to assign user id. Reason: %w", err)
 	}
 	return userId, err
 }
@@ -120,7 +120,7 @@ func (d *DefaultUserDao) SaveTx(u ledger.User, tx *sql.Tx) error {
 		if message, ok := d.isDuplicateKeyError(err); ok {
 			return pkg.ValidationErrorWithError(pkg.ErrUserEmailDuplicated, message, err)
 		}
-		return pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to save user", err)
+		return fmt.Errorf("Failed to save user. Reason: %w", err)
 	}
 	return nil
 }
@@ -129,11 +129,11 @@ func (d *DefaultUserDao) GetUserById(queryId ledger.UserId) (ledger.User, error)
 	var ur userRecord
 	err := d.db.QueryRow("SELECT id, email, created_by, created_at, last_modified_by, last_modified_at, version FROM budget.user WHERE id = $1", queryId).
 		Scan(&ur.id, &ur.email, &ur.createdBy, &ur.createdAt, &ur.modifiedBy, &ur.modifiedAt, &ur.version)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return ledger.User{}, pkg.ValidationErrorWithError(pkg.ErrUserNotFound, fmt.Sprintf("User with id %d not found", queryId), err)
-		}
-		return ledger.User{}, pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("User with id %d not found", queryId), err)
+	
+	if err == sql.ErrNoRows {
+		return ledger.User{}, pkg.ValidationErrorWithError(pkg.ErrUserNotFound, fmt.Sprintf("User with id %d not found", queryId), err)
+	}else if err != nil {
+		return ledger.User{}, fmt.Errorf("User with id %d not found. Reason: %w", queryId, err)
 	}
 
 	return ledger.NewUserFromRecord(ur)

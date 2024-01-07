@@ -2,9 +2,8 @@ package persistence
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
-
-	"github.com/w-k-s/simple-budget-tracker/pkg"
 )
 
 type UniqueIdDao struct {
@@ -22,7 +21,7 @@ func (u UniqueIdDao) GetId(tx *sql.Tx, tableName string, salt string) (uint64, e
 	err := tx.QueryRow("SELECT timestamp_id(?, ?)", tableName, salt).Scan(&uid)
 	if err != nil {
 		log.Printf("Failed to get unique id for table name %q. Reason; %q", tableName, err)
-		return 0, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to get unique id", err)
+		return 0, fmt.Errorf("Failed to get unique id. Reason: %w", err)
 	}
 	return uid, err
 }

@@ -79,17 +79,17 @@ func (svc budgetService) CreateBudget(ctx context.Context, request CreateBudgetR
 	accountIds := uint64ToAccountIds(request.AccountIds)
 
 	// Ensure that the currency of the accounts = currency of the budget.
-	// Currencies of the budget should be the same (validated later), so we'll just take the first one
 	if len(request.CategoryBudgets) > 0 {
+		// Currencies of the budget should be the same (validated later), so we'll just take the first one
 		budgetCurrency := request.CategoryBudgets[0].MaxAmount.Currency
 		accountCurrenciesMap, err := svc.accountDao.GetCurrenciesOfAccounts(ctx, accountIds, userId, tx)
 		if err != nil {
-			return BudgetResponse{}, pkg.ValidationErrorWithError(pkg.ErrDatabaseState, "Budget currency must match account currencies", nil)
+			return BudgetResponse{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to get account currencies", err)
 		}
 
 		for _, currency := range accountCurrenciesMap {
 			if currency.CurrencyCode() != budgetCurrency {
-				return BudgetResponse{}, pkg.ValidationErrorWithError(pkg.ErrDatabaseState, "Budget currency must match account currencies", nil)
+				return BudgetResponse{}, pkg.ValidationErrorWithError(pkg.ErrBudgetValidation, "Budget currency must match account currencies", nil)
 			}
 		}
 	}
@@ -97,7 +97,7 @@ func (svc budgetService) CreateBudget(ctx context.Context, request CreateBudgetR
 	// Ensure the budget categories belong to the user.
 	categories, err := svc.categoryDao.GetCategoriesForUser(ctx, userId, tx)
 	if err != nil {
-		return BudgetResponse{}, err
+		return BudgetResponse{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to get categories for user", err)
 	}
 
 	categoryIdMap := categories.MapById()
@@ -130,11 +130,11 @@ func (svc budgetService) CreateBudget(ctx context.Context, request CreateBudgetR
 	budgetDao := svc.daoFactory.GetBudgetDao(tx)
 	err = budgetDao.Save(ctx, userId, budget)
 	if err != nil {
-		return BudgetResponse{}, err
+		return BudgetResponse{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to save budget", err)
 	}
 
 	if err = dao.Commit(tx); err != nil {
-		return BudgetResponse{}, err
+		return BudgetResponse{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to save budget", err)
 	}
 
 	return BudgetResponse{

@@ -85,7 +85,7 @@ func (d *DefaultCategoryDao) NewCategoryId(tx *sql.Tx) (ledger.CategoryId, error
 	err := tx.QueryRow("SELECT nextval('budget.category_id')").Scan(&categoryId)
 	if err != nil {
 		log.Printf("Failed to assign category id. Reason; %s", err)
-		return 0, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to assign category id", err)
+		return 0, fmt.Errorf("Failed to assign category id. Reason: %w", err)
 	}
 	return categoryId, err
 }
@@ -101,7 +101,7 @@ func (d *DefaultCategoryDao) SaveTx(ctx context.Context, userId ledger.UserId, c
 				}
 				return pkg.ValidationErrorWithError(pkg.ErrCategoryNameDuplicated, message, err)
 			}
-			return pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("Failed to save categories %q", c.Names()), err)
+			return fmt.Errorf("Failed to save categories %q. Reason: %w", c.Names(), err)
 		}
 		return nil
 	}
@@ -241,7 +241,7 @@ func (d *DefaultCategoryDao) UpdateCategoryLastUsed(ctx context.Context, categor
 	)
 	if err != nil {
 		log.Printf("Failed to update last used for category id %d. Reason: %s", categoryId, err)
-		return pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("Failed to update last used for category id %d", categoryId), err)
+		return fmt.Errorf("Failed to update last used for category id %d. Reason: %w", categoryId, err)
 	}
 
 	return nil

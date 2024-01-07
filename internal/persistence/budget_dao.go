@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 )
 
@@ -128,7 +127,7 @@ func (d *defaultBudgetDao) Save(
 	)
 	if err != nil {
 		log.Printf("Failed to save budget %v. Reason: %s", b, err)
-		return pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to save budget", err)
+		return err
 	}
 
 	stmt, err := d.tx.PrepareContext(
@@ -140,7 +139,7 @@ func (d *defaultBudgetDao) Save(
 			"amount_minor_units",
 		))
 	if err != nil {
-		return pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to prepare bulk statement for budget per category", err)
+		return fmt.Errorf("Failed to prepare bulk statement for budget per category. Reason: %w", err)
 	}
 
 	for _, cb := range b.CategoryBudgets() {
@@ -163,7 +162,7 @@ func (d *defaultBudgetDao) Save(
 			"budget_id",
 		))
 	if err != nil {
-		return pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to prepare bulk statement for account budget", err)
+		return fmt.Errorf("Failed to prepare bulk statement for account budget", err)
 	}
 
 	for _, accountId := range b.AccountIds() {
@@ -215,7 +214,7 @@ func (d *defaultBudgetDao) GetBudgetById(
 		id,
 	)
 	if err != nil {
-		return ledger.Budget{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Query execution failed", err)
+		return ledger.Budget{}, fmt.Errorf("Query execution failed", err)
 	}
 	defer rows.Close()
 
@@ -242,7 +241,7 @@ func (d *defaultBudgetDao) GetBudgetById(
 			&br.modifiedAt,
 			&br.version,
 		); err != nil {
-			return ledger.Budget{}, pkg.NewSystemError(pkg.ErrCategoriesNotFound, fmt.Sprintf("Categories for user id %d not found", userId), err)
+			return ledger.Budget{}, fmt.Errorf("Failed to scan row. Reason: %w", err)
 		}
 
 		// TODO: remove duplicate accountIds
