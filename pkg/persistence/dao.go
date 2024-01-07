@@ -27,6 +27,8 @@ type UserDao interface {
 	SaveTx(u ledger.User, tx *sql.Tx) error
 
 	GetUserById(id ledger.UserId) (ledger.User, error)
+
+	IsDuplicateKeyError(error) (string, bool)
 }
 
 // Deprecated: Use DaoFactory instead
@@ -47,6 +49,8 @@ type AccountDao interface {
 		ledger.UserId,
 		*sql.Tx,
 	) (map[ledger.AccountId]ledger.Currency, error)
+
+	IsDuplicateKeyError(error) (string, bool)
 }
 
 // Deprecated: Use DaoFactory instead
@@ -62,6 +66,8 @@ type CategoryDao interface {
 	GetCategoriesForUser(ctx context.Context, id ledger.UserId, tx *sql.Tx) (ledger.Categories, error)
 
 	UpdateCategoryLastUsed(ctx context.Context, id ledger.CategoryId, lastUsed time.Time, tx *sql.Tx) error
+
+	IsDuplicateKeyError(error) (string, bool)
 }
 
 // Deprecated: Use DaoFactory instead

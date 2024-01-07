@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -33,11 +32,8 @@ func (cr categoryRecord) Name() string {
 }
 
 func (cr categoryRecord) CreatedBy() ledger.UpdatedBy {
-	var (
-		updatedBy ledger.UpdatedBy
-		err       error
-	)
-	if updatedBy, err = ledger.ParseUpdatedBy(cr.createdBy); err != nil {
+	updatedBy, err := ledger.ParseUpdatedBy(cr.createdBy)
+	if err != nil {
 		log.Fatalf("Invalid createdBy persisted for record %d: %s", cr.id, cr.createdBy)
 	}
 	return updatedBy
@@ -91,25 +87,27 @@ func (d *DefaultCategoryDao) NewCategoryId(tx *sql.Tx) (ledger.CategoryId, error
 }
 
 func (d *DefaultCategoryDao) SaveTx(ctx context.Context, userId ledger.UserId, c ledger.Categories, tx *sql.Tx) error {
-	checkError := func(err error) error {
-		if err != nil {
-			log.Printf("Failed to save categories '%q' for user id %d. Reason: %q", c, userId, err)
-			if _, ok := d.isDuplicateKeyError(err); ok {
-				message := fmt.Sprintf("Category names must be unique. One of these is duplicated: %s", strings.Join(c.Names(), ", "))
-				if c.Len() == 1 {
-					message = fmt.Sprintf("Category named %q already exists", c.Names()[0])
-				}
-				return pkg.ValidationErrorWithError(pkg.ErrCategoryNameDuplicated, message, err)
-			}
-			return fmt.Errorf("Failed to save categories %q. Reason: %w", c.Names(), err)
-		}
-		return nil
-	}
 
-	stmt, err := tx.PrepareContext(ctx, pq.CopyInSchema("budget", "category", "id", "name", "user_id", "created_by", "created_at", "last_modified_by", "last_modified_at", "version"))
-	if err = checkError(err); err != nil {
+	stmt, err := tx.PrepareContext(
+		ctx,
+		pq.CopyInSchema(
+			"budget",
+			"category",
+			"id",
+			"name",
+			"user_id",
+			"created_by",
+			"created_at",
+			"last_modified_by",
+			"last_modified_at",
+			"version",
+		),
+	)
+	if err != nil {
 		return err
 	}
+
+	defer stmt.Close()
 
 	epoch := time.Time{}
 	for _, category := range c {
@@ -137,15 +135,7 @@ func (d *DefaultCategoryDao) SaveTx(ctx context.Context, userId ledger.UserId, c
 	}
 
 	_, err = stmt.ExecContext(ctx)
-	if err = checkError(err); err != nil {
-		return err
-	}
-
-	err = stmt.Close()
-	if err = checkError(err); err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (d *DefaultCategoryDao) GetCategoriesForUser(ctx context.Context, userId ledger.UserId, tx *sql.Tx) (ledger.Categories, error) {

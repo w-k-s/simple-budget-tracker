@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -87,8 +89,15 @@ func (svc accountService) CreateAccounts(ctx context.Context, request CreateAcco
 	}
 
 	// Save Accounts
-	if err = svc.accountDao.SaveTx(ctx, userId, accounts, tx); err != nil {
-		return AccountsResponse{}, err
+	err = svc.accountDao.SaveTx(ctx, userId, accounts, tx)
+	if _, duplicate := svc.accountDao.IsDuplicateKeyError(err); duplicate {
+		message := fmt.Sprintf("Acccount names must be unique. One of these is duplicated: %s", strings.Join(accounts.Names(), ", "))
+		if accounts.Len() == 1 {
+			message = fmt.Sprintf("Acccount named %q already exists", accounts.Names()[0])
+		}
+		return AccountsResponse{}, pkg.ValidationErrorWithError(pkg.ErrAccountNameDuplicated, message, err)
+	} else if err != nil {
+		return AccountsResponse{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to create account", err)
 	}
 
 	if err = dao.Commit(tx); err != nil {

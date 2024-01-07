@@ -40,11 +40,8 @@ func (br budgetRecord) CategoryBudgets() ledger.CategoryBudgets {
 }
 
 func (br budgetRecord) CreatedBy() ledger.UpdatedBy {
-	var (
-		updatedBy ledger.UpdatedBy
-		err       error
-	)
-	if updatedBy, err = ledger.ParseUpdatedBy(br.createdBy); err != nil {
+	updatedBy, err := ledger.ParseUpdatedBy(br.createdBy)
+	if err != nil {
 		log.Fatalf("Invalid createdBy persisted for record %d: %s", br.id, br.createdBy)
 	}
 	return updatedBy
@@ -133,6 +130,7 @@ func (d *defaultBudgetDao) Save(
 	stmt, err := d.tx.PrepareContext(
 		ctx,
 		pq.CopyInSchema(
+			"budget",
 			"budget_per_category",
 			"budget_id",
 			"category_id",
@@ -157,6 +155,7 @@ func (d *defaultBudgetDao) Save(
 	stmt, err = d.tx.PrepareContext(
 		ctx,
 		pq.CopyInSchema(
+			"budget",
 			"account_budgets",
 			"account_id",
 			"budget_id",

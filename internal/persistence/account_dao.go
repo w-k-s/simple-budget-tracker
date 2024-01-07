@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -51,11 +50,8 @@ func (ar accountRecord) CurrentBalanceMinorUnits() int64 {
 }
 
 func (ar accountRecord) CreatedBy() ledger.UpdatedBy {
-	var (
-		updatedBy ledger.UpdatedBy
-		err       error
-	)
-	if updatedBy, err = ledger.ParseUpdatedBy(ar.createdBy); err != nil {
+	updatedBy, err := ledger.ParseUpdatedBy(ar.createdBy)
+	if err != nil {
 		log.Fatalf("Invalid createdBy persisted for record %d: %s", ar.id, ar.createdBy)
 	}
 	return updatedBy
@@ -109,25 +105,26 @@ func (d *DefaultAccountDao) NewAccountId(tx *sql.Tx) (ledger.AccountId, error) {
 }
 
 func (d *DefaultAccountDao) SaveTx(ctx context.Context, userId ledger.UserId, a ledger.Accounts, tx *sql.Tx) error {
-	checkError := func(err error) error {
-		if err != nil {
-			log.Printf("Failed to save accounts '%q' for user id %d. Reason: %q", a, userId, err)
-			if _, ok := d.isDuplicateKeyError(err); ok {
-				message := fmt.Sprintf("Acccount names must be unique. One of these is duplicated: %s", strings.Join(a.Names(), ", "))
-				if a.Len() == 1 {
-					message = fmt.Sprintf("Acccount named %q already exists", a.Names()[0])
-				}
-				return pkg.ValidationErrorWithError(pkg.ErrAccountNameDuplicated, message, err)
-			}
-			return pkg.NewSystemError(pkg.ErrDatabaseState, fmt.Sprintf("Failed to save accounts %q", a.Names()), err)
-		}
-		return nil
-	}
 
-	stmt, err := tx.Prepare(pq.CopyInSchema("budget", "account", "id", "user_id", "name", "account_type", "currency", "created_by", "created_at", "last_modified_by", "last_modified_at", "version"))
-	if err = checkError(err); err != nil {
+	stmt, err := tx.Prepare(pq.CopyInSchema(
+		"budget",
+		"account",
+		"id",
+		"user_id",
+		"name",
+		"account_type",
+		"currency",
+		"created_by",
+		"created_at",
+		"last_modified_by",
+		"last_modified_at",
+		"version",
+	))
+	if err != nil {
 		return err
 	}
+
+	defer stmt.Close()
 
 	epoch := time.Time{}
 	for _, account := range a {
@@ -156,15 +153,11 @@ func (d *DefaultAccountDao) SaveTx(ctx context.Context, userId ledger.UserId, a 
 	}
 
 	_, err = stmt.Exec()
-	if err = checkError(err); err != nil {
+	if err != nil {
 		return err
 	}
 
-	err = stmt.Close()
-	if err = checkError(err); err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (d *DefaultAccountDao) GetAccountsByUserId(ctx context.Context, queryId ledger.UserId, tx *sql.Tx) (ledger.Accounts, error) {

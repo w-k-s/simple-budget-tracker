@@ -27,22 +27,17 @@ func (ur userRecord) Id() ledger.UserId {
 }
 
 func (ur userRecord) Email() *mail.Address {
-	var (
-		email *mail.Address
-		err   error
-	)
-	if email, err = mail.ParseAddress(ur.email); err != nil {
+
+	email, err := mail.ParseAddress(ur.email)
+	if err != nil {
 		log.Fatalf("Expected valid email to be saved in the database. Reason: %s", err)
 	}
 	return email
 }
 
 func (ur userRecord) CreatedBy() ledger.UpdatedBy {
-	var (
-		updatedBy ledger.UpdatedBy
-		err       error
-	)
-	if updatedBy, err = ledger.ParseUpdatedBy(ur.createdBy); err != nil {
+	updatedBy, err := ledger.ParseUpdatedBy(ur.createdBy)
+	if err != nil {
 		log.Fatalf("Invalid createdBy persisted for record %d: %s", ur.id, ur.createdBy)
 	}
 	return updatedBy
@@ -116,10 +111,6 @@ func (d *DefaultUserDao) SaveTx(u ledger.User, tx *sql.Tx) error {
 		u.Version(),
 	)
 	if err != nil {
-		log.Printf("Failed to save user %v. Reason: %s", u, err)
-		if message, ok := d.isDuplicateKeyError(err); ok {
-			return pkg.ValidationErrorWithError(pkg.ErrUserEmailDuplicated, message, err)
-		}
 		return fmt.Errorf("Failed to save user. Reason: %w", err)
 	}
 	return nil
@@ -129,10 +120,10 @@ func (d *DefaultUserDao) GetUserById(queryId ledger.UserId) (ledger.User, error)
 	var ur userRecord
 	err := d.db.QueryRow("SELECT id, email, created_by, created_at, last_modified_by, last_modified_at, version FROM budget.user WHERE id = $1", queryId).
 		Scan(&ur.id, &ur.email, &ur.createdBy, &ur.createdAt, &ur.modifiedBy, &ur.modifiedAt, &ur.version)
-	
+
 	if err == sql.ErrNoRows {
 		return ledger.User{}, pkg.ValidationErrorWithError(pkg.ErrUserNotFound, fmt.Sprintf("User with id %d not found", queryId), err)
-	}else if err != nil {
+	} else if err != nil {
 		return ledger.User{}, fmt.Errorf("User with id %d not found. Reason: %w", queryId, err)
 	}
 

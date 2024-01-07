@@ -42,22 +42,18 @@ func (rr recordRecord) Note() string {
 }
 
 func (rr recordRecord) Category() ledger.Category {
-	var (
-		category ledger.Category
-		err      error
-	)
-	if category, err = ledger.NewCategoryFromRecord(rr.category); err != nil {
+
+	category, err := ledger.NewCategoryFromRecord(rr.category)
+	if err != nil {
 		log.Fatalf("Failed to parse category from database for record id %d. Reason: %s", rr.id, err)
 	}
 	return category
 }
 
 func (rr recordRecord) Amount() ledger.Money {
-	var (
-		amount ledger.Money
-		err    error
-	)
-	if amount, err = ledger.NewMoney(rr.currency, rr.amountMinorUnits); err != nil {
+
+	amount, err := ledger.NewMoney(rr.currency, rr.amountMinorUnits)
+	if err != nil {
 		log.Fatalf("Failed to parse amount from database for record id %d. Reason: %s", rr.id, err)
 	}
 	return amount
@@ -100,11 +96,8 @@ func (rr recordRecord) TransferReference() ledger.TransferReference {
 }
 
 func (rr recordRecord) CreatedBy() ledger.UpdatedBy {
-	var (
-		updatedBy ledger.UpdatedBy
-		err       error
-	)
-	if updatedBy, err = ledger.ParseUpdatedBy(rr.createdBy); err != nil {
+	updatedBy, err := ledger.ParseUpdatedBy(rr.createdBy)
+	if err != nil {
 		log.Fatalf("Invalid createdBy persisted for record %d: %s", rr.id, rr.createdBy)
 	}
 	return updatedBy
@@ -473,7 +466,7 @@ func (d *DefaultRecordDao) GetRecordsForMonth(queryId ledger.AccountId, month le
 		toDate.Format("2006-01-02"),
 	)
 	if err == sql.ErrNoRows {
-			return ledger.Records{}, nil
+		return ledger.Records{}, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("Records for account id %d not found. Reason: %w", queryId, err)
 	}

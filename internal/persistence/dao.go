@@ -37,7 +37,7 @@ func (r *RootDao) MustBeginTx() *sql.Tx {
 	return tx
 }
 
-func (r *RootDao) isDuplicateKeyError(err error) (string, bool) {
+func (r *RootDao) IsDuplicateKeyError(err error) (string, bool) {
 	if pqErr, ok := err.(*pq.Error); ok && pqErr.Code == "23505" {
 		return pqErr.Detail, true
 	}

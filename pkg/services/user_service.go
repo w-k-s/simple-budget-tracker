@@ -1,9 +1,9 @@
 package services
 
 import (
-	"database/sql"
 	"fmt"
 
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -36,29 +36,34 @@ func NewUserService(userDao dao.UserDao) (UserService, error) {
 }
 
 func (u userService) CreateUser(request CreateUserRequest) (CreateUserResponse, error) {
-	var (
-		tx     *sql.Tx
-		userId ledger.UserId
-		user   ledger.User
-		err    error
-	)
-	if tx, err = u.userDao.BeginTx(); err != nil {
+
+	tx, err := u.userDao.BeginTx()
+	if err != nil {
 		return CreateUserResponse{}, err
 	}
 	defer dao.DeferRollback(tx, "CreateUser: "+request.Email)
 
-	if userId, err = u.userDao.NewUserId(); err != nil {
+	userId, err := u.userDao.NewUserId()
+	if err != nil {
 		return CreateUserResponse{}, err
 	}
-	if user, err = ledger.NewUserWithEmailString(userId, request.Email); err != nil {
+
+	user, err := ledger.NewUserWithEmailString(userId, request.Email)
+	if err != nil {
 		return CreateUserResponse{}, err
 	}
-	if err = u.userDao.SaveTx(user, tx); err != nil {
-		return CreateUserResponse{}, err
+
+	err = u.userDao.SaveTx(user, tx)
+	if message, duplicate := u.userDao.IsDuplicateKeyError(err); duplicate {
+		return CreateUserResponse{}, pkg.ValidationErrorWithError(pkg.ErrUserEmailDuplicated, message, err)
+	} else {
+		return CreateUserResponse{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to create user", err)
 	}
+
 	if err = dao.Commit(tx); err != nil {
 		return CreateUserResponse{}, err
 	}
+
 	return CreateUserResponse{
 		Id:    userId,
 		Email: user.Email().Address,

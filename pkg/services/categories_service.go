@@ -3,7 +3,9 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	"github.com/w-k-s/simple-budget-tracker/pkg"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
 	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
@@ -81,8 +83,15 @@ func (svc categoriesService) CreateCategories(ctx context.Context, request Creat
 	}
 
 	// Save Categories
-	if err = svc.categoryDao.SaveTx(ctx, userId, categories, tx); err != nil {
-		return CategoriesResponse{}, err
+	err = svc.categoryDao.SaveTx(ctx, userId, categories, tx)
+	if _, duplicate := svc.categoryDao.IsDuplicateKeyError(err); duplicate {
+		message := fmt.Sprintf("Category names must be unique. One of these is duplicated: %s", strings.Join(categories.Names(), ", "))
+		if categories.Len() == 1 {
+			message = fmt.Sprintf("Category named %q already exists", categories.Names()[0])
+		}
+		return CategoriesResponse{}, pkg.ValidationErrorWithError(pkg.ErrCategoryNameDuplicated, message, err)
+	} else if err != nil {
+		return CategoriesResponse{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to create category", err)
 	}
 
 	if err = dao.Commit(tx); err != nil {
