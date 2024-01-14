@@ -35,6 +35,7 @@ var UserDao dao.UserDao
 var AccountDao dao.AccountDao
 var CategoryDao dao.CategoryDao
 var RecordDao dao.RecordDao
+var BudgetDao dao.BudgetDao
 var TestConfig *cfg.Config
 var TestApp *app.App
 
@@ -87,6 +88,7 @@ func init() {
 	AccountDao = db.MustOpenAccountDao(TestDB)
 	CategoryDao = db.MustOpenCategoryDao(TestDB)
 	RecordDao = db.MustOpenRecordDao(TestDB)
+	BudgetDao = db.MustOpenBudgetDao(TestDB)
 
 	if TestApp, err = app.Init(TestConfig); err != nil {
 		log.Fatalf("Failed to initialize application for tests. Reason: %s", err)

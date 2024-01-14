@@ -37,14 +37,14 @@ type budgetService struct {
 	uniqueIdService UniqueIdService
 	accountDao      dao.AccountDao
 	categoryDao     dao.CategoryDao
-	daoFactory      dao.Factory
+	budgetDao       dao.BudgetDao
 }
 
 func NewBudgetService(
 	uniqueIdService UniqueIdService,
 	accountDao dao.AccountDao,
 	categoryDao dao.CategoryDao,
-	daoFactory dao.Factory,
+	budgetDao dao.BudgetDao,
 ) (BudgetService, error) {
 	if uniqueIdService == nil {
 		log.Fatalf("can not create budget service. uniqueIdService is nil")
@@ -52,13 +52,15 @@ func NewBudgetService(
 	if categoryDao == nil {
 		log.Fatalf("can not create budget service. categoryDao is nil")
 	}
-	if daoFactory == nil {
-		log.Fatalf("can not create budget service. daoFactory is nil")
+	if budgetDao == nil {
+		log.Fatalf("can not create budget service. budgetDao is nil")
 	}
 
 	return &budgetService{
 		uniqueIdService: uniqueIdService,
-		daoFactory:      daoFactory,
+		accountDao:      accountDao,
+		categoryDao:     categoryDao,
+		budgetDao:       budgetDao,
 	}, nil
 }
 
@@ -69,11 +71,7 @@ func (svc budgetService) CreateBudget(ctx context.Context, request CreateBudgetR
 		return BudgetResponse{}, err
 	}
 
-	tx, err := svc.daoFactory.BeginTx()
-	if err != nil {
-		return BudgetResponse{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to begin transaction", err)
-	}
-
+	tx := svc.budgetDao.MustBeginTx()
 	defer dao.DeferRollback(tx, fmt.Sprintf("CreateBudget: %d", userId))
 
 	accountIds := uint64ToAccountIds(request.AccountIds)
@@ -127,8 +125,7 @@ func (svc budgetService) CreateBudget(ctx context.Context, request CreateBudgetR
 		return BudgetResponse{}, err
 	}
 
-	budgetDao := svc.daoFactory.GetBudgetDao(tx)
-	err = budgetDao.Save(ctx, userId, budget)
+	err = svc.budgetDao.Save(ctx, userId, budget, tx)
 	if err != nil {
 		return BudgetResponse{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to save budget", err)
 	}
@@ -152,15 +149,10 @@ func (svc budgetService) GetBudget(ctx context.Context, budgetId ledger.BudgetId
 		return BudgetResponse{}, err
 	}
 
-	tx, err := svc.daoFactory.BeginTx()
-	if err != nil {
-		return BudgetResponse{}, pkg.NewSystemError(pkg.ErrDatabaseState, "Failed to begin transaction", err)
-	}
-
+	tx := svc.budgetDao.MustBeginTx()
 	defer dao.DeferRollback(tx, fmt.Sprintf("GetBudget: %d", userId))
 
-	budgetDao := svc.daoFactory.GetBudgetDao(tx)
-	budget, err := budgetDao.GetBudgetById(ctx, budgetId, userId)
+	budget, err := svc.budgetDao.GetBudgetById(ctx, budgetId, userId, tx)
 	if err != nil {
 		return BudgetResponse{}, err
 	}

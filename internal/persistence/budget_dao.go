@@ -9,84 +9,25 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/w-k-s/simple-budget-tracker/pkg/ledger"
+	dao "github.com/w-k-s/simple-budget-tracker/pkg/persistence"
 )
 
-type budgetRecord struct {
-	id              ledger.BudgetId
-	accountIds      ledger.AccountIds
-	periodType      ledger.BudgetPeriodType
-	categoryBudgets ledger.CategoryBudgets
-	createdBy       string
-	createdAt       time.Time
-	modifiedBy      sql.NullString
-	modifiedAt      sql.NullTime
-	version         ledger.Version
+type DefaultBudgetDao struct {
+	*RootDao
 }
 
-func (br budgetRecord) Id() ledger.BudgetId {
-	return br.id
+func MustOpenBudgetDao(db *sql.DB) dao.BudgetDao {
+	return &DefaultBudgetDao{&RootDao{db}}
 }
 
-func (br budgetRecord) AccountIds() ledger.AccountIds {
-	return br.accountIds
-}
-
-func (br budgetRecord) PeriodType() ledger.BudgetPeriodType {
-	return br.periodType
-}
-
-func (br budgetRecord) CategoryBudgets() ledger.CategoryBudgets {
-	return br.categoryBudgets
-}
-
-func (br budgetRecord) CreatedBy() ledger.UpdatedBy {
-	updatedBy, err := ledger.ParseUpdatedBy(br.createdBy)
-	if err != nil {
-		log.Fatalf("Invalid createdBy persisted for record %d: %s", br.id, br.createdBy)
-	}
-	return updatedBy
-}
-
-func (br budgetRecord) CreatedAtUTC() time.Time {
-	return br.createdAt
-}
-
-func (br budgetRecord) ModifiedBy() ledger.UpdatedBy {
-	if !br.modifiedBy.Valid {
-		return ledger.UpdatedBy{}
-	}
-	var (
-		updatedBy ledger.UpdatedBy
-		err       error
-	)
-	if updatedBy, err = ledger.ParseUpdatedBy(br.modifiedBy.String); err != nil {
-		log.Fatalf("Invalid modifiedBy persisted for record %d: %s", br.id, br.ModifiedBy())
-	}
-	return updatedBy
-}
-
-func (br budgetRecord) ModifiedAtUTC() time.Time {
-	if br.modifiedAt.Valid {
-		return br.modifiedAt.Time
-	}
-	return time.Time{}
-}
-
-func (br budgetRecord) Version() ledger.Version {
-	return br.version
-}
-
-type defaultBudgetDao struct {
-	tx *sql.Tx
-}
-
-func (d *defaultBudgetDao) Save(
+func (d *DefaultBudgetDao) Save(
 	ctx context.Context,
 	userId ledger.UserId,
 	b ledger.Budget,
+	tx *sql.Tx,
 ) error {
 	epoch := time.Time{}
-	_, err := d.tx.ExecContext(
+	_, err := tx.ExecContext(
 		ctx,
 		`INSERT INTO budget.budget (
 			id, 
@@ -123,46 +64,55 @@ func (d *defaultBudgetDao) Save(
 		b.Version(),
 	)
 	if err != nil {
-		log.Printf("Failed to save budget %v. Reason: %s", b, err)
-		return err
+		return fmt.Errorf("Faiiled to save budget. Reason: %w", err)
 	}
 
-	stmt, err := d.tx.PrepareContext(
+	log.Printf("insrrted budget")
+	stmt, err := tx.PrepareContext(
 		ctx,
 		pq.CopyInSchema(
 			"budget",
 			"budget_per_category",
 			"budget_id",
 			"category_id",
+			"currency",
 			"amount_minor_units",
 		))
 	if err != nil {
 		return fmt.Errorf("Failed to prepare bulk statement for budget per category. Reason: %w", err)
 	}
+	defer stmt.Close()
+	log.Printf("created cb stmts")
 
 	for _, cb := range b.CategoryBudgets() {
 		_, err = stmt.ExecContext(
 			ctx,
 			b.Id(),
 			cb.CategoryId(),
+			cb.MaxLimit().Currency().CurrencyCode(),
 			cb.MaxLimit().MustMinorUnits(),
 		)
 		if err != nil {
-			log.Printf("Failed to save category budget %q for user id %d. Reason: %q", cb, userId, err)
+			return fmt.Errorf("Failed to save category budget %q for user id %d. Reason: %w", cb, userId, err)
 		}
 	}
+	if _, err := stmt.ExecContext(ctx); err != nil {
+		return fmt.Errorf("Failed to flush category budgets for user id %d. Reason: %w", userId, err)
+	}
 
-	stmt, err = d.tx.PrepareContext(
+	stmt, err = tx.PrepareContext(
 		ctx,
 		pq.CopyInSchema(
 			"budget",
 			"account_budgets",
 			"account_id",
 			"budget_id",
-		))
+		),
+	)
 	if err != nil {
-		return fmt.Errorf("Failed to prepare bulk statement for account budget", err)
+		return fmt.Errorf("Failed to prepare bulk statement for account budget: %w", err)
 	}
+	log.Printf("created ab stmts")
 
 	for _, accountId := range b.AccountIds() {
 		_, err = stmt.ExecContext(
@@ -171,20 +121,23 @@ func (d *defaultBudgetDao) Save(
 			b.Id(),
 		)
 		if err != nil {
-			log.Printf("Failed to save budget %q for account id %d. Reason: %q", b, accountId, err)
+			return fmt.Errorf("Failed to save budget %q for account id %d. Reason: %w", b, accountId, err)
 		}
 	}
+	_, err = stmt.ExecContext(ctx)
+	log.Printf("exec ab stmts")
 
 	return nil
 }
 
-func (d *defaultBudgetDao) GetBudgetById(
+func (d *DefaultBudgetDao) GetBudgetById(
 	ctx context.Context,
 	id ledger.BudgetId,
 	userId ledger.UserId,
+	tx *sql.Tx,
 ) (ledger.Budget, error) {
 
-	rows, err := d.tx.QueryContext(
+	rows, err := tx.QueryContext(
 		ctx,
 		`SELECT 
 			b.id,
@@ -228,12 +181,12 @@ func (d *defaultBudgetDao) GetBudgetById(
 
 		if err := rows.Scan(
 			&br.id,
+			&accountId,
 			&br.periodType,
 			&categoryId,
 			&categoryName,
 			&currency,
 			&amountMinorUnits,
-			&accountId,
 			&br.createdBy,
 			&br.createdAt,
 			&br.modifiedBy,

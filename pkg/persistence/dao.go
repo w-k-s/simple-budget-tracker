@@ -31,7 +31,6 @@ type UserDao interface {
 	IsDuplicateKeyError(error) (string, bool)
 }
 
-// Deprecated: Use DaoFactory instead
 type AccountDao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
@@ -53,7 +52,6 @@ type AccountDao interface {
 	IsDuplicateKeyError(error) (string, bool)
 }
 
-// Deprecated: Use DaoFactory instead
 type CategoryDao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
@@ -70,7 +68,6 @@ type CategoryDao interface {
 	IsDuplicateKeyError(error) (string, bool)
 }
 
-// Deprecated: Use DaoFactory instead
 type RecordDao interface {
 	BeginTx() (*sql.Tx, error)
 	MustBeginTx() *sql.Tx
@@ -94,21 +91,18 @@ type RecordSearch struct {
 }
 
 type BudgetDao interface {
-	Save(ctx context.Context, id ledger.UserId, budget ledger.Budget) error
+	BeginTx() (*sql.Tx, error)
+	MustBeginTx() *sql.Tx
+
+	Save(ctx context.Context, id ledger.UserId, budget ledger.Budget, tx *sql.Tx) error
 	GetBudgetById(
 		ctx context.Context,
 		id ledger.BudgetId,
 		userId ledger.UserId,
+		tx *sql.Tx,
 	) (ledger.Budget, error)
 }
 
-type Factory interface {
-	BeginTx() (*sql.Tx, error)
-
-	GetBudgetDao(*sql.Tx) BudgetDao
-}
-
-// Deprecated: Use DaoFactory instead
 func DeferRollback(tx *sql.Tx, reference string) {
 	if tx == nil {
 		return
@@ -118,7 +112,6 @@ func DeferRollback(tx *sql.Tx, reference string) {
 	}
 }
 
-// Deprecated: Use DaoFactory instead
 func Commit(tx *sql.Tx) error {
 	if tx == nil {
 		log.Fatal("Commit should not be passed a nil transaction")
